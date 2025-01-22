@@ -1,4 +1,4 @@
-idf_component_register()
+idf_component_register(INCLUDE_DIRS ./include)
 
 get_filename_component(BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 add_prebuilt_library(${BASE_DIR} "${CMAKE_CURRENT_SOURCE_DIR}/libs/${IDF_TARGET}/libpeer_default.a"
