@@ -1,0 +1,7 @@
+## IDF Component Manager Manifest File
+dependencies:
+  espressif/esp_codec_dev: "*"
+  espressif/esp_audio_effects: "*"
+  av_render:
+    path: ../
+

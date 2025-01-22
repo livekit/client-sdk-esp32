@@ -1,0 +1,9 @@
+## IDF Component Manager Manifest File
+description: Espressif WebRTC Library
+version: 0.9.0
+
+dependencies:
+  espressif/nghttp: "*"
+  espressif/esp_websocket_client: "*"
+  espressif/esp_codec_dev: "*"
+  espressif/esp_libsrtp: "*"

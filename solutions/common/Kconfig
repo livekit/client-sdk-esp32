@@ -1,0 +1,10 @@
+menu "WebRTC Demo Common"
+
+config NETWORK_USE_ETHERNET
+   bool "Network use Ethernet"
+   default n
+   depends on IDF_TARGET_ESP32P4
+   help
+      Enable this option to use Ethernet
+
+endmenu

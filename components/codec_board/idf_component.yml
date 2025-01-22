@@ -1,0 +1,10 @@
+## IDF Component Manager Manifest File
+dependencies:
+  espressif/esp_codec_dev: "*"
+  esp_lcd_ek79007:
+    rules:
+      - if: "target in [esp32p4]"
+  espressif/esp_lcd_ili9881c:
+    version: "*"
+    rules:
+      - if: "target in [esp32p4]"

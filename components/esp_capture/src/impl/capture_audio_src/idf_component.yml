@@ -1,0 +1,5 @@
+dependencies:
+  espressif/esp_codec_dev: "*"
+  espressif/esp-sr: "*"
+  esp_capture:
+    path: ../../../../esp_capture

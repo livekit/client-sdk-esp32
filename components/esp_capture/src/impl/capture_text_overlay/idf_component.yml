@@ -1,0 +1,5 @@
+version: "0.0.1"
+description: Capture Text Overlay
+url: https://github.com/espressif/esp-adf-libs/tree/master
+dependencies:
+  idf : ">=4.4"

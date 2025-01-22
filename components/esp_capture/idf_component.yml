@@ -1,0 +1,5 @@
+version: "0.0.1"
+description: Espressif Capture Library
+dependencies:
+  idf : ">=4.4"
+  espressif/esp_muxer: "*"
