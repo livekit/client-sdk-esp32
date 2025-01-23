@@ -211,8 +211,14 @@ static int _thread_create(media_lib_thread_handle_t *handle, const char *name,
 
 static void _thread_destroy(media_lib_thread_handle_t handle)
 {
+#if defined(CONFIG_SPIRAM_BOOT_INIT) &&              \
+    (CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY)  &&  \
+    (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
+    vTaskDeleteWithCaps((TaskHandle_t)handle);
+#else
     // allow NULL to destroy self
     vTaskDelete((TaskHandle_t)handle);
+#endif
 }
 
 static bool _thread_set_priority(media_lib_thread_handle_t handle, int prio)
