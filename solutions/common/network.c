@@ -17,7 +17,7 @@
 #include "esp_event.h"
 #include "network.h"
 
-#ifdef USE_ETHERNET
+#ifdef CONFIG_NETWORK_USE_ETHERNET
 #include "esp_eth.h"
 #include "ethernet_init.h"
 #else
