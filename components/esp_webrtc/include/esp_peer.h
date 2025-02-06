@@ -86,6 +86,14 @@ typedef enum {
 } esp_peer_media_dir_t;
 
 /**
+ * @brief  ICE transport policy
+ */
+typedef enum {
+    ESP_PEER_ICE_TRANS_POLICY_ALL   = 0, /*!< All ICE candidates will be used for pairing */
+    ESP_PEER_ICE_TRANS_POLICY_RELAY = 1, /*!< Only relay ICE candidates will be used for pairing */
+} esp_peer_ice_trans_policy_t;
+
+/**
  * @brief  Video stream information
  */
 typedef struct {
@@ -161,6 +169,7 @@ typedef struct {
     esp_peer_ice_server_cfg_t   *server_lists;        /*< ICE server list */
     uint8_t                      server_num;          /*!< Number of ICE server */
     esp_peer_role_t              role;                /*!< Peer role */
+    esp_peer_ice_trans_policy_t  ice_trans_policy;    /*!< ICE transport policy */
     esp_peer_audio_stream_info_t audio_info;          /*!< Audio stream information */
     esp_peer_video_stream_info_t video_info;          /*!< Video stream information */
     esp_peer_media_dir_t         audio_dir;           /*!< Audio transmission direction */
