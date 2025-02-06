@@ -494,6 +494,7 @@ static int pc_start(webrtc_t *rtc, esp_peer_ice_server_cfg_t *server_info, int s
     esp_peer_cfg_t peer_cfg = {
         .server_lists = server_info,
         .server_num = server_num,
+        .ice_trans_policy = rtc->rtc_cfg.peer_cfg.ice_trans_policy,
         .audio_dir = rtc->rtc_cfg.peer_cfg.audio_dir,
         .video_dir = rtc->rtc_cfg.peer_cfg.video_dir,
         .enable_data_channel = rtc->rtc_cfg.peer_cfg.enable_data_channel,

@@ -50,6 +50,7 @@ typedef enum {
 typedef struct {
     esp_peer_ice_server_cfg_t   *server_lists;            /*!< STUN/Relay server URL lists, can be NULL when get from signaling */
     uint8_t                      server_num;              /*!< Number of STUN/Relay server URL */
+    esp_peer_ice_trans_policy_t  ice_trans_policy;        /*!< ICE transport policy */
     esp_peer_audio_stream_info_t audio_info;              /*!< Audio stream information for send */
     esp_peer_video_stream_info_t video_info;              /*!< Video stream information for send */
     esp_peer_media_dir_t         audio_dir;               /*!< Audio transmission direction */
