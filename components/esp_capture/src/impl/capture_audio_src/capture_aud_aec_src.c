@@ -335,15 +335,15 @@ static int audio_aec_src_start(esp_capture_audio_src_if_t *h)
         ESP_LOGE(TAG, "Failed to allocate cache frame");
         return ESP_CAPTURE_ERR_NOT_SUPPORTED;
     }
+    src->samples = 0;
+    src->cached_read_pos = src->cache_fill = 0;
+    src->stopping = false;
 
     media_lib_thread_handle_t thread = NULL;
     media_lib_thread_create_from_scheduler(&thread, "buffer_in", audio_aec_src_buffer_in_thread, src);
 #endif
     src->start = true;
-    src->samples = 0;
-    src->cached_read_pos = src->cache_fill = 0;
     src->in_quit = false;
-    src->stopping = false;
     return ESP_CAPTURE_ERR_OK;
 }
 
@@ -458,4 +458,5 @@ esp_capture_audio_src_if_t *esp_capture_new_audio_aec_src(esp_capture_audio_aec_
     src->channel_mask = cfg->channel_mask;
     return &src->base;
 }
+
 #endif
