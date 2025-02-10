@@ -93,6 +93,6 @@ int get_lcd_cfg(lcd_cfg_t *lcd_cfg)
         memcpy(lcd_cfg, &codec->lcd, sizeof(lcd_cfg_t));
         return 0;
     }
-    ESP_LOGE(TAG, "Input codec not exits on board");
+    ESP_LOGE(TAG, "LCD not exits on board");
     return -1;
 }
