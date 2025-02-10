@@ -303,7 +303,7 @@ int init_codec(codec_init_cfg_t *cfg)
     _i2c_init(0);
     // Init i2c and i2s
     bool same_i2s = (has_in && has_out && out_cfg.i2s_port == in_cfg.i2s_port);
-    ESP_LOGE(TAG, "in:%d out:%d port: %d", has_in, has_out, out_cfg.i2s_port == in_cfg.i2s_port);
+    ESP_LOGI(TAG, "in:%d out:%d port: %d", has_in, has_out, out_cfg.i2s_port == in_cfg.i2s_port);
     if (has_out) {
         if (out_cfg.i2c_port >= 0 && _i2c_init(out_cfg.i2c_port)) {
             ESP_LOGE(TAG, "Fail to int i2c: %d", out_cfg.i2c_port);
