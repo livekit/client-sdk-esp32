@@ -56,6 +56,12 @@ i2s: {mclk: 2, bclk: 17, ws: 47, dout: 15, din: 16}
 out: {codec: ES8311, pa: 46, use_mclk: 1, pa_gain:6}
 in: {codec: ES7210}
 
+Board: ESP32_S3_BOX_3
+i2c: {sda: 8, scl: 18, i2c_addr: 24}
+i2s: {mclk: 2, bclk: 17, ws: 45, din: 16, dout: 15}
+out: {codec: ES8311, pa: 46, use_mclk: 1, pa_gain: 6}
+in: {codec: ES7210}
+
 Board: ESP32_P4_DEV_V14
 i2c: {sda: 7, scl: 8}
 i2s: {mclk: 13, bclk: 12, ws: 10, dout: 9, din: 11}
