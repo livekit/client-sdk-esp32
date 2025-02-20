@@ -34,6 +34,17 @@ typedef int (*network_connect_cb)(bool connected);
 int network_init(const char *ssid, const char *password, network_connect_cb cb);
 
 /**
+ * @brief  Get current network mac
+ *
+ * @param[out]  mac  Network mac to store
+ *
+ * @return
+ *      - 0       On success
+ *      - Others  Fail to initialized
+ */
+int network_get_mac(uint8_t mac[6]);
+
+/**
  * @brief  Check network connected or not
  *
  * @return
