@@ -648,10 +648,6 @@ static int wss_signal_send_msg(esp_peer_signaling_handle_t h, esp_peer_signaling
     cJSON_Delete(json);
     int ret = https_post(request_room, NULL, payload, NULL, NULL);
     free(payload);
-    if (msg->type == ESP_PEER_SIGNALING_MSG_SDP) {
-        snprintf(request_room, 128, "%s/r/%s", sg->client_info.base_url, sg->client_info.room_id);
-        ESP_LOGI(TAG, "Please use browser to connect in: %s", request_room);
-    }
     return ret;
 }
 
