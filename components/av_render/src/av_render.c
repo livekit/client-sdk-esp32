@@ -608,7 +608,7 @@ static int _render_write_audio(av_render_thread_res_t *res, av_render_audio_fram
     if (res->flushing == false) {
         ret = audio_render_write(res->render->cfg.audio_render, audio_frame);
         if (ret != 0) {
-            ESP_LOGE(TAG, "Fail to render audio");
+            ESP_LOGE(TAG, "Fail to render audio ret %d", ret);
             return ret;
         }
     }

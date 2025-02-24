@@ -40,8 +40,8 @@ typedef enum {
     ESP_PEER_STATE_PAIRING             = 3, /*!< Under candidate pairing */
     ESP_PEER_STATE_PAIRED              = 4, /*!< Candidate pairing success */
     ESP_PEER_STATE_CONNECTING          = 5, /*!< Building connection with peer */
-    ESP_PEER_STATE_CONNECTED           = 6, /*!< Conencted with peer */
-    ESP_PEER_STATE_CONNECT_FAILED      = 7, /*!< Conenct failed */
+    ESP_PEER_STATE_CONNECTED           = 6, /*!< Connected with peer */
+    ESP_PEER_STATE_CONNECT_FAILED      = 7, /*!< Connect failed */
     ESP_PEER_STATE_DATA_CHANNEL_OPENED = 8, /*!< Data channel is opened */
     ESP_PEER_STATE_DATA_CHANNEL_CLOSED = 9, /*!< Data channel is closed */
 } esp_peer_state_t;
@@ -256,6 +256,15 @@ typedef struct {
     int (*new_connection)(esp_peer_handle_t peer);
 
     /**
+     * @brief  Update ICE information
+     * @param[in]   peer        Peer handle
+     * @param[in]   servers     ICE Server settings
+     * @param[in]   server_num  Number of ICE servers
+     * @return            Status code indicating success or failure.
+     */
+    int (*update_ice_info)(esp_peer_handle_t peer, esp_peer_role_t role, esp_peer_ice_server_cfg_t* server, int server_num);
+
+    /**
      * @brief  Send message to peer
      * @param[in]   peer  Peer handle
      * @param[in]   msg   Message to be sent
@@ -345,6 +354,21 @@ int esp_peer_open(esp_peer_cfg_t *cfg, const esp_peer_ops_t *ops, esp_peer_handl
  *       - ESP_PEER_ERR_NOT_SUPPORT  Not support
  */
 int esp_peer_new_connection(esp_peer_handle_t handle);
+
+/**
+ * @brief  Update ICE server information
+ *
+ * @note  After new connection is created, It will try gather ICE candidate from ICE servers.
+ *        And report local SDP to let user send to signaling server.
+ *
+ * @param[in]  peer  Peer handle
+ *
+ * @return
+ *       - ESP_PEER_ERR_NONE         Open peer connection success
+ *       - ESP_PEER_ERR_INVALID_ARG  Invalid argument
+ *       - ESP_PEER_ERR_NOT_SUPPORT  Not support
+ */
+int esp_peer_update_ice_info(esp_peer_handle_t handle, esp_peer_role_t role, esp_peer_ice_server_cfg_t* server, int server_num);
 
 /**
  * @brief  Send message to peer

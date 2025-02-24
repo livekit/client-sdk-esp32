@@ -2,8 +2,8 @@
 set(component_srcdirs "src")
 
 # AppRTC
-set(signalling_srcdirs  "impl/apprtc_signal")
-set(signalling_incdirs  "impl/apprtc_signal")
+set(signalling_srcdirs  "impl/apprtc_signal" "impl/whip_signal")
+set(signalling_incdirs  "impl/apprtc_signal" "impl/whip_signal/include")
 
 list(APPEND component_srcdirs ${signalling_srcdirs})
 

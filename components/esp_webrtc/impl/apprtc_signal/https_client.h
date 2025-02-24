@@ -45,39 +45,50 @@ typedef struct {
 typedef void (*http_body_t)(http_resp_t *resp, void *ctx);
 
 /**
+ * @brief  Https header callback
+ *
+ * @param[in]  key  Header key
+ * @param[in]  key  Header value
+ * @param[in]  ctx  User context
+ */
+typedef void (*http_header_t)(const char *key, const char *value, void *ctx);
+
+/**
  * @brief  Send https requests
  *
  * @note  This API is run in synchronized until response or error returns
  *
- * @param[in]  method   HTTP method to do
- * @param[in]  headers  HTTP headers, headers are array of "Type: Info", last one need set to NULL
- * @param[in]  url      HTTPS URL
- * @param[in]  data     Content data to be sent
- * @param[in]  body     Body callback
- * @param[in]  ctx      User context
+ * @param[in]  method     HTTP method to do
+ * @param[in]  headers    HTTP headers, headers are array of "Type: Info", last one need set to NULL
+ * @param[in]  url        HTTPS URL
+ * @param[in]  data       Content data to be sent
+ * @param[in]  header_cb  Header callback
+ * @param[in]  body       Body callback
+ * @param[in]  ctx        User context
  *
  * @return
  *       - 0       On success
  *       - Others  Fail to do https request
  */
-int https_send_request(const char *method, char **headers, const char *url, char *data, http_body_t body, void *ctx);
+int https_send_request(const char *method, char **headers, const char *url, char *data, http_header_t header_cb, http_body_t body_cb, void *ctx);
 
 /**
  * @brief  Do post https request
  *
  * @note  This API will internally call `https_send_request`
  *
- * @param[in]  url      HTTPS URL to post
- * @param[in]  headers  HTTP headers, headers are array of "Type: Info", last one need set to NULL
- * @param[in]  data     Content data to be sent
- * @param[in]  body     Body callback
- * @param[in]  ctx      User context
+ * @param[in]  url        HTTPS URL to post
+ * @param[in]  headers    HTTP headers, headers are array of "Type: Info", last one need set to NULL
+ * @param[in]  data       Content data to be sent
+ * @param[in]  header_cb  Header callback
+ * @param[in]  body       Body callback
+ * @param[in]  ctx        User context
  *
  * @return
  *       - 0       On success
  *       - Others  Fail to do https request
  */
-int https_post(const char *url, char **headers, char *data, http_body_t body, void *ctx);
+int https_post(const char *url, char **headers, char *data, http_header_t header_cb, http_body_t body, void *ctx);
 
 #ifdef __cplusplus
 }

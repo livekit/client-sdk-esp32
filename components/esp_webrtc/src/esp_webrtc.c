@@ -488,8 +488,7 @@ static int pc_close(webrtc_t *rtc)
 static int pc_start(webrtc_t *rtc, esp_peer_ice_server_cfg_t *server_info, int server_num)
 {
     if (rtc->pc) {
-        // Already start
-        return ESP_PEER_ERR_NONE;
+        return esp_peer_update_ice_info(rtc->pc, rtc->ice_role, server_info, server_num);
     }
     esp_peer_cfg_t peer_cfg = {
         .server_lists = server_info,

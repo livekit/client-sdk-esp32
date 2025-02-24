@@ -1,4 +1,3 @@
-
 /**
  * ESPRESSIF MIT License
  *
@@ -25,43 +24,28 @@
 
 #pragma once
 
-#include "esp_peer.h"
+#include <stdint.h>
 #include "esp_peer_signaling.h"
-#include "esp_peer_whip_signaling.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @brief  Get APPRTC signaling implement
- *
- * @param[in]   cfg   Signaling configuration
- * @param[in]   impl  Implement of signaling interface
- * @param[out]  sig   Signaling handle
- *
- * @return
- *       - NULL    Not enough memory
- *       - Others  APPRTC signaling implementation
+ * @brief  WHIP authorization type
  */
-const esp_peer_signaling_impl_t *esp_signaling_get_apprtc_impl(void);
+typedef enum {
+    ESP_PEER_SIGNALING_WHIP_AUTH_TYPE_BEARER = 0, /*!< Use Bearer token */
+    ESP_PEER_SIGNALING_WHIP_AUTH_TYPE_BASIC  = 1, /*!< Use basic authorization */
+} esp_peer_signaling_whip_auth_type_t;
 
 /**
- * @brief  Get WHIP signaling implementation
- *
- * @return
- *       - NULL    Not enough memory
- *       - Others  WHIP signaling implementation
+ * @brief  WHIP signaling configuration
  */
-const esp_peer_signaling_impl_t *esp_signaling_get_whip_impl(void);
-
-/**
- * @brief  Get default peer connection implementation
- * @return
- *       - NULL    No default implementation, or not enough memory
- *       - Others  Default implementation
- */
-const esp_peer_ops_t *esp_peer_get_default_impl(void);
+typedef struct {
+    esp_peer_signaling_whip_auth_type_t auth_type; /*!< Authorization type */
+    char                               *token;     /*!< Bearer token or username:password for basic authorization */
+} esp_peer_signaling_whip_cfg_t;
 
 #ifdef __cplusplus
 }
