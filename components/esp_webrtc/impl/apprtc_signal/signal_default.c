@@ -496,7 +496,7 @@ static void reload_ice_task(void *arg)
         media_lib_thread_sleep(50);
         uint32_t cur = time(NULL);
         if (cur > start + sg->ice_expire_time) {
-            int ret = https_post(sg->client_info.ice_server, NULL, NULL, credential_body, &sg->ice_info);
+            int ret = https_post(sg->client_info.ice_server, NULL, NULL, NULL, credential_body, &sg->ice_info);
             if (ret != 0) {
                 break;
             }
@@ -546,7 +546,7 @@ static int wss_signal_start(esp_peer_signaling_cfg_t *cfg, esp_peer_signaling_ha
     }
     int ret = 0;
     // Http post to get client info firstly
-    https_post(cfg->signal_url, NULL, NULL, get_client_info, &sg->client_info);
+    https_post(cfg->signal_url, NULL, NULL, NULL, get_client_info, &sg->client_info);
     if (sg->client_info.client_id == NULL) {
         ESP_LOGE(TAG, "Fail to get client id for room %s", cfg->signal_url);
         ret = -1;
@@ -562,7 +562,7 @@ static int wss_signal_start(esp_peer_signaling_cfg_t *cfg, esp_peer_signaling_ha
         ret = -1;
         goto __exit;
     }
-    https_post(sg->client_info.ice_server, NULL, NULL, credential_body, &sg->ice_info);
+    https_post(sg->client_info.ice_server, NULL, NULL, NULL, credential_body, &sg->ice_info);
     sg->ice_info.is_initiator = sg->client_info.is_initiator;
     if (sg->ice_info.server_info.psw == NULL) {
         printf("Fail to get password\n");
@@ -646,7 +646,7 @@ static int wss_signal_send_msg(esp_peer_signaling_handle_t h, esp_peer_signaling
     }
     char *payload = cJSON_PrintUnformatted(json);
     cJSON_Delete(json);
-    int ret = https_post(request_room, NULL, payload, NULL, NULL);
+    int ret = https_post(request_room, NULL, payload, NULL, NULL, NULL);
     free(payload);
     return ret;
 }
@@ -660,7 +660,7 @@ static void wss_send_leave(wss_sig_t *sg)
     char header[128];
     char *headers[2] = { header, NULL };
     snprintf(header, 128, "Referer: %s/r/%s", sg->client_info.base_url, sg->client_info.room_id);
-    https_post(request_room, headers, NULL, NULL, NULL);
+    https_post(request_room, headers, NULL, NULL, NULL, NULL);
     esp_peer_signaling_msg_t msg = {
         .type = ESP_PEER_SIGNALING_MSG_BYE,
     };
@@ -669,7 +669,7 @@ static void wss_send_leave(wss_sig_t *sg)
     snprintf(request_room, 128, "%s/%s/%s",
              sg->client_info.wss_post_url,
              sg->client_info.room_id, sg->client_info.client_id);
-    https_send_request("DELETE", NULL, request_room, NULL, NULL, NULL);
+    https_send_request("DELETE", NULL, request_room, NULL, NULL, NULL, NULL);
 }
 
 int wss_signal_stop(esp_peer_signaling_handle_t h)

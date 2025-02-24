@@ -33,11 +33,12 @@
 static const char *TAG = "HTTPS_CLIENT";
 
 typedef struct {
-    http_body_t body;
-    uint8_t    *data;
-    int         fill_size;
-    int         size;
-    void       *ctx;
+    http_header_t header;
+    http_body_t   body;
+    uint8_t      *data;
+    int           fill_size;
+    int           size;
+    void         *ctx;
 } http_info_t;
 
 esp_err_t _http_event_handler(esp_http_client_event_t *evt)
@@ -54,6 +55,9 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt)
             ESP_LOGD(TAG, "HTTP_EVENT_HEADER_SENT");
             break;
         case HTTP_EVENT_ON_HEADER:
+            if (info->header) {
+                info->header(evt->header_key, evt->header_value, info->ctx);
+            }
             ESP_LOGD(TAG, "HTTP_EVENT_ON_HEADER, key=%s, value=%s", evt->header_key,
                      evt->header_value);
             break;
@@ -100,10 +104,11 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt)
     return ESP_OK;
 }
 
-int https_send_request(const char *method, char **headers, const char *url, char *data, http_body_t body, void *ctx)
+int https_send_request(const char *method, char **headers, const char *url, char *data, http_header_t header_cb, http_body_t body, void *ctx)
 {
     http_info_t info = {
         .body = body,
+        .header = header_cb,
         .ctx = ctx,
     };
     esp_http_client_config_t config = {
@@ -124,6 +129,8 @@ int https_send_request(const char *method, char **headers, const char *url, char
         esp_http_client_set_method(client, HTTP_METHOD_POST);
     } else if (strcmp(method, "DELETE") == 0) {
         esp_http_client_set_method(client, HTTP_METHOD_DELETE);
+    } else if (strcmp(method, "PATCH") == 0) {
+        esp_http_client_set_method(client, HTTP_METHOD_PATCH);
     } else {
         err = -1;
         goto _exit;
@@ -168,7 +175,7 @@ _exit:
     return err;
 }
 
-int https_post(const char *url, char **headers, char *data, http_body_t body, void *ctx)
+int https_post(const char *url, char **headers, char *data, http_header_t header_cb, http_body_t body, void *ctx)
 {
-    return https_send_request("POST", headers, url, data, body, ctx);
+    return https_send_request("POST", headers, url, data, header_cb, body, ctx);
 }
