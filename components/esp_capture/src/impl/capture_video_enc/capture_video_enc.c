@@ -106,7 +106,7 @@ static int venc_get_frame_size(esp_capture_venc_if_t *h, int *in_frame_size, int
     if (venc->info.codec == ESP_CAPTURE_CODEC_TYPE_MJPEG) {
         *out_frame_size = *in_frame_size / 20;
     } else if (venc->info.codec == ESP_CAPTURE_CODEC_TYPE_H264) {
-        *out_frame_size = *in_frame_size / 2;
+        *out_frame_size = *in_frame_size;
         *out_frame_size = ALIGN_UP(*out_frame_size, 128);
     } else {
         return ESP_CAPTURE_ERR_NOT_SUPPORTED;
