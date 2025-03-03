@@ -67,6 +67,8 @@ static esp_video_codec_type_t get_codec_type(av_render_video_codec_t codec)
 static esp_video_codec_pixel_fmt_t get_out_fmt(av_render_video_frame_type_t out_type)
 {
     switch (out_type) {
+        case AV_RENDER_VIDEO_RAW_TYPE_YUV420:
+            return ESP_VIDEO_CODEC_PIXEL_FMT_YUV420P;
         case AV_RENDER_VIDEO_RAW_TYPE_RGB565:
             return ESP_VIDEO_CODEC_PIXEL_FMT_RGB565_LE;
         case AV_RENDER_VIDEO_RAW_TYPE_RGB565_BE:
@@ -224,6 +226,26 @@ static int check_input_format_support(vdec_t *vdec, esp_video_dec_cfg_t *dec_cfg
     // Prefer to use first one
     dec_cfg->out_fmt = caps.out_fmts[0];
     ESP_LOGI(TAG, "Need color covert to covert from %d to %d", dec_cfg->out_fmt, get_out_fmt(out_fmt));
+    return ESP_MEDIA_ERR_OK;
+}
+
+int vdec_get_output_formats(av_render_video_codec_t codec, av_render_video_frame_type_t* fmts, uint8_t* num)
+{
+     esp_video_codec_query_t query = {
+        .codec_type = get_codec_type(codec),
+    };
+    esp_video_dec_caps_t caps = {};
+    esp_video_dec_query_caps(&query, &caps);
+    if (caps.out_fmt_num == 0) {
+        return ESP_MEDIA_ERR_NOT_SUPPORT;
+    }
+    if (*num < caps.out_fmt_num) {
+        return ESP_MEDIA_ERR_EXCEED_LIMIT;
+    }
+    for (int i = 0; i < caps.out_fmt_num; i++) {
+        fmts[i] = get_frame_type(caps.out_fmts[i]);
+    }
+    *num = caps.out_fmt_num;
     return ESP_MEDIA_ERR_OK;
 }
 

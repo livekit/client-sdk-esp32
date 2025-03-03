@@ -36,6 +36,8 @@ typedef struct {
     int                          height;
 } color_convert_cfg_t;
 
+int convert_table_get_image_size(av_render_video_frame_type_t fmt, int width, int height);
+
 color_convert_table_t init_convert_table(color_convert_cfg_t *cfg);
 
 int convert_color(color_convert_table_t table, uint8_t *src, int src_size, uint8_t *dst, int dst_size);

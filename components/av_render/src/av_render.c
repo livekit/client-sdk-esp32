@@ -34,6 +34,7 @@
 #include "video_render.h"
 #include "audio_resample.h"
 #include "esp_timer.h"
+#include "color_convert.h"
 #include "esp_log.h"
 
 #define TAG "AV_RENDER"
@@ -88,10 +89,15 @@ typedef struct {
 } av_render_adec_res_t;
 
 typedef struct {
-    av_render_thread_res_t   thread_res;
-    vdec_handle_t            vdec;
-    int                      video_err_cnt;
-    av_render_video_frame_t *fb_frame;
+    av_render_thread_res_t       thread_res;
+    vdec_handle_t                vdec;
+    int                          video_err_cnt;
+    av_render_video_frame_t     *fb_frame;
+    av_render_video_frame_type_t dec_out_fmt;
+    av_render_video_frame_type_t out_fmt;
+    color_convert_table_t       *vid_convert;
+    uint8_t                     *vid_convert_out;
+    int                          vid_convert_out_size;
 } av_render_vdec_res_t;
 
 struct _av_render;
@@ -704,6 +710,15 @@ static int v_render_body(av_render_thread_res_t *res, bool drop)
     int ret = read_for_v_render(res->data_q, &data);
     RETURN_ON_FAIL(ret);
     if (drop == false && (data.size || data.eos)) {
+        av_render_vdec_res_t *vdec_res = res->render->vdec_res;
+        if (vdec_res && vdec_res->vid_convert) {
+            // Do color convert firstly
+            ret = convert_color(vdec_res->vid_convert,
+                 data.data, data.size, 
+                 vdec_res->vid_convert_out, vdec_res->vid_convert_out_size);
+            data.data = vdec_res->vid_convert_out;
+            data.size = vdec_res->vid_convert_out_size;
+        }
         ret = _render_write_video(res, &data);
         if (ret != 0) {
             ESP_LOGE(TAG, "Fail to render video");
@@ -1055,6 +1070,33 @@ static int av_render_video_frame_reached(av_render_video_frame_t *frame, void *c
                 ESP_LOGE(TAG, "Fail to get video frame information");
                 return ret;
             }
+            if (vdec_res->dec_out_fmt != vdec_res->out_fmt) {
+                color_convert_cfg_t convert_cfg = {
+                    .from = vdec_res->dec_out_fmt,
+                    .to = vdec_res->out_fmt,
+                    .width = v_render->video_frame_info.width,
+                    .height = v_render->video_frame_info.height,
+                };
+                vdec_res->vid_convert = init_convert_table(&convert_cfg);
+                if (vdec_res->vid_convert == NULL) {
+                    ESP_LOGE(TAG, "Fail to init video convert");
+                    return ESP_MEDIA_ERR_NO_MEM;
+                }
+            }
+            if (vdec_res && vdec_res->vid_convert) {
+                // Delay to malloc video convert output size
+                int image_size = convert_table_get_image_size(vdec_res->out_fmt,
+                        v_render->video_frame_info.width, 
+                        v_render->video_frame_info.height);
+                uint8_t* vid_cvt_out = media_lib_realloc(vdec_res->vid_convert_out, image_size);
+                if (vid_cvt_out == NULL) {
+                    ESP_LOGE(TAG, "Fail to allocate video convert output");
+                    return ESP_MEDIA_ERR_NO_MEM;
+                }
+                vdec_res->vid_convert_out = vid_cvt_out;
+                vdec_res->vid_convert_out_size = image_size;
+                v_render->video_frame_info.type = vdec_res->out_fmt;
+            }
             if (v_render->video_frame_info.fps == 0) {
                 v_render->video_frame_info.fps = old_fps;
             }
@@ -1096,6 +1138,15 @@ static int av_render_video_frame_reached(av_render_video_frame_t *frame, void *c
                 ret = put_to_v_render(v_render->thread_res.data_q, frame);
             }
         } else {
+            av_render_vdec_res_t *vdec_res = render->vdec_res;
+            if (vdec_res && vdec_res->vid_convert) {
+                // Do color convert firstly
+                ret = convert_color(vdec_res->vid_convert,
+                    frame->data, frame->size,
+                    vdec_res->vid_convert_out, vdec_res->vid_convert_out_size);
+                frame->data = vdec_res->vid_convert_out;
+                frame->size = vdec_res->vid_convert_out_size;
+            }
             ret = _render_write_video(&v_render->thread_res, frame);
         }
     }
@@ -1306,16 +1357,42 @@ int av_render_set_fixed_frame_info(av_render_handle_t h, av_render_audio_frame_i
     return ret;
 }
 
-static void get_support_output_format(av_render_t *render, vdec_cfg_t *cfg)
+static bool get_support_output_format(av_render_t *render, av_render_video_info_t *video_info, vdec_cfg_t *cfg)
 {
     av_render_video_frame_type_t out_type;
-    for (out_type = AV_RENDER_VIDEO_RAW_TYPE_NONE + 1; out_type < AV_RENDER_VIDEO_RAW_TYPE_MAX; out_type++) {
-        if (video_render_format_supported(render->cfg.video_render, out_type)) {
-            ESP_LOGI(TAG, "Set video decoder output format %d", out_type);
-            cfg->out_type = out_type;
-            break;
+    av_render_video_frame_type_t out_fmts[6];
+    av_render_vdec_res_t *vdec_res = render->vdec_res;
+    uint8_t num = sizeof(out_fmts)/sizeof(out_fmts[0]);
+    vdec_get_output_formats(video_info->codec, out_fmts, &num);
+    // Try to match decoder supported formats
+    for (int i = 0; i < num; i++) {
+        if (video_render_format_supported(render->cfg.video_render, out_fmts[i])) {
+            ESP_LOGI(TAG, "Set video decoder prefer output format %d", out_fmts[i]);
+            cfg->out_type = out_fmts[i];
+            vdec_res->out_fmt = out_fmts[i];
+            vdec_res->dec_out_fmt = out_fmts[i];
+            return true;
         }
     }
+    for (out_type = AV_RENDER_VIDEO_RAW_TYPE_NONE + 1; out_type < AV_RENDER_VIDEO_RAW_TYPE_MAX; out_type++) {
+        if (video_render_format_supported(render->cfg.video_render, out_type) == false) {
+            continue;
+        }
+        ESP_LOGI(TAG, "Set video render output format %d", out_type);
+        // Let decoder do color convert
+        if (render->cfg.video_cvt_in_render == false) {
+            cfg->out_type = out_type;
+            vdec_res->out_fmt = out_type;
+            vdec_res->dec_out_fmt = out_type;
+            return true;
+        }
+        // User codec prefer one
+        cfg->out_type = out_fmts[0];
+        vdec_res->out_fmt = out_type;
+        vdec_res->dec_out_fmt = out_fmts[0];
+        return true;
+    }
+    return false;
 }
 
 int av_render_add_video_stream(av_render_handle_t h, av_render_video_info_t *video_info)
@@ -1357,6 +1434,10 @@ int av_render_add_video_stream(av_render_handle_t h, av_render_video_info_t *vid
             }
             vdec_close(vdec_res->vdec);
             vdec_res->vdec = NULL;
+            if (vdec_res->vid_convert) {
+                deinit_convert_table(vdec_res->vid_convert);
+                vdec_res->vid_convert = NULL;
+            }
         }
         // Clear frame number
         v_render->video_packet_reached = false;
@@ -1382,7 +1463,9 @@ int av_render_add_video_stream(av_render_handle_t h, av_render_video_info_t *vid
                 .frame_cb = av_render_video_frame_reached,
                 .ctx = render,
             };
-            get_support_output_format(render, &cfg);
+            if (get_support_output_format(render, video_info, &cfg) == false) {
+                break;
+            }
             vdec_res->vdec = vdec_open(&cfg);
             if (vdec_res->vdec == NULL) {
                 ESP_LOGE(TAG, "Fail to create video decoder");
@@ -1994,9 +2077,18 @@ int av_render_reset(av_render_handle_t h)
         render->adec_res = NULL;
     }
     if (render->vdec_res) {
-        if (render->vdec_res->vdec) {
-            vdec_close(render->vdec_res->vdec);
-            render->vdec_res->vdec = NULL;
+        av_render_vdec_res_t *vdec_res = render->vdec_res;
+        if (vdec_res->vdec) {
+            vdec_close(vdec_res->vdec);
+            vdec_res->vdec = NULL;
+        }
+        if (vdec_res->vid_convert) {
+            deinit_convert_table(vdec_res->vid_convert);
+            vdec_res->vid_convert = NULL;
+        }
+        if (vdec_res->vid_convert_out) {
+            media_lib_free(vdec_res->vid_convert_out);
+            vdec_res->vid_convert_out = NULL;
         }
         destroy_thread_res(&render->vdec_res->thread_res);
         media_lib_free(render->vdec_res);
