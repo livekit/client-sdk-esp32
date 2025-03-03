@@ -59,6 +59,7 @@ typedef struct {
     bool                  pause_render_only;      /*!< If call `av_render_pause` only pause render thread or pause all thread */
     bool                  pause_on_first_frame;   /*!< Whether automatically pause when render receive first frame */
     void                 *ctx;                    /*!< User context */
+    bool                  video_cvt_in_render;    /*!< Convert color in render*/
 } av_render_cfg_t;
 
 /**

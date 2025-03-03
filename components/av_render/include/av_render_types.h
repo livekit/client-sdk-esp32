@@ -81,6 +81,7 @@ typedef struct {
     uint8_t                 channel;         /*!< Audio channel */
     uint8_t                 bits_per_sample; /*!< Audio bits per sample */
     uint32_t                sample_rate;     /*!< Audio sample rate */
+    uint32_t                aac_no_adts : 1;    /*!< AAC no adts */
     void                   *codec_spec_info; /*!< Audio codec specified information */
     int                     spec_info_len;   /*!< Audio codec specified information length */
 } av_render_audio_info_t;

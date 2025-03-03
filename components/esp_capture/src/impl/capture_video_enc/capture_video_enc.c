@@ -132,6 +132,9 @@ static esp_video_codec_pixel_fmt_t map_pixel_fmt(esp_capture_codec_type_t codec)
         case ESP_CAPTURE_CODEC_TYPE_RGB565:
             return ESP_VIDEO_CODEC_PIXEL_FMT_RGB565_LE;
         case ESP_CAPTURE_CODEC_TYPE_YUV420:
+        #if CONFIG_IDF_TARGET_ESP32S3
+            return ESP_VIDEO_CODEC_PIXEL_FMT_YUV420P;
+        #endif
             return ESP_VIDEO_CODEC_PIXEL_FMT_O_UYY_E_VYY;
         default:
             return ESP_VIDEO_CODEC_PIXEL_FMT_NONE;

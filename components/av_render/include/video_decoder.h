@@ -59,6 +59,18 @@ typedef struct {
 typedef void *vdec_handle_t;
 
 /**
+ * @brief  Get video decoder output formats according decode type
+ *
+ * @param[in]      codec  Decode type
+ * @param[out]     fmts   Output formats to be filled
+ * @param[in,out]  fmts   Output formats number
+ * @return
+ *       - NULL    No resource for decoder
+ *       - Others  Video decoder handle
+ */
+int vdec_get_output_formats(av_render_video_codec_t codec, av_render_video_frame_type_t* fmts, uint8_t* num);
+
+/**
  * @brief  Open video decoder
  *
  * @param[in]  cfg  Video decoder configuration

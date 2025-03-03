@@ -143,6 +143,19 @@ static int _open_audio_dec(adec_t *adec, av_render_audio_info_t *stream_info)
             dec_cfg.cfg_sz = sizeof(esp_alac_dec_cfg_t);
             esp_audio_dec_open(&dec_cfg, &adec->dec_handle);
         } break;
+         case ESP_AUDIO_TYPE_AAC: {
+            esp_aac_dec_cfg_t aac_cfg = {
+                .channel = stream_info->channel,
+                .sample_rate = stream_info->sample_rate,
+                .bits_per_sample = stream_info->bits_per_sample,
+                .no_adts_header = stream_info->aac_no_adts,
+            };
+            if (stream_info->aac_no_adts) {
+                dec_cfg.cfg = &aac_cfg;
+                dec_cfg.cfg_sz = sizeof(esp_alac_dec_cfg_t);
+            }
+            esp_audio_dec_open(&dec_cfg, &adec->dec_handle);
+        } break;
         default:
             esp_audio_dec_open(&dec_cfg, &adec->dec_handle);
             break;

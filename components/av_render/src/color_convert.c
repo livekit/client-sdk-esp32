@@ -21,9 +21,13 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-
+#include <sdkconfig.h>
 #include "color_convert.h"
 #include "esp_log.h"
+
+#if CONFIG_IDF_TARGET_ESP32P4
+extern void i420_to_rgb565le(uint8_t *in_image, uint8_t *out_image, int16_t width, int16_t height);
+#endif
 
 #define TAG "CLR_CONVERT"
 
@@ -99,6 +103,21 @@ static int init_table(color_convert_t *convert)
     return 0;
 }
 
+int convert_table_get_image_size(av_render_video_frame_type_t fmt, int width, int height)
+{
+    switch (fmt) {
+        case AV_RENDER_VIDEO_RAW_TYPE_YUV420:
+            return width * height * 3 / 2;
+        case AV_RENDER_VIDEO_RAW_TYPE_RGB565:
+        case AV_RENDER_VIDEO_RAW_TYPE_RGB565_BE:
+            return width * height * 2;
+        default:
+            ESP_LOGE(TAG, "Not supported format %d", fmt);
+            break;
+    }
+    return 0;
+}
+
 color_convert_table_t init_convert_table(color_convert_cfg_t *cfg)
 {
     color_convert_t *convert = (color_convert_t *)calloc(1, sizeof(color_convert_t));
@@ -110,6 +129,11 @@ color_convert_table_t init_convert_table(color_convert_cfg_t *cfg)
         convert->to = cfg->to;
         convert->width = cfg->width;
         convert->height = cfg->height;
+#if CONFIG_IDF_TARGET_ESP32P4
+        if (convert->from == AV_RENDER_VIDEO_RAW_TYPE_YUV420 && convert->to == AV_RENDER_VIDEO_RAW_TYPE_RGB565) {
+            return (color_convert_table_t)convert;
+        }
+#endif
         int table_size = get_table_size(cfg->from, cfg->to);
         if (table_size) {
             convert->table = (uint8_t *)malloc(table_size);
@@ -158,6 +182,13 @@ static void yuv420_to_rgb565(color_convert_t *convert, uint8_t *src, uint8_t *ds
 int convert_color(color_convert_table_t table, uint8_t *src, int src_size, uint8_t *dst, int dst_size)
 {
     color_convert_t *convert = (color_convert_t *)table;
+    if (convert->from == AV_RENDER_VIDEO_RAW_TYPE_YUV420 && convert->to == AV_RENDER_VIDEO_RAW_TYPE_RGB565) {
+#if CONFIG_IDF_TARGET_ESP32P4
+        i420_to_rgb565le(src, dst, convert->width, convert->height);
+        return 0;
+#endif
+    }
+    
     switch (convert->from) {
         case AV_RENDER_VIDEO_RAW_TYPE_YUV420: {
             int src_need = convert->width * convert->height * 3 / 2;
