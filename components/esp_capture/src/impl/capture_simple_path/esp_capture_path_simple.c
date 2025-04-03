@@ -336,7 +336,7 @@ static void simple_capture_venc_thread(void *arg)
         capture->src_cfg.release_src_frame(capture->src_cfg.src_ctx, &frame);
         if (ret != ESP_CAPTURE_ERR_OK) {
             if (ret == ESP_CAPTURE_ERR_NOT_ENOUGH) {
-                ESP_LOGW(TAG, "Bad input maybe skipped");
+                ESP_LOGW(TAG, "Bad input maybe skipped size %d", (int)res->video_frame_size);
                 continue;
             }
             ESP_LOGE(TAG, "Fail to encode video frame");

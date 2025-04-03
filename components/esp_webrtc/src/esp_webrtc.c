@@ -667,6 +667,20 @@ int esp_webrtc_open(esp_webrtc_cfg_t *cfg, esp_webrtc_handle_t *handle)
     rtc->rtc_cfg.peer_cfg.server_num = 0;
     rtc->rtc_cfg.peer_cfg.server_lists = NULL;
     malloc_server_cfg(rtc, cfg->peer_cfg.server_lists, cfg->peer_cfg.server_num);
+    if (cfg->peer_cfg.extra_cfg) {
+        void *peer_exta_cfg = calloc(1, cfg->peer_cfg.extra_size);
+        if (peer_exta_cfg) {
+            memcpy(peer_exta_cfg, cfg->peer_cfg.extra_cfg, cfg->peer_cfg.extra_size);
+        }
+        rtc->rtc_cfg.peer_cfg.extra_cfg = peer_exta_cfg;
+    }
+    if (cfg->signaling_cfg.extra_cfg) {
+        void *signaling_cfg = calloc(1, cfg->signaling_cfg.extra_size);
+        if (signaling_cfg) {
+            memcpy(signaling_cfg, cfg->signaling_cfg.extra_cfg, cfg->signaling_cfg.extra_size);
+        }
+        rtc->rtc_cfg.signaling_cfg.extra_cfg = signaling_cfg;
+    }
     *handle = rtc;
     return ESP_PEER_ERR_NONE;
 }
@@ -858,6 +872,8 @@ int esp_webrtc_close(esp_webrtc_handle_t handle)
     webrtc_t *rtc = (webrtc_t *)handle;
     esp_webrtc_stop(handle);
     free_server_cfg(rtc);
+    SAFE_FREE(rtc->rtc_cfg.peer_cfg.extra_cfg);
+    SAFE_FREE(rtc->rtc_cfg.signaling_cfg.extra_cfg);
     SAFE_FREE(rtc->aud_fifo);
     free(rtc);
     return ESP_PEER_ERR_NONE;
