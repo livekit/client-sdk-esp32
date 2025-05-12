@@ -43,9 +43,6 @@ typedef struct {
     uint8_t                         cur_pic;
 } dvp_src_t;
 
-// Workaround for esp_camera
-static void *i2c_master;
-
 static int dvp_src_open(esp_capture_video_src_if_t *src)
 {
     return 0;
@@ -137,6 +134,7 @@ static int dvp_src_negotiate_caps(esp_capture_video_src_if_t *src, esp_capture_v
         .jpeg_quality = 12, // 0-63 lower number means higher quality
         .fb_count = dvp_src->cfg.buf_count,
         .grab_mode = CAMERA_GRAB_WHEN_EMPTY,
+        .sccb_i2c_port = dvp_src->cfg.i2c_port,
     };
     dvp_src->need_convert_420 = false;
     if (camera_config.xclk_freq_hz == 0) {
@@ -308,160 +306,11 @@ esp_capture_video_src_if_t *esp_capture_new_video_dvp_src(esp_capture_video_dvp_
     dvp->base.release_frame = dvp_src_release_frame;
     dvp->base.stop = dvp_src_stop;
     dvp->base.close = dvp_src_close;
-    i2c_master = cfg->i2c_master;
     dvp->cfg = *cfg;
     if (cfg->buf_count == 0) {
         dvp->cfg.buf_count = 1;
     }
     return &dvp->base;
 }
-
-// TODO hacking for IDFv5.3 for esp_camera not support i2c_master yet
-#if 1
-#include "sensor.h"
-#include "driver/i2c_master.h"
-
-static i2c_master_dev_handle_t dev_handle;
-static uint8_t i2c_addr;
-
-static int add_dev(uint8_t addr)
-{
-    if (addr == i2c_addr) {
-        return 0;
-    }
-    i2c_device_config_t dev_cfg = {
-        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
-        .device_address = addr,
-        .scl_speed_hz = 100000,
-    };
-    int ret = i2c_master_bus_add_device(i2c_master, &dev_cfg, &dev_handle);
-    printf("Init for addr %x ret %d\n", addr, ret);
-    if (ret == 0) {
-        i2c_addr = addr;
-    }
-    return ret;
-}
-
-int SCCB_Init(int pin_sda, int pin_scl)
-{
-    ESP_LOGI(TAG, "pin_sda %d pin_scl %d", pin_sda, pin_scl);
-    return 0;
-}
-
-int SCCB_Use_Port(int i2c_num)
-{ // sccb use an already initialized I2C port
-    return 0;
-}
-
-int SCCB_Deinit(void)
-{
-    if (dev_handle) {
-        i2c_master_bus_rm_device(dev_handle);
-        i2c_addr = 0;
-        dev_handle = NULL;
-    }
-    return 0;
-}
-
-uint8_t SCCB_Probe(void)
-{
-    uint8_t slave_addr = 0x0;
-    for (size_t i = 0; i < CAMERA_MODEL_MAX; i++) {
-        if (slave_addr == camera_sensor[i].sccb_addr) {
-            continue;
-        }
-        slave_addr = camera_sensor[i].sccb_addr;
-        esp_err_t ret = i2c_master_probe(i2c_master, slave_addr, 100);
-        printf("Probe for %02x ret %d\n", slave_addr, ret);
-        if (ret == ESP_OK) {
-            return slave_addr;
-        }
-    }
-    return 0;
-}
-
-uint8_t SCCB_Read(uint8_t slv_addr, uint8_t reg)
-{
-    add_dev(slv_addr);
-    uint8_t addr_data[2] = { 0 };
-    addr_data[0] = (reg)&0xff;
-    uint8_t data = 0;
-    int ret = i2c_master_transmit_receive(dev_handle, addr_data, 1, &data, 1, 100);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "SCCB_Read Failed addr:0x%02x, reg:0x%02x, data:0x%02x, ret:%d", slv_addr, reg, data, ret);
-    }
-    return data;
-}
-
-int SCCB_Write(uint8_t slv_addr, uint8_t reg, uint8_t data)
-{
-    add_dev(slv_addr);
-    uint8_t write_data[2] = { 0 };
-    write_data[0] = reg & 0xff;
-    write_data[1] = data;
-    esp_err_t ret = i2c_master_transmit(dev_handle, write_data, 2, 100);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "SCCB_Write Failed addr:0x%02x, reg:0x%02x, data:0x%02x, ret:%d", slv_addr, reg, data, ret);
-    }
-    return ret == ESP_OK ? 0 : -1;
-}
-
-uint8_t SCCB_Read16(uint8_t slv_addr, uint16_t reg)
-{
-    add_dev(slv_addr);
-    uint8_t write_data[2] = { 0 };
-    write_data[0] = (reg & 0xff00) >> 8;
-    write_data[1] = reg & 0xff;
-    uint8_t data = 0;
-    int ret = i2c_master_transmit_receive(dev_handle, write_data, 2, &data, 1, 100);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "SCCB_Read Failed addr:0x%02x, reg:0x%02x, data:0x%02x, ret:%d", slv_addr, reg, data, ret);
-    }
-    return data;
-}
-
-int SCCB_Write16(uint8_t slv_addr, uint16_t reg, uint8_t data)
-{
-    add_dev(slv_addr);
-    uint8_t write_data[3] = { 0 };
-    write_data[0] = (reg & 0xff00) >> 8;
-    write_data[1] = reg & 0xff;
-    write_data[2] = data;
-    esp_err_t ret = i2c_master_transmit(dev_handle, write_data, 3, 100);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "SCCB_Write Failed addr:0x%02x, reg:0x%02x, data:0x%02x, ret:%d", slv_addr, reg, data, ret);
-    }
-    return ret == ESP_OK ? 0 : -1;
-}
-
-uint16_t SCCB_Read_Addr16_Val16(uint8_t slv_addr, uint16_t reg)
-{
-    uint16_t data = 0;
-    add_dev(slv_addr);
-    uint8_t addr_data[2] = { 0 };
-    addr_data[0] = (reg & 0xff00) >> 8;
-    addr_data[1] = reg & 0xff;
-    int ret = i2c_master_transmit_receive(dev_handle, addr_data, 2, (uint8_t *)&data, 2, 100);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "SCCB_Read Failed addr:0x%02x, reg:0x%02x, data:0x%02x, ret:%d", slv_addr, reg, data, ret);
-    }
-    return ((data & 0xF) << 8 | (data & 0xFF));
-}
-
-int SCCB_Write_Addr16_Val16(uint8_t slv_addr, uint16_t reg, uint16_t data)
-{
-    add_dev(slv_addr);
-    uint8_t trans_data[4] = { 0 };
-    trans_data[0] = (reg & 0xff00) >> 8;
-    trans_data[1] = reg & 0xff;
-    trans_data[2] = (data & 0xff00) >> 8;
-    trans_data[3] = data & 0xff;
-    esp_err_t ret = i2c_master_transmit(dev_handle, trans_data, 4, 100);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "SCCB_Write Failed addr:0x%02x, reg:0x%02x, data:0x%02x, ret:%d", slv_addr, reg, data, ret);
-    }
-    return ret == ESP_OK ? 0 : -1;
-}
-#endif
 
 #endif

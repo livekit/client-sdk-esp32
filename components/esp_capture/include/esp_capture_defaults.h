@@ -45,7 +45,7 @@ typedef struct {
     int16_t  href_pin;   /*!< HREF pin */
     int16_t  pclk_pin;   /*!< PCLK pin */
     uint32_t xclk_freq;  /*!< XCLK frequency */
-    void    *i2c_master; /*!< I2C master handle*/
+    uint8_t  i2c_port;   /*!< I2C port for the initialized bus */
 } esp_capture_video_dvp_src_cfg_t;
 
 /**
