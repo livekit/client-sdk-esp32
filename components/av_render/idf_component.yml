@@ -1,5 +1,5 @@
 ## IDF Component Manager Manifest File
 dependencies:
-  espressif/esp_audio_codec: "*"
-  espressif/esp_video_codec: "*"
-  espressif/esp_audio_effects: "*"
+  espressif/esp_audio_codec: "~2.3.0"
+  espressif/esp_video_codec: "~0.5.2"
+  espressif/esp_audio_effects: "~1.1.0"

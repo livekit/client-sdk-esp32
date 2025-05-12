@@ -28,7 +28,8 @@
 #include "esp_capture_aenc_if.h"
 #include "esp_log.h"
 
-#define TAG "CAPTURE_AENC"
+#define TAG                              "CAPTURE_AENC"
+#define CAPTURE_AENC_DEF_FRAME_DURATION  (20) // Default audio frame duration
 
 typedef struct {
     esp_capture_aenc_if_t    base;
@@ -73,6 +74,7 @@ static int get_encoder_config(esp_audio_enc_config_t *enc_cfg, esp_capture_audio
         case ESP_CAPTURE_CODEC_TYPE_G711U: {
             esp_g711_enc_config_t *cfg = &all_cfg->g711_cfg;
             enc_cfg->cfg_sz = sizeof(esp_g711_enc_config_t);
+            cfg->frame_duration = CAPTURE_AENC_DEF_FRAME_DURATION; // Use default frame duration
             ASSIGN_BASIC_CFG(cfg);
             break;
         }
@@ -145,12 +147,7 @@ static int general_aenc_get_frame_size(esp_capture_aenc_if_t *h, int *in_frame_s
     }
     switch (aenc->info.codec) {
         case ESP_CAPTURE_CODEC_TYPE_G711A:
-        case ESP_CAPTURE_CODEC_TYPE_G711U: {
-            int samples = 20 * aenc->info.sample_rate / 1000;
-            *in_frame_size = samples * (aenc->info.channel * aenc->info.bits_per_sample >> 3);
-            *out_frame_size = *in_frame_size;
-            break;
-        }
+        case ESP_CAPTURE_CODEC_TYPE_G711U:
         case ESP_CAPTURE_CODEC_TYPE_AAC:
         case ESP_CAPTURE_CODEC_TYPE_OPUS:
             esp_audio_enc_get_frame_size(aenc->aenc_handle, in_frame_size, out_frame_size);

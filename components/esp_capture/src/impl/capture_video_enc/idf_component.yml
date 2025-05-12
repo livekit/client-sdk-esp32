@@ -1,4 +1,4 @@
 dependencies:
-  espressif/esp_video_codec: "*"
+  espressif/esp_video_codec: "~0.5.2"
   esp_capture:
     path: ../../../../esp_capture

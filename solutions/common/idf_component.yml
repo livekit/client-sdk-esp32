@@ -1,5 +1,6 @@
 ## IDF Component Manager Manifest File
 dependencies:
   espressif/esp_wifi_remote:
+    version: "~0.9.2"
     rules:
       - if: "target in [esp32p4]"
