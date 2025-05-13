@@ -36,7 +36,10 @@
 #include <esp_system.h>
 #include <sys/param.h>
 #include "esp_netif.h"
+#include <sdkconfig.h>
+#ifdef CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
 #include "esp_crt_bundle.h"
+#endif
 #include "esp_websocket_client.h"
 #include "esp_tls.h"
 
@@ -417,7 +420,9 @@ int create_wss(wss_sig_t *sg)
     esp_websocket_client_config_t ws_cfg = {
         .uri = sg->client_info.wss_url,
         .headers = origin,
+#ifdef CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
         .crt_bundle_attach = esp_crt_bundle_attach,
+#endif
         // .keep_alive_enable = true,
         .reconnect_timeout_ms = 60 * 1000,
         // .ping_interval_sec = 30,

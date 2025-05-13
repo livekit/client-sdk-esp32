@@ -27,7 +27,10 @@
 #include "esp_log.h"
 #include "https_client.h"
 #include "esp_tls.h"
+#include <sdkconfig.h>
+#ifdef CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
 #include "esp_crt_bundle.h"
+#endif
 #include "esp_http_client.h"
 
 static const char *TAG = "HTTPS_CLIENT";
@@ -114,7 +117,9 @@ int https_send_request(const char *method, char **headers, const char *url, char
     esp_http_client_config_t config = {
         .url = url,
         .event_handler = _http_event_handler,
+#ifdef CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
         .crt_bundle_attach = esp_crt_bundle_attach,
+#endif
         .user_data = &info,
         .timeout_ms = 10000, // Change default timeout to be 10s
     };
