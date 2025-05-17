@@ -24,7 +24,7 @@
 #include "settings.h"
 #include "common.h"
 
-static const char *TAG = "Webrtc_Test";
+static const char *TAG = "LiveKit_Demo";
 
 static struct {
     struct arg_str *room_id;

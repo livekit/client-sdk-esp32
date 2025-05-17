@@ -13,4 +13,4 @@ list(APPEND EXTRA_COMPONENT_DIRS "../../components")
 
 list(APPEND EXTRA_COMPONENT_DIRS "../common")
 
-project(doorbell_demo)
+project(livekit_demo)
