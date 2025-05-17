@@ -1,0 +1,90 @@
+import tempfile
+import urllib.request
+import zipfile
+import os
+import shutil
+import subprocess
+import configparser
+
+required_files = ["livekit_rtc.proto", "livekit_models.proto", "livekit_metrics.proto"]
+protobuf_location = "protobufs"
+bindings_dest = "../main/protocol"
+
+def main():
+    version = read_version()
+    with tempfile.TemporaryDirectory() as temp_dir:
+        repo_archive = download_archive(version, temp_dir)
+        unzip_file(repo_archive, temp_dir)
+        repo_root = os.path.join(temp_dir, f"protocol--livekit-protocol-{version}")
+        patch_proto_imports(repo_root)
+        copy_proto_definitions(repo_root, protobuf_location)
+    generate_bindings()
+
+def read_version():
+    config = configparser.ConfigParser()
+    config.read("./version.ini")
+    return config["download"]["version"]
+
+def download_archive(version,dest):
+    file_name = f"protocol@{version}.zip"
+    url = f"https://github.com/livekit/protocol/archive/refs/tags/@livekit/{file_name}"
+    download_path = os.path.join(dest, file_name)
+    print("Downloading " + url)
+    urllib.request.urlretrieve(url, download_path)
+    return download_path
+
+def patch_proto_imports(repo_root):
+    replacements = {
+        'import "google/protobuf/timestamp.proto";': 'import "timestamp.proto";'
+        # Add more replacements here if needed
+    }
+    for fname in required_files:
+        src = os.path.join(repo_root, "protobufs", fname)
+        try:
+            with open(src, "r") as f:
+                content = f.read()
+            modified = False
+            new_content = content
+            for old, new in replacements.items():
+                if old in new_content:
+                    new_content = new_content.replace(old, new)
+                    modified = True
+                    print(f"Patched {fname}")
+            if modified:
+                with open(src, "w") as f:
+                    f.write(new_content)
+        except IOError as e:
+            print(f"Error processing {fname}: {e}")
+
+def copy_proto_definitions(repo_root, dest):
+    for fname in required_files:
+        print("Copying " + fname)
+        src = os.path.join(repo_root, "protobufs", fname)
+        shutil.copy2(src, dest)
+
+def unzip_file(srcfile, dest):
+    with zipfile.ZipFile(srcfile, 'r') as zip_ref:
+        zip_ref.extractall(dest)
+
+def generate_bindings():
+    protoc_path = shutil.which("protoc")
+    if not protoc_path:
+        raise RuntimeError("Please install the Protobuf compiler")
+
+    proto_paths = [os.path.join(protobuf_location, f) for f in required_files]
+    protoc_cmd = [
+        protoc_path,
+        f"--proto_path={protobuf_location}",
+        f"--nanopb_out={bindings_dest}",
+        "--nanopb_opt=--c-style",
+        os.path.join(protobuf_location, "timestamp.proto"),
+    ] + proto_paths
+
+    print(f"Generating bindings: {" ".join(protoc_cmd)}")
+
+    result = subprocess.run(protoc_cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"protoc failed: {result.stderr}")
+
+if __name__ == "__main__":
+    main()
