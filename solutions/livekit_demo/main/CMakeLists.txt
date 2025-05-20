@@ -1,3 +1,3 @@
-idf_component_register(SRCS "webrtc.c"  "main.c" "board.c" "media_sys.c"
-                       EMBED_TXTFILES "ring.aac" "open.aac" "join.aac"
-                       INCLUDE_DIRS ".")
+idf_component_register(SRCS "main.c" "board.c" "media_sys.c" "livekit.c" "livekit_core.c" "livekit_rtc.c" "livekit_signaling.c"
+                       "protocol/livekit_models.pb.c" "protocol/livekit_metrics.pb.c" "protocol/livekit_rtc.pb.c" "protocol/timestamp.pb.c"
+                       INCLUDE_DIRS "." "protocol")

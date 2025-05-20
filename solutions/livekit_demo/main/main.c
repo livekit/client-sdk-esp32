@@ -1,4 +1,4 @@
-/* Door Bell Demo
+/* LiveKit Demo
 
    This example code is in the Public Domain (or CC0 licensed, at your option.)
 
@@ -22,16 +22,13 @@
 #include "webrtc_utils_time.h"
 #include "esp_cpu.h"
 #include "settings.h"
-#include "common.h"
+#include "media_sys.h"
+#include "network.h"
+#include "sys_state.h"
+#include "board.h"
+#include "livekit.h"
 
-static const char *TAG = "LiveKit_Demo";
-
-static struct {
-    struct arg_str *room_id;
-    struct arg_end *end;
-} room_args;
-
-static char room_url[128];
+static const char *TAG = "livekit_demo";
 
 #define RUN_ASYNC(name, body)           \
     void run_async##name(void *arg)     \
@@ -41,86 +38,43 @@ static char room_url[128];
     }                                   \
     media_lib_thread_create_from_scheduler(NULL, #name, run_async##name, NULL);
 
-char server_url[64] = "https://webrtc.espressif.com";
+static livekit_handle_t room_handle;
+static bool room_event_handler(livekit_event_t *event);
 
 static int join_room(int argc, char **argv)
 {
-    int nerrors = arg_parse(argc, argv, (void **)&room_args);
-    if (nerrors != 0) {
-        arg_print_errors(stderr, room_args.end, argv[0]);
-        return 1;
+    // TODO: Dynamic configuration + sandbox tokens
+    livekit_options_t options = {
+        .server_url = "wss://example.livekit.io:7880/",
+        .token = "token",
+        .event_handler = room_event_handler,
+        .audio_dir = LIVEKIT_AUDIO_DIR_NONE,
+        .video_dir = LIVEKIT_VIDEO_DIR_NONE,
+    };
+    livekit_create(&options, &room_handle);
+
+    ESP_LOGI(TAG, "Connecting to room");
+    if (livekit_connect(room_handle) != LIVEKIT_ERR_NONE) {
+        ESP_LOGE(TAG, "Failed to connect to room");
+    } else {
+        ESP_LOGI(TAG, "Connected to room");
     }
-    static bool sntp_synced = false;
-    if (sntp_synced == false) {
-        if (0 == webrtc_utils_time_sync_init()) {
-            sntp_synced = true;
-        }
-    }
-    const char *room_id = room_args.room_id->sval[0];
-    snprintf(room_url, sizeof(room_url), "%s/join/%s", server_url, room_id);
-    ESP_LOGI(TAG, "Start to join in room %s", room_id);
-    start_webrtc(room_url);
     return 0;
+}
+
+static bool room_event_handler(livekit_event_t *event)
+{
+    // TODO: Handle room events
+    return false; // Event not handled
 }
 
 static int leave_room(int argc, char **argv)
 {
-    RUN_ASYNC(leave, { stop_webrtc(); });
-    return 0;
-}
-
-static int cmd_cli(int argc, char **argv)
-{
-    send_cmd(argc > 1 ? argv[1] : "ring");
-    return 0;
-}
-
-static int assert_cli(int argc, char **argv)
-{
-    *(int *)0 = 0;
-    return 0;
-}
-
-static int sys_cli(int argc, char **argv)
-{
-    sys_state_show();
-    return 0;
-}
-
-static int wifi_cli(int argc, char **argv)
-{
-    if (argc < 1) {
-        return -1;
-    }
-    char *ssid = argv[1];
-    char *password = argc > 2 ? argv[2] : NULL;
-    return network_connect_wifi(ssid, password);
-}
-
-static int server_cli(int argc, char **argv)
-{
-    int server_sel = argc > 1 ? atoi(argv[1]) : 0;
-    if (server_sel == 0) {
-        strcpy(server_url, "https://webrtc.espressif.com");
-    } else {
-        strcpy(server_url, "https://webrtc.espressif.cn");
-    }
-    ESP_LOGI(TAG, "Select server %s", server_url);
-    return 0;
-}
-
-static int capture_to_player_cli(int argc, char **argv)
-{
-    return test_capture_to_player();
-}
-
-static int measure_cli(int argc, char **argv)
-{
-    void measure_enable(bool enable);
-    void show_measure(void);
-    measure_enable(true);
-    media_lib_thread_sleep(1500);
-    measure_enable(false);
+    RUN_ASYNC(leave, {
+        livekit_disconnect(room_handle);
+        livekit_destroy(room_handle);
+        room_handle = NULL;
+    });
     return 0;
 }
 
@@ -144,55 +98,17 @@ static int init_console()
     ESP_ERROR_CHECK(esp_console_new_repl_usb_serial_jtag(&usbjtag_config, &repl_config, &repl));
 #endif
 
-    room_args.room_id = arg_str1(NULL, NULL, "<w123456>", "room name");
-    room_args.end = arg_end(2);
     esp_console_cmd_t cmds[] = {
         {
             .command = "join",
             .help = "Please enter a room name.\r\n",
-            .func = join_room,
-            .argtable = &room_args,
+            .func = join_room
         },
         {
             .command = "leave",
             .help = "Leave from room\n",
             .func = leave_room,
-        },
-        {
-            .command = "cmd",
-            .help = "Send command (ring etc)\n",
-            .func = cmd_cli,
-        },
-        {
-            .command = "i",
-            .help = "Show system status\r\n",
-            .func = sys_cli,
-        },
-        {
-            .command = "assert",
-            .help = "Assert system\r\n",
-            .func = assert_cli,
-        },
-        {
-            .command = "rec2play",
-            .help = "Play capture content\n",
-            .func = capture_to_player_cli,
-        },
-        {
-            .command = "wifi",
-            .help = "wifi ssid psw\r\n",
-            .func = wifi_cli,
-        },
-        {
-            .command = "m",
-            .help = "measure system loading\r\n",
-            .func = measure_cli,
-        },
-         {
-            .command = "server",
-            .help = "Select server\r\n",
-            .func = server_cli,
-        },
+        }
     };
     for (int i = 0; i < sizeof(cmds) / sizeof(cmds[0]); i++) {
         ESP_ERROR_CHECK(esp_console_cmd_register(&cmds[i]));
@@ -225,29 +141,12 @@ static void thread_scheduler(const char *thread_name, media_lib_thread_cfg_t *th
 #endif
 }
 
-static char* gen_room_id_use_mac(void)
-{
-    static char room_mac[16];
-    uint8_t mac[6];
-    network_get_mac(mac);
-    snprintf(room_mac, sizeof(room_mac)-1, "esp_%02x%02x%02x", mac[3], mac[4], mac[5]);
-    return room_mac;
-}
-
 static int network_event_handler(bool connected)
 {
-    if (connected) {
-        // Enter into Room directly
-        RUN_ASYNC(start, {
-            char *room = gen_room_id_use_mac();
-            snprintf(room_url, sizeof(room_url), "%s/join/%s", server_url, room);
-            ESP_LOGI(TAG, "Start to join in room %s", room);
-            if (start_webrtc(room_url) == 0) {
-                ESP_LOGW(TAG, "Please use browser to join in %s on %s/doorbell", room, server_url);
-            }
-        });
+    if (connected && room_handle == NULL) {
+        join_room(0, NULL);
     } else {
-        stop_webrtc();
+        leave_room(0, NULL);
     }
     return 0;
 }
@@ -261,8 +160,8 @@ void app_main(void)
     media_sys_buildup();
     init_console();
     network_init(WIFI_SSID, WIFI_PASSWORD, network_event_handler);
-    while (1) {
+    while (1)
+    {
         media_lib_thread_sleep(2000);
-        query_webrtc();
     }
 }
