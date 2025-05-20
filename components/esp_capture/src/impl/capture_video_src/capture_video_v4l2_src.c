@@ -39,6 +39,7 @@
 
 #define TAG "V4L2_SRC"
 
+#define MAX_BUFS                (4)
 #define MAX_SUPPORT_FORMATS_NUM (4)
 #define FMT_STR(fmt)            ((uint8_t *)&fmt)[0], ((uint8_t *)&fmt)[1], ((uint8_t *)&fmt)[2], ((uint8_t *)&fmt)[3]
 
@@ -49,9 +50,9 @@ typedef struct {
     esp_capture_codec_type_t   support_formats[MAX_SUPPORT_FORMATS_NUM];
     uint8_t                    format_count;
     int                        fd;
-    uint8_t                   *fb_buffer[2];
-    struct v4l2_buffer         v4l2_buf[2];
-    bool                       fb_used[2];
+    uint8_t                   *fb_buffer[MAX_BUFS];
+    struct v4l2_buffer         v4l2_buf[MAX_BUFS];
+    bool                       fb_used[MAX_BUFS];
     bool                       nego_ok;
     bool                       started;
 } v4l2_src_t;
@@ -289,10 +290,8 @@ static int v4l2_close(esp_capture_video_src_if_t *src)
         return -1;
     }
     for (int i = 0; i < v4l2->buf_count; i++) {
-        struct v4l2_buffer *buf = &v4l2->v4l2_buf[i];
         if (v4l2->fb_used[i]) {
             v4l2->fb_used[i] = 0;
-            ioctl(v4l2->fd, VIDIOC_QBUF, buf);
         }
     }
     if (v4l2->fd > 0) {
@@ -320,8 +319,7 @@ esp_capture_video_src_if_t *esp_capture_new_video_v4l2_src(esp_capture_video_v4l
     v4l2->base.stop = v4l2_stop;
     v4l2->base.close = v4l2_close;
     strncpy(v4l2->dev_name, cfg->dev_name, sizeof(v4l2->dev_name));
-    // TODO limit to 2
-    v4l2->buf_count = cfg->buf_count > 2 ? 2 : cfg->buf_count;
+    v4l2->buf_count = (cfg->buf_count > MAX_BUFS ? MAX_BUFS : cfg->buf_count);
     return &v4l2->base;
 }
 #endif

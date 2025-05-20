@@ -62,6 +62,30 @@ int esp_peer_new_connection(esp_peer_handle_t handle)
     return ESP_PEER_ERR_NOT_SUPPORT;
 }
 
+int esp_peer_create_data_channel(esp_peer_handle_t handle, esp_peer_data_channel_cfg_t *ch_cfg)
+{
+    if (handle == NULL) {
+        return ESP_PEER_ERR_INVALID_ARG;
+    }
+    peer_wrapper_t *peer = (peer_wrapper_t *)handle;
+    if (peer->ops.create_data_channel) {
+        return peer->ops.create_data_channel(peer->handle, ch_cfg);
+    }
+    return ESP_PEER_ERR_NOT_SUPPORT;
+}
+
+int esp_peer_close_data_channel(esp_peer_handle_t handle, const char *label)
+{
+    if (handle == NULL) {
+        return ESP_PEER_ERR_INVALID_ARG;
+    }
+    peer_wrapper_t *peer = (peer_wrapper_t *)handle;
+    if (peer->ops.close_data_channel) {
+        return peer->ops.close_data_channel(peer->handle, label);
+    }
+    return ESP_PEER_ERR_NOT_SUPPORT;
+}
+
 int esp_peer_update_ice_info(esp_peer_handle_t handle, esp_peer_role_t role, esp_peer_ice_server_cfg_t* server, int server_num)
 {
     if (handle == NULL) {
