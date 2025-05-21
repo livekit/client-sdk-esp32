@@ -192,7 +192,7 @@ static char *get_auth_header(esp_peer_signaling_whip_cfg_t *whip_cfg)
     size_t token_len = cfg_len;
     int auth_len = (whip_cfg->auth_type == ESP_PEER_SIGNALING_WHIP_AUTH_TYPE_BASIC) ? strlen("Authorization: Basic ") : strlen("Authorization: Bearer ");
     if (whip_cfg->auth_type == ESP_PEER_SIGNALING_WHIP_AUTH_TYPE_BASIC) {
-        token_len = (token_len * 4 / 3) + 2;
+        token_len = ((token_len + 2) / 3) * 4 + 1;
     }
     int len = auth_len + token_len + 1;
     char *auth = malloc(len);
