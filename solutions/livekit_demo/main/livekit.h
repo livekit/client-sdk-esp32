@@ -31,7 +31,7 @@ livekit_err_t livekit_disconnect(livekit_handle_t handle);
 /// @param[in] data Data for performing an RPC
 /// @param[in] handle Room handle
 /// @return livekit_ERR_NONE or error code
-livekit_err_t livekit_perform_rpc(livekit_perform_rpc_data_t *data, livekit_handle_t *handle);
+livekit_err_t livekit_perform_rpc(livekit_perform_rpc_data_t *data, livekit_handle_t handle);
 
 #ifdef __cplusplus
 }
