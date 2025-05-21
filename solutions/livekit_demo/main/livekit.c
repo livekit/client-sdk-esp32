@@ -135,3 +135,14 @@ livekit_err_t livekit_disconnect(livekit_handle_t handle)
     }
     return LIVEKIT_ERR_NONE;
 }
+
+livekit_err_t livekit_perform_rpc(livekit_perform_rpc_data_t *data, livekit_handle_t handle)
+{
+    if (handle == NULL) {
+        return LIVEKIT_ERR_INVALID_ARG;
+    }
+    livekit_room_state_t *room = (livekit_room_state_t *)handle;
+
+    // TODO: perform RPC
+    return LIVEKIT_ERR_NONE;
+}
