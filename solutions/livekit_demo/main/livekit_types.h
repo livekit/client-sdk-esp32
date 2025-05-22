@@ -15,6 +15,7 @@ typedef enum {
     LIVEKIT_ERR_INVALID_ARG = -1,  // Invalid argument
     LIVEKIT_ERR_NO_MEM      = -2,  // Not enough memory
     LIVEKIT_ERR_RTC         = -3,  // WebRTC error
+    LIVEKIT_ERR_BUILD_URL   = -4,  // Failed to build signaling URL
 } livekit_err_t;
 
 /// @brief  LiveKit event type
