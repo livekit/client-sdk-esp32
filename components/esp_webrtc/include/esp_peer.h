@@ -34,16 +34,18 @@ extern "C" {
  * @brief  Peer state
  */
 typedef enum {
-    ESP_PEER_STATE_CLOSED              = 0, /*!< Closed */
-    ESP_PEER_STATE_DISCONNECTED        = 1, /*!< Disconnected */
-    ESP_PEER_STATE_NEW_CONNECTION      = 2, /*!< New connection comming */
-    ESP_PEER_STATE_PAIRING             = 3, /*!< Under candidate pairing */
-    ESP_PEER_STATE_PAIRED              = 4, /*!< Candidate pairing success */
-    ESP_PEER_STATE_CONNECTING          = 5, /*!< Building connection with peer */
-    ESP_PEER_STATE_CONNECTED           = 6, /*!< Connected with peer */
-    ESP_PEER_STATE_CONNECT_FAILED      = 7, /*!< Connect failed */
-    ESP_PEER_STATE_DATA_CHANNEL_OPENED = 8, /*!< Data channel is opened */
-    ESP_PEER_STATE_DATA_CHANNEL_CLOSED = 9, /*!< Data channel is closed */
+    ESP_PEER_STATE_CLOSED                    = 0,  /*!< Closed */
+    ESP_PEER_STATE_DISCONNECTED              = 1,  /*!< Disconnected */
+    ESP_PEER_STATE_NEW_CONNECTION            = 2,  /*!< New connection comming */
+    ESP_PEER_STATE_PAIRING                   = 3,  /*!< Under candidate pairing */
+    ESP_PEER_STATE_PAIRED                    = 4,  /*!< Candidate pairing success */
+    ESP_PEER_STATE_CONNECTING                = 5,  /*!< Building connection with peer */
+    ESP_PEER_STATE_CONNECTED                 = 6,  /*!< Connected with peer */
+    ESP_PEER_STATE_CONNECT_FAILED            = 7,  /*!< Connect failed */
+    ESP_PEER_STATE_DATA_CHANNEL_CONNECTED    = 8,  /*!< Data channel is connected */
+    ESP_PEER_STATE_DATA_CHANNEL_OPENED       = 9,  /*!< Data channel is opened */
+    ESP_PEER_STATE_DATA_CHANNEL_CLOSED       = 10, /*!< Data channel is closed */
+    ESP_PEER_STATE_DATA_CHANNEL_DISCONNECTED = 11, /*!< Data channel is disconencted */
 } esp_peer_state_t;
 
 /**
@@ -134,9 +136,10 @@ typedef struct {
  * @brief  Data frame information
  */
 typedef struct {
-    esp_peer_data_channel_type_t type; /*!< Data channel type */
-    uint8_t                     *data; /*!< Pointer to data to be sent through data channel */
-    int                          size; /*!< Data size */
+    esp_peer_data_channel_type_t type;      /*!< Data channel type */
+    uint16_t                     stream_id; /*!< Data channel stream ID */
+    uint8_t                     *data;      /*!< Pointer to data to be sent through data channel */
+    int                          size;      /*!< Data size */
 } esp_peer_data_frame_t;
 
 /**
@@ -158,6 +161,21 @@ typedef struct {
 } esp_peer_msg_t;
 
 /**
+ * @brief  Peer data channel configuration for create
+ */
+typedef struct {
+    char *label; /*!< Data channel label */
+} esp_peer_data_channel_cfg_t;
+
+/**
+ * @brief  Peer data channel information
+ */
+typedef struct {
+    const char *label;      /*!< Data channel label */
+    uint16_t    stream_id;  /*!< Chunk stream id for this channel */
+} esp_peer_data_channel_info_t;
+
+/**
  * @brief  Peer handle
  */
 typedef void *esp_peer_handle_t;
@@ -174,7 +192,12 @@ typedef struct {
     esp_peer_video_stream_info_t video_info;          /*!< Video stream information */
     esp_peer_media_dir_t         audio_dir;           /*!< Audio transmission direction */
     esp_peer_media_dir_t         video_dir;           /*!< Video transmission direction */
+    bool                         no_auto_reconnect;   /*!< Disable auto reconnect if connected fail */
     bool                         enable_data_channel; /*!< Enable data channel */
+    bool                         manual_ch_create;    /*!< Manual create data channel
+                                                           When SCTP role is client, it will try to send DCEP automatically
+                                                           To disable this behavior can create data channel manually and set this flag
+                                                          */
     void                        *extra_cfg;           /*!< Extra configuration */
     int                          extra_size;          /*!< Extra configuration size */
     void                        *ctx;                 /*!< User context */
@@ -228,12 +251,28 @@ typedef struct {
     int (*on_video_data)(esp_peer_video_frame_t* frame, void* ctx);
 
     /**
+     * @brief  Peer data channel opened event callback
+     * @param[in]  ch   Data channel information
+     * @param[in]  ctx  User context
+     * @return          Status code indicating success or failure.
+     */
+    int (*on_channel_open)(esp_peer_data_channel_info_t *ch, void *ctx);
+   
+    /**
      * @brief  Peer data frame callback
      * @param[in]  frame  Data frame information
      * @param[in]  ctx    User context
      * @return            Status code indicating success or failure.
      */
-    int (*on_data)(esp_peer_data_frame_t* frame, void* ctx);
+    int (*on_data)(esp_peer_data_frame_t *frame, void *ctx);
+
+    /**
+     * @brief  Peer data channel closed event callback
+     * @param[in]  ch   Data channel information
+     * @param[in]  ctx  User context
+     * @return          Status code indicating success or failure.
+     */
+    int (*on_channel_close)(esp_peer_data_channel_info_t *ch, void *ctx);
 } esp_peer_cfg_t;
 
 /**
@@ -297,6 +336,22 @@ typedef struct {
     int (*send_data)(esp_peer_handle_t peer, esp_peer_data_frame_t* frame);
 
     /**
+     * @brief  Manually create data chanel for peer
+     * @param[in]   peer    Peer handle
+     * @param[in]   ch_cfg  Data channel configuration
+     * @return              Status code indicating success or failure.
+     */
+    int (*create_data_channel)(esp_peer_handle_t peer, esp_peer_data_channel_cfg_t *ch_cfg);
+
+    /**
+     * @brief  Close data chanel for peer
+     * @param[in]   peer   Peer handle
+     * @param[in]   label  Data channel label
+     * @return             Status code indicating success or failure.
+     */
+    int (*close_data_channel)(esp_peer_handle_t peer, const char *label);
+
+    /**
      * @brief  Peer main loop
      * @note  Peer connection need handle peer status change, receive stream data in this loop
      *        Or create a thread to handle these things and synchronize with this loop
@@ -338,7 +393,7 @@ typedef struct {
  *       - ESP_PEER_ERR_INVALID_ARG  Invalid argument
  *       - ESP_PEER_ERR_NOT_SUPPORT  Not support
  */
-int esp_peer_open(esp_peer_cfg_t *cfg, const esp_peer_ops_t *ops, esp_peer_handle_t *handle);
+int esp_peer_open(esp_peer_cfg_t *cfg, const esp_peer_ops_t *ops, esp_peer_handle_t *peer);
 
 /**
  * @brief  Create new conenction
@@ -353,7 +408,35 @@ int esp_peer_open(esp_peer_cfg_t *cfg, const esp_peer_ops_t *ops, esp_peer_handl
  *       - ESP_PEER_ERR_INVALID_ARG  Invalid argument
  *       - ESP_PEER_ERR_NOT_SUPPORT  Not support
  */
-int esp_peer_new_connection(esp_peer_handle_t handle);
+int esp_peer_new_connection(esp_peer_handle_t peer);
+
+/**
+ * @brief  Manually create data channel
+ *
+ * @note  It will send DCEP event to peer until data channel created
+ *        
+ * @param[in]  peer    Peer handle
+ * @param[in]  ch_cfg  Configuration for data channel creation
+ *
+ * @return
+ *       - ESP_PEER_ERR_NONE         Open data channel success
+ *       - ESP_PEER_ERR_INVALID_ARG  Invalid argument
+ *       - ESP_PEER_ERR_NOT_SUPPORT  Not support
+ */
+int esp_peer_create_data_channel(esp_peer_handle_t peer, esp_peer_data_channel_cfg_t *ch_cfg);
+
+/**
+ * @brief  Manually close data channel by label
+ *
+ * @param[in]  peer   Peer handle
+ * @param[in]  label  Channel label
+ *
+ * @return
+ *       - ESP_PEER_ERR_NONE         Close data channel success
+ *       - ESP_PEER_ERR_INVALID_ARG  Invalid argument
+ *       - ESP_PEER_ERR_NOT_SUPPORT  Not support
+ */
+int esp_peer_close_data_channel(esp_peer_handle_t peer, const char *label);
 
 /**
  * @brief  Update ICE server information
@@ -361,14 +444,17 @@ int esp_peer_new_connection(esp_peer_handle_t handle);
  * @note  After new connection is created, It will try gather ICE candidate from ICE servers.
  *        And report local SDP to let user send to signaling server.
  *
- * @param[in]  peer  Peer handle
+ * @param[in]  peer        Peer handle
+ * @param[in]  role        Peer roles of controlling or controlled
+ * @param[in]  server      Pointer to array of ICE server configuration
+ * @param[in]  server_num  ICE server number
  *
  * @return
  *       - ESP_PEER_ERR_NONE         Open peer connection success
  *       - ESP_PEER_ERR_INVALID_ARG  Invalid argument
  *       - ESP_PEER_ERR_NOT_SUPPORT  Not support
  */
-int esp_peer_update_ice_info(esp_peer_handle_t handle, esp_peer_role_t role, esp_peer_ice_server_cfg_t* server, int server_num);
+int esp_peer_update_ice_info(esp_peer_handle_t peer, esp_peer_role_t role, esp_peer_ice_server_cfg_t* server, int server_num);
 
 /**
  * @brief  Send message to peer
@@ -453,7 +539,7 @@ int esp_peer_main_loop(esp_peer_handle_t peer);
  *       - ESP_PEER_ERR_INVALID_ARG  Invalid argument
  *       - ESP_PEER_ERR_NOT_SUPPORT  Not support
  */
-int esp_peer_disconnect(esp_peer_handle_t handle);
+int esp_peer_disconnect(esp_peer_handle_t peer);
 
 /**
  * @brief  Query of peer connection
@@ -466,7 +552,7 @@ int esp_peer_disconnect(esp_peer_handle_t handle);
  *       - ESP_PEER_ERR_NONE         Open peer connection success
  *       - ESP_PEER_ERR_INVALID_ARG  Invalid argument
  */
-int esp_peer_query(esp_peer_handle_t handle);
+int esp_peer_query(esp_peer_handle_t peer);
 
 /**
  * @brief  Close peer connection
@@ -480,7 +566,7 @@ int esp_peer_query(esp_peer_handle_t handle);
  *       - ESP_PEER_ERR_INVALID_ARG  Invalid argument
  *       - ESP_PEER_ERR_NOT_SUPPORT  Not support
  */
-int esp_peer_close(esp_peer_handle_t handle);
+int esp_peer_close(esp_peer_handle_t peer);
 
 #ifdef __cplusplus
 }
