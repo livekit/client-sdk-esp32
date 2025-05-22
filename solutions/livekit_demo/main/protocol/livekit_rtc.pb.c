@@ -18,7 +18,7 @@ PB_BIND(LIVEKIT_SIMULCAST_CODEC, livekit_simulcast_codec_t, AUTO)
 PB_BIND(LIVEKIT_ADD_TRACK_REQUEST, livekit_add_track_request_t, AUTO)
 
 
-PB_BIND(LIVEKIT_TRICKLE_REQUEST, livekit_trickle_request_t, AUTO)
+PB_BIND(LIVEKIT_TRICKLE_REQUEST, livekit_trickle_request_t, 2)
 
 
 PB_BIND(LIVEKIT_MUTE_TRACK_REQUEST, livekit_mute_track_request_t, AUTO)
