@@ -24,8 +24,8 @@ extern "C" {
 /// @brief Tag for logging
 extern const char *LK_TAG;
 
-/// @brief Buffer size for encoding protocol buffers
-#define LIVEKIT_PB_ENCODE_BUFFER_SIZE 1024
+#define LIVEKIT_PB_ENCODE_MAX_SIZE 2048
+#define LIVEKIT_PB_DECODE_MAX_SIZE 2048
 
 /// @brief Internal room state
 typedef struct {

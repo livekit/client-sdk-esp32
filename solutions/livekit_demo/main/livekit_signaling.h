@@ -5,19 +5,40 @@ extern "C" {
 #endif
 
 #include "livekit_core.h"
-
+#include "esp_peer_signaling.h"
+#include "esp_netif.h"
 #ifdef CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
 #include "esp_crt_bundle.h"
 #endif
 #include "esp_websocket_client.h"
 #include "esp_tls.h"
 
-#include <esp_peer_signaling.h>
+#include <cJSON.h>
 
 #define LIVEKIT_PROTOCOL_VERSION "15"
 #define LIVEKIT_SDK_ID "esp32"
 #define LIVEKIT_SDK_VERSION "alpha"
 #define LIVEKIT_URL_MAX_LEN 2048
+#define LIVEKIT_SIG_BUFFER_SIZE 2048
+#define LIVEKIT_SIG_RECONNECT_TIMEOUT_MS 1000
+#define LIVEKIT_SIG_NETWORK_TIMEOUT_MS 1000
+
+#define LIVEKIT_SIG_REQ_MAX_SIZE 2048 // Outgoing messages
+#define LIVEKIT_SIG_RES_MAX_SIZE 2048 // Incoming messages
+
+#define LIVEKIT_SDP_TYPE_ANSWER "answer"
+#define LIVEKIT_SDP_TYPE_OFFER "offer"
+
+typedef struct {
+    esp_websocket_client_handle_t ws;
+} livekit_wss_client_t;
+
+typedef struct {
+    // TODO: Add room context
+    esp_peer_signaling_ice_info_t ice_info;
+    livekit_wss_client_t          *wss_client;
+    esp_peer_signaling_cfg_t      cfg;
+} livekit_sig_t;
 
 const esp_peer_signaling_impl_t *livekit_sig_get_impl(void);
 

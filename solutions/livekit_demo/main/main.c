@@ -56,8 +56,6 @@ static int join_room(int argc, char **argv)
     ESP_LOGI(TAG, "Connecting to room");
     if (livekit_connect(room_handle) != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to connect to room");
-    } else {
-        ESP_LOGI(TAG, "Connected to room");
     }
     return 0;
 }

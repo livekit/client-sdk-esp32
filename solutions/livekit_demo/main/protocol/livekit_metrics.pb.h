@@ -45,7 +45,7 @@ typedef struct livekit_metrics_batch {
  This is useful for storing participant identities, track names, etc.
  There is also a predefined list of labels that can be used to reference common metrics.
  They have reserved indices from 0 to (METRIC_LABEL_PREDEFINED_MAX_VALUE - 1).
- Indexes pointing at str_data should start from METRIC_LABEL_PREDEFINED_MAX_VALUE,
+ Indexes pointing at str_data should start from METRIC_LABEL_PREDEFINED_MAX_VALUE, 
  such that str_data[0] == index of METRIC_LABEL_PREDEFINED_MAX_VALUE. */
     pb_callback_t str_data;
     pb_callback_t time_series;
