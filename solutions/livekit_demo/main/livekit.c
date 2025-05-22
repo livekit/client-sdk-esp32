@@ -5,6 +5,9 @@
 
 livekit_err_t livekit_create(livekit_options_t *options, livekit_handle_t *handle)
 {
+    livekit_err_t ret = LIVEKIT_ERR_NONE;
+    livekit_room_state_t *room = NULL;
+
     if (options == NULL || handle == NULL) {
         return LIVEKIT_ERR_INVALID_ARG;
     }
@@ -17,14 +20,15 @@ livekit_err_t livekit_create(livekit_options_t *options, livekit_handle_t *handl
         return LIVEKIT_ERR_INVALID_ARG;
     }
 
-    livekit_room_state_t *room = (livekit_room_state_t *)calloc(1, sizeof(livekit_room_state_t));
+    room = (livekit_room_state_t *)calloc(1, sizeof(livekit_room_state_t));
     if (room == NULL) {
-        return LIVEKIT_ERR_NO_MEM;
+        ret = LIVEKIT_ERR_NO_MEM;
+        goto cleanup;
     }
     room->event_handler = options->event_handler;
     if (livekit_sig_build_url(options->server_url, options->token, &room->signaling_url) != 0) {
-        free(room);
-        return LIVEKIT_ERR_INVALID_ARG;
+        ret = LIVEKIT_ERR_BUILD_URL;
+        goto cleanup;
     }
     livekit_system_init();
 
@@ -75,11 +79,20 @@ livekit_err_t livekit_create(livekit_options_t *options, livekit_handle_t *handl
 
     if (esp_webrtc_open(&cfg, &room->rtc_handle) != 0) {
         ESP_LOGE(LK_TAG, "Failed to open WebRTC");
-        return LIVEKIT_ERR_RTC;
+        ret = LIVEKIT_ERR_RTC;
+        goto cleanup;
     }
 
     *handle = room;
     return LIVEKIT_ERR_NONE;
+
+cleanup:
+    if (room) {
+        if (room->signaling_url)
+            free(room->signaling_url);
+        free(room);
+    }
+    return ret;
 }
 
 livekit_err_t livekit_destroy(livekit_handle_t handle)
