@@ -74,7 +74,7 @@ def generate_bindings(verbose = False):
     input_files = ["timestamp.proto"] + required_files
     protoc_cmd = [
         protoc_path,
-        "--nanopb_opt=-v" if verbose else "", # Verbose output
+        *(["--nanopb_opt=-v"] if verbose else []), # Verbose output
         "--nanopb_opt=--c-style",
         f"--nanopb_out={os.path.abspath(bindings_dest)}"
     ] + input_files
