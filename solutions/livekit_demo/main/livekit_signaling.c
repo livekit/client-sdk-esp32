@@ -76,7 +76,8 @@ const esp_peer_signaling_impl_t *livekit_sig_get_impl(void)
 
 int livekit_sig_build_url(const char *base_url, const char *token, char **out_url)
 {
-    static const char url_format[] = "%s%srtc?sdk=%s&version=%s&access_token=%s&auto_subscribe=true";
+    static const char url_format[] = "%s%srtc?sdk=%s&version=%s&auto_subscribe=true&access_token=%s";
+    // Access token parameter must stay at the end for logging
 
     if (base_url == NULL || token == NULL || out_url == NULL) {
         return -1;
@@ -119,5 +120,9 @@ int livekit_sig_build_url(const char *base_url, const char *token, char **out_ur
         LIVEKIT_SDK_VERSION,
         token
     );
+
+    // Token is redacted from logging for security
+    size_t token_len = strlen(token);
+    ESP_LOGI(LK_TAG, "Signaling URL: %.*s[REDACTED]", (int)(final_len - token_len), *out_url);
     return 0;
 }
