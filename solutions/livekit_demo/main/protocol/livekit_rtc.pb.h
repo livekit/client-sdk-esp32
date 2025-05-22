@@ -133,7 +133,7 @@ typedef struct livekit_track_unpublished_response {
 
 typedef struct livekit_session_description {
     char type[9]; /* "answer" | "offer" | "pranswer" | "rollback" */
-    pb_callback_t sdp;
+    char sdp[1024];
 } livekit_session_description_t;
 
 typedef struct livekit_participant_update {
@@ -562,7 +562,7 @@ extern "C" {
 #define LIVEKIT_RECONNECT_RESPONSE_INIT_DEFAULT  {{{NULL}, NULL}, false, LIVEKIT_CLIENT_CONFIGURATION_INIT_DEFAULT}
 #define LIVEKIT_TRACK_PUBLISHED_RESPONSE_INIT_DEFAULT {{{NULL}, NULL}, false, LIVEKIT_TRACK_INFO_INIT_DEFAULT}
 #define LIVEKIT_TRACK_UNPUBLISHED_RESPONSE_INIT_DEFAULT {{{NULL}, NULL}}
-#define LIVEKIT_SESSION_DESCRIPTION_INIT_DEFAULT {"", {{NULL}, NULL}}
+#define LIVEKIT_SESSION_DESCRIPTION_INIT_DEFAULT {"", ""}
 #define LIVEKIT_PARTICIPANT_UPDATE_INIT_DEFAULT  {{{NULL}, NULL}}
 #define LIVEKIT_UPDATE_SUBSCRIPTION_INIT_DEFAULT {{{NULL}, NULL}, 0, {{NULL}, NULL}}
 #define LIVEKIT_UPDATE_TRACK_SETTINGS_INIT_DEFAULT {{{NULL}, NULL}, 0, _LIVEKIT_VIDEO_QUALITY_MIN, 0, 0, 0, 0}
@@ -606,7 +606,7 @@ extern "C" {
 #define LIVEKIT_RECONNECT_RESPONSE_INIT_ZERO     {{{NULL}, NULL}, false, LIVEKIT_CLIENT_CONFIGURATION_INIT_ZERO}
 #define LIVEKIT_TRACK_PUBLISHED_RESPONSE_INIT_ZERO {{{NULL}, NULL}, false, LIVEKIT_TRACK_INFO_INIT_ZERO}
 #define LIVEKIT_TRACK_UNPUBLISHED_RESPONSE_INIT_ZERO {{{NULL}, NULL}}
-#define LIVEKIT_SESSION_DESCRIPTION_INIT_ZERO    {"", {{NULL}, NULL}}
+#define LIVEKIT_SESSION_DESCRIPTION_INIT_ZERO    {"", ""}
 #define LIVEKIT_PARTICIPANT_UPDATE_INIT_ZERO     {{{NULL}, NULL}}
 #define LIVEKIT_UPDATE_SUBSCRIPTION_INIT_ZERO    {{{NULL}, NULL}, 0, {{NULL}, NULL}}
 #define LIVEKIT_UPDATE_TRACK_SETTINGS_INIT_ZERO  {{{NULL}, NULL}, 0, _LIVEKIT_VIDEO_QUALITY_MIN, 0, 0, 0, 0}
@@ -998,8 +998,8 @@ X(a, CALLBACK, SINGULAR, STRING,   track_sid,         1)
 
 #define LIVEKIT_SESSION_DESCRIPTION_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, STRING,   type,              1) \
-X(a, CALLBACK, SINGULAR, STRING,   sdp,               2)
-#define LIVEKIT_SESSION_DESCRIPTION_CALLBACK pb_default_field_callback
+X(a, STATIC,   SINGULAR, STRING,   sdp,               2)
+#define LIVEKIT_SESSION_DESCRIPTION_CALLBACK NULL
 #define LIVEKIT_SESSION_DESCRIPTION_DEFAULT NULL
 
 #define LIVEKIT_PARTICIPANT_UPDATE_FIELDLIST(X, a) \
@@ -1351,7 +1351,6 @@ extern const pb_msgdesc_t livekit_track_subscribed_t_msg;
 /* livekit_ReconnectResponse_size depends on runtime parameters */
 /* livekit_TrackPublishedResponse_size depends on runtime parameters */
 /* livekit_TrackUnpublishedResponse_size depends on runtime parameters */
-/* livekit_SessionDescription_size depends on runtime parameters */
 /* livekit_ParticipantUpdate_size depends on runtime parameters */
 /* livekit_UpdateSubscription_size depends on runtime parameters */
 /* livekit_UpdateTrackSettings_size depends on runtime parameters */
@@ -1380,14 +1379,15 @@ extern const pb_msgdesc_t livekit_track_subscribed_t_msg;
 /* livekit_SubscriptionResponse_size depends on runtime parameters */
 /* livekit_RequestResponse_size depends on runtime parameters */
 /* livekit_TrackSubscribed_size depends on runtime parameters */
+#define LIVEKIT_LIVEKIT_RTC_PB_H_MAX_SIZE        LIVEKIT_SESSION_DESCRIPTION_SIZE
+#define LIVEKIT_PING_SIZE                        22
+#define LIVEKIT_PONG_SIZE                        22
+#define LIVEKIT_SESSION_DESCRIPTION_SIZE         1036
+#define LIVEKIT_SIMULATE_SCENARIO_SIZE           11
+#define LIVEKIT_SUBSCRIBED_QUALITY_SIZE          4
 #if defined(livekit_Room_size)
 #define LIVEKIT_ROOM_UPDATE_SIZE                 (6 + livekit_Room_size)
 #endif
-#define LIVEKIT_LIVEKIT_RTC_PB_H_MAX_SIZE        LIVEKIT_PING_SIZE
-#define LIVEKIT_PING_SIZE                        22
-#define LIVEKIT_PONG_SIZE                        22
-#define LIVEKIT_SIMULATE_SCENARIO_SIZE           11
-#define LIVEKIT_SUBSCRIBED_QUALITY_SIZE          4
 
 #ifdef __cplusplus
 } /* extern "C" */
