@@ -66,23 +66,28 @@ def unzip_file(srcfile, dest):
     with zipfile.ZipFile(srcfile, 'r') as zip_ref:
         zip_ref.extractall(dest)
 
-def generate_bindings():
+def generate_bindings(verbose = False):
     protoc_path = shutil.which("protoc")
     if not protoc_path:
         raise RuntimeError("Please install the Protobuf compiler")
 
-    proto_paths = [os.path.join(protobuf_location, f) for f in required_files]
+    input_files = ["timestamp.proto"] + required_files
     protoc_cmd = [
         protoc_path,
-        f"--proto_path={protobuf_location}",
-        f"--nanopb_out={bindings_dest}",
+        "--nanopb_opt=-v" if verbose else "", # Verbose output
         "--nanopb_opt=--c-style",
-        os.path.join(protobuf_location, "timestamp.proto"),
-    ] + proto_paths
+        f"--nanopb_out={os.path.abspath(bindings_dest)}"
+    ] + input_files
 
     print(f"Generating bindings: {" ".join(protoc_cmd)}")
-
-    result = subprocess.run(protoc_cmd, capture_output=True, text=True)
+    result = subprocess.run(
+        protoc_cmd,
+        capture_output=True,
+        text=True,
+        cwd=os.path.abspath(protobuf_location)
+    )
+    if verbose:
+        print(result.stderr)
     if result.returncode != 0:
         raise RuntimeError(f"protoc failed: {result.stderr}")
 
