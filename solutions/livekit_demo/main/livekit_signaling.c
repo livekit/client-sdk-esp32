@@ -76,7 +76,7 @@ const esp_peer_signaling_impl_t *livekit_sig_get_impl(void)
 
 int livekit_sig_build_url(const char *base_url, const char *token, char **out_url)
 {
-    static const char url_format[] = "%s%srtc?sdk=%s&version=%s&access_token=%s";
+    static const char url_format[] = "%s%srtc?sdk=%s&version=%s&access_token=%s&auto_subscribe=true";
 
     if (base_url == NULL || token == NULL || out_url == NULL) {
         return -1;
