@@ -36,7 +36,8 @@ static void livekit_sig_on_res_trickle(livekit_sig_t *sg, livekit_trickle_reques
     if (candidate && cJSON_IsString(candidate)) {
         ESP_LOGI(LK_TAG, "Remote candidate: %s %d", candidate->valuestring, res->target);
         // TODO: Handle candidate
-        cJSON_Delete(candidate);
+    } else {
+        ESP_LOGE(LK_TAG, "Failed to get candidate from candidate_init");
     }
     cJSON_Delete(candidate_init);
 }
