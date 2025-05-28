@@ -26,19 +26,34 @@ extern "C" {
 #define LIVEKIT_SIG_REQ_MAX_SIZE 2048 // Outgoing messages
 #define LIVEKIT_SIG_RES_MAX_SIZE 2048 // Incoming messages
 
-#define LIVEKIT_SDP_TYPE_ANSWER "answer"
-#define LIVEKIT_SDP_TYPE_OFFER "offer"
-
 typedef struct {
     esp_websocket_client_handle_t ws;
 } livekit_wss_client_t;
 
 typedef struct {
-    // TODO: Add room context
-    esp_peer_signaling_ice_info_t ice_info;
     livekit_wss_client_t          *wss_client;
     esp_peer_signaling_cfg_t      cfg;
+    int32_t                       ping_timeout;
+    int32_t                       ping_interval;
 } livekit_sig_t;
+
+typedef enum {
+    LIVEKIT_SIG_CLOSE_REASON_STREAM, /// Stream closed.
+    LIVEKIT_SIG_CLOSE_REASON_PING, /// Ping timeout.
+} livekit_sig_close_reason_t;
+
+typedef enum {
+    LIVEKIT_SIG_EVENT_MESSAGE, /// Received a message from the server.
+    LIVEKIT_SIG_EVENT_CLOSE    /// Signal connection closed, can ask to reconnect.
+} livekit_sig_event_kind_t;
+
+typedef struct {
+    livekit_sig_event_kind_t kind;
+    union {
+        livekit_signal_response_t message;
+        livekit_sig_close_reason_t close;
+    };
+} livekit_sig_event_t;
 
 const esp_peer_signaling_impl_t *livekit_sig_get_impl(void);
 

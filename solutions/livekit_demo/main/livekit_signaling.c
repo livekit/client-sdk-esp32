@@ -7,61 +7,63 @@ static void log_error_if_nonzero(const char *message, int error_code)
     }
 }
 
-static void livekit_sig_on_res_join(livekit_sig_t *sg, livekit_join_response_t *res)
+static void livekit_sig_handle_res(livekit_sig_t *sg, livekit_signal_response_t *res)
 {
-    ESP_LOGI(LK_TAG, "livekit_sig_on_res_join");
-}
-
-static void livekit_sig_on_res_answer(livekit_sig_t *sg, livekit_session_description_t *res)
-{
-    assert(strcmp(res->type, LIVEKIT_SDP_TYPE_ANSWER) == 0);
-    ESP_LOGI(LK_TAG, "Answer: %s", res->sdp);
-}
-
-static void livekit_sig_on_res_offer(livekit_sig_t *sg, livekit_session_description_t *res)
-{
-    assert(strcmp(res->type, LIVEKIT_SDP_TYPE_OFFER) == 0);
-    ESP_LOGI(LK_TAG, "Offer: %s", res->sdp);
-}
-
-static void livekit_sig_on_res_trickle(livekit_sig_t *sg, livekit_trickle_request_t *res)
-{
-    cJSON *candidate_init = cJSON_Parse(res->candidate_init);
-    if (!candidate_init) {
-        ESP_LOGE(LK_TAG, "Failed to parse candidate_init");
-        return;
-    }
-
-    cJSON *candidate = cJSON_GetObjectItem(candidate_init, "candidate");
-    if (candidate && cJSON_IsString(candidate)) {
-        ESP_LOGI(LK_TAG, "Remote candidate: %s %d", candidate->valuestring, res->target);
-        // TODO: Handle candidate
-    } else {
-        ESP_LOGE(LK_TAG, "Failed to get candidate from candidate_init");
-    }
-    cJSON_Delete(candidate_init);
-}
-
-static void livekit_sig_on_res_track_published(livekit_sig_t *sg, livekit_track_published_response_t *res)
-{
-    ESP_LOGI(LK_TAG, "livekit_sig_on_res_track_published");
-}
-
-static void livekit_sig_on_res_leave(livekit_sig_t *sg, livekit_leave_request_t *res)
-{
-    ESP_LOGI(LK_TAG, "Received leave request: reason=%d, action=%d", res->reason, res->action);
-    switch (res->action) {
-        case LIVEKIT_LEAVE_REQUEST_ACTION_DISCONNECT:
-            esp_peer_signaling_msg_t msg = { .type = ESP_PEER_SIGNALING_MSG_BYE };
-            sg->cfg.on_msg(&msg, sg->cfg.ctx);
+    bool should_forward = false;
+    switch (res->which_message) {
+        case LIVEKIT_SIGNAL_RESPONSE_PONG_TAG:
+        case LIVEKIT_SIGNAL_RESPONSE_PONG_RESP_TAG:
+            // TODO: Reset ping timeout
             break;
-        // TODO: Known, but currently unsupported leave actions
-        case LIVEKIT_LEAVE_REQUEST_ACTION_RESUME:
-        case LIVEKIT_LEAVE_REQUEST_ACTION_RECONNECT: break;
+        case LIVEKIT_SIGNAL_RESPONSE_REFRESH_TOKEN_TAG:
+            // TODO: Handle refresh token
+            break;
+
+        case LIVEKIT_SIGNAL_RESPONSE_JOIN_TAG:
+            livekit_join_response_t *join_res = &res->message.join;
+            sg->ping_interval = join_res->ping_interval;
+            sg->ping_timeout = join_res->ping_timeout;
+            // TODO: Start ping interval
+            should_forward = true;
+            break;
+
+        case LIVEKIT_SIGNAL_RESPONSE_RECONNECT_TAG:
+        case LIVEKIT_SIGNAL_RESPONSE_ANSWER_TAG:
+        case LIVEKIT_SIGNAL_RESPONSE_OFFER_TAG:
+        case LIVEKIT_SIGNAL_RESPONSE_TRICKLE_TAG:
+        case LIVEKIT_SIGNAL_RESPONSE_TRACK_PUBLISHED_TAG:
+        case LIVEKIT_SIGNAL_RESPONSE_LEAVE_TAG:
+        case LIVEKIT_SIGNAL_RESPONSE_UPDATE_TAG:
+        case LIVEKIT_SIGNAL_RESPONSE_MUTE_TAG:
+        case LIVEKIT_SIGNAL_RESPONSE_SPEAKERS_CHANGED_TAG:
+        case LIVEKIT_SIGNAL_RESPONSE_ROOM_UPDATE_TAG:
+        case LIVEKIT_SIGNAL_RESPONSE_CONNECTION_QUALITY_TAG:
+        case LIVEKIT_SIGNAL_RESPONSE_STREAM_STATE_UPDATE_TAG:
+        case LIVEKIT_SIGNAL_RESPONSE_SUBSCRIBED_QUALITY_UPDATE_TAG:
+        case LIVEKIT_SIGNAL_RESPONSE_SUBSCRIPTION_PERMISSION_UPDATE_TAG:
+        case LIVEKIT_SIGNAL_RESPONSE_TRACK_UNPUBLISHED_TAG:
+        case LIVEKIT_SIGNAL_RESPONSE_SUBSCRIPTION_RESPONSE_TAG:
+        case LIVEKIT_SIGNAL_RESPONSE_REQUEST_RESPONSE_TAG:
+        case LIVEKIT_SIGNAL_RESPONSE_TRACK_SUBSCRIBED_TAG:
+        case LIVEKIT_SIGNAL_RESPONSE_ROOM_MOVED_TAG:
+            should_forward = true;
+            break;
         default:
-            ESP_LOGI(LK_TAG, "Unknown leave action: %d", res->action);
-            break;
+            ESP_LOGI(LK_TAG, "Unknown signal res type");
     }
+    if (should_forward) {
+        livekit_sig_event_t event = {
+            .kind = LIVEKIT_SIG_EVENT_MESSAGE,
+            .message = *res,
+        };
+        esp_peer_signaling_msg_t msg = {
+            .type = ESP_PEER_SIGNALING_MSG_CUSTOMIZED,
+            .data = (uint8_t *)&event,
+            .size = sizeof(event),
+        };
+        sg->cfg.on_msg(&msg, sg->cfg.ctx);
+    }
+    // TODO: Cleanup
 }
 
 static void livekit_sig_on_data(livekit_sig_t *sg, const char *data, size_t len)
@@ -83,59 +85,8 @@ static void livekit_sig_on_data(livekit_sig_t *sg, const char *data, size_t len)
     }
 
     ESP_LOGI(LK_TAG, "Decoded signal res: type=%d", res.which_message);
-    switch (res.which_message) {
-        case LIVEKIT_SIGNAL_RESPONSE_JOIN_TAG:
-            livekit_sig_on_res_join(sg, &res.message.join);
-            break;
-        case LIVEKIT_SIGNAL_RESPONSE_ANSWER_TAG:
-            livekit_sig_on_res_answer(sg, &res.message.answer);
-            break;
-        case LIVEKIT_SIGNAL_RESPONSE_OFFER_TAG:
-            livekit_sig_on_res_offer(sg, &res.message.offer);
-            break;
-        case LIVEKIT_SIGNAL_RESPONSE_TRICKLE_TAG:
-            livekit_sig_on_res_trickle(sg, &res.message.trickle);
-            break;
-        case LIVEKIT_SIGNAL_RESPONSE_TRACK_PUBLISHED_TAG:
-            livekit_sig_on_res_track_published(sg, &res.message.track_published);
-            break;
-        case LIVEKIT_SIGNAL_RESPONSE_LEAVE_TAG:
-            livekit_sig_on_res_leave(sg, &res.message.leave);
-            break;
-        // TODO: Known, but currently unsupported response types
-        case LIVEKIT_SIGNAL_RESPONSE_UPDATE_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_MUTE_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_SPEAKERS_CHANGED_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_ROOM_UPDATE_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_CONNECTION_QUALITY_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_STREAM_STATE_UPDATE_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_SUBSCRIBED_QUALITY_UPDATE_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_SUBSCRIPTION_PERMISSION_UPDATE_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_REFRESH_TOKEN_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_TRACK_UNPUBLISHED_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_PONG_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_RECONNECT_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_PONG_RESP_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_SUBSCRIPTION_RESPONSE_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_REQUEST_RESPONSE_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_TRACK_SUBSCRIBED_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_ROOM_MOVED_TAG: break;
-        default:
-            ESP_LOGI(LK_TAG, "Unknown signal res type");
-    }
+    livekit_sig_handle_res(sg, &res);
     // TODO: Cleanup
-}
-
-static void livekit_sig_on_connected(livekit_sig_t *sg)
-{
-    // TODO: Handle connected
-    ESP_LOGI(LK_TAG, "livekit_sig_on_connected");
-}
-
-static void livekit_sig_on_disconnected(livekit_sig_t *sg)
-{
-    // TODO: Handle disconnected
-    ESP_LOGI(LK_TAG, "livekit_sig_on_disconnected");
 }
 
 void livekit_sig_event_handler(void *ctx, esp_event_base_t base, int32_t event_id, void *event_data)
@@ -146,10 +97,8 @@ void livekit_sig_event_handler(void *ctx, esp_event_base_t base, int32_t event_i
     switch (event_id) {
         case WEBSOCKET_EVENT_CONNECTED:
             ESP_LOGI(LK_TAG, "Signaling connected");
-            livekit_sig_on_connected(sg);
             break;
         case WEBSOCKET_EVENT_DISCONNECTED:
-            livekit_sig_on_disconnected(sg);
             ESP_LOGI(LK_TAG, "Signaling disconnected");
             log_error_if_nonzero("HTTP status code", data->error_handle.esp_ws_handshake_status_code);
             if (data->error_handle.error_type == WEBSOCKET_ERROR_TYPE_TCP_TRANSPORT) {
@@ -157,6 +106,16 @@ void livekit_sig_event_handler(void *ctx, esp_event_base_t base, int32_t event_i
                 log_error_if_nonzero("reported from tls stack", data->error_handle.esp_tls_stack_err);
                 log_error_if_nonzero("captured as transport's socket errno", data->error_handle.esp_transport_sock_errno);
             }
+            livekit_sig_event_t event = {
+                .kind = LIVEKIT_SIG_EVENT_CLOSE,
+                .close = LIVEKIT_SIG_CLOSE_REASON_STREAM,
+            };
+            esp_peer_signaling_msg_t msg = {
+                .type = ESP_PEER_SIGNALING_MSG_CUSTOMIZED,
+                .data = (uint8_t *)&event,
+                .size = sizeof(event),
+            };
+            sg->cfg.on_msg(&msg, sg->cfg.ctx);
             break;
         case WEBSOCKET_EVENT_DATA:
             if (data->op_code != WS_TRANSPORT_OPCODES_BINARY) {
@@ -183,9 +142,8 @@ int livekit_wss_create(livekit_sig_t *sg)
 {
     assert(sg != NULL);
     livekit_wss_client_t *wss = calloc(1, sizeof(livekit_wss_client_t));
-    if (wss == NULL) {
-        return -1;
-    }
+    if (wss == NULL)  return -1;
+
     esp_websocket_client_config_t ws_cfg = {
         .uri = sg->cfg.signal_url,
         .buffer_size = LIVEKIT_SIG_BUFFER_SIZE,
@@ -198,10 +156,8 @@ int livekit_wss_create(livekit_sig_t *sg)
     };
 
     wss->ws = esp_websocket_client_init(&ws_cfg);
-    if (wss->ws == NULL) {
-        // TODO: Check if wss will be freed by livekit_sig_stop
-        return -1;
-    }
+    if (wss->ws == NULL) return -1;
+
     esp_websocket_register_events(
         wss->ws,
         WEBSOCKET_EVENT_ANY,
@@ -209,10 +165,8 @@ int livekit_wss_create(livekit_sig_t *sg)
         (void *)sg
     );
     int ret = esp_websocket_client_start(wss->ws);
-    if (ret != ESP_OK) {
-        // TODO: Check if wss will be freed by livekit_sig_stop
-        return ret;
-    }
+    if (ret != ESP_OK) return ret;
+
     sg->wss_client = wss;
     return 0;
 }
@@ -230,10 +184,8 @@ static int livekit_sig_stop(esp_peer_signaling_handle_t h)
 {
     livekit_sig_t *sg = (livekit_sig_t *)h;
     if (sg->wss_client) {
-        // TODO: Send message before leaving
         livekit_wss_destroy(sg->wss_client);
     }
-    // TODO: Free other allocated fields if added
     free(sg);
     return 0;
 }
@@ -250,9 +202,6 @@ static int livekit_sig_start(esp_peer_signaling_cfg_t *cfg, esp_peer_signaling_h
 
     // Copy configuration
     sg->cfg = *cfg;
-    if (sg->cfg.on_ice_info) {
-        sg->cfg.on_ice_info(&sg->ice_info, sg->cfg.ctx);
-    }
     *h = sg;
     int ret = livekit_wss_create(sg);
     if (ret != ESP_OK) {
