@@ -26,6 +26,7 @@ livekit_err_t livekit_create(livekit_options_t *options, livekit_handle_t *handl
         goto cleanup;
     }
     room->event_handler = options->event_handler;
+    room->media_provider = options->media_provider;
     if (livekit_sig_build_url(options->server_url, options->token, &room->signaling_url) != 0) {
         ret = LIVEKIT_ERR_BUILD_URL;
         goto cleanup;
@@ -117,11 +118,10 @@ livekit_err_t livekit_connect(livekit_handle_t handle)
         return LIVEKIT_ERR_INVALID_ARG;
     }
     livekit_room_state_t *room = (livekit_room_state_t *)handle;
-
-    // TODO: media setup
-    // esp_webrtc_media_provider_t media_provider = {};
-    // media_sys_get_provider(&media_provider);
-    // esp_webrtc_set_media_provider(room->rtc_handle, &media_provider);
+    if (esp_webrtc_set_media_provider(room->rtc_handle, &room->media_provider) != 0) {
+        ESP_LOGE(LK_TAG, "Failed to set media provider");
+        return LIVEKIT_ERR_RTC;
+    }
 
     esp_webrtc_set_event_handler(room->rtc_handle, livekit_rtc_event_handler, room);
     esp_webrtc_enable_peer_connection(room->rtc_handle, false);

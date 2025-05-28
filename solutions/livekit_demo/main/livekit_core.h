@@ -30,6 +30,7 @@ extern const char *LK_TAG;
 /// @brief Internal room state
 typedef struct {
     char* signaling_url;
+    esp_webrtc_media_provider_t media_provider;
     esp_webrtc_handle_t rtc_handle;
     livekit_event_handler_t event_handler;
     // TODO: Add additional fields
