@@ -37,24 +37,6 @@ typedef struct {
     int32_t                       ping_interval;
 } livekit_sig_t;
 
-typedef enum {
-    LIVEKIT_SIG_CLOSE_REASON_STREAM, /// Stream closed.
-    LIVEKIT_SIG_CLOSE_REASON_PING, /// Ping timeout.
-} livekit_sig_close_reason_t;
-
-typedef enum {
-    LIVEKIT_SIG_EVENT_MESSAGE, /// Received a message from the server.
-    LIVEKIT_SIG_EVENT_CLOSE    /// Signal connection closed, can ask to reconnect.
-} livekit_sig_event_kind_t;
-
-typedef struct {
-    livekit_sig_event_kind_t kind;
-    union {
-        livekit_signal_response_t message;
-        livekit_sig_close_reason_t close;
-    };
-} livekit_sig_event_t;
-
 const esp_peer_signaling_impl_t *livekit_sig_get_impl(void);
 
 /// @brief Builds a URL with the given URL and token, allocating memory for the result.

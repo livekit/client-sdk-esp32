@@ -82,8 +82,11 @@ int livekit_rtc_data_channel_handler(uint8_t *data, int size, livekit_room_state
 
 int livekit_rtc_signaling_data_handler(uint8_t *data, int size, livekit_room_state_t *room)
 {
-    // TODO: Handle signaling data
     ESP_LOGI(LK_TAG, "Received signaling data");
+
+    livekit_signal_response_t* res = (livekit_signal_response_t*)data;
+    // TODO: Handle signaling data
+    pb_release(LIVEKIT_SIGNAL_RESPONSE_FIELDS, res);
     return 0;
 }
 

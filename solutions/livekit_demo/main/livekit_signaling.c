@@ -52,18 +52,15 @@ static void livekit_sig_handle_res(livekit_sig_t *sg, livekit_signal_response_t 
             ESP_LOGI(LK_TAG, "Unknown signal res type");
     }
     if (should_forward) {
-        livekit_sig_event_t event = {
-            .kind = LIVEKIT_SIG_EVENT_MESSAGE,
-            .message = *res,
-        };
         esp_peer_signaling_msg_t msg = {
             .type = ESP_PEER_SIGNALING_MSG_CUSTOMIZED,
-            .data = (uint8_t *)&event,
-            .size = sizeof(event),
+            .data = (uint8_t *)res,
+            .size = sizeof(res),
         };
         sg->cfg.on_msg(&msg, sg->cfg.ctx);
+    } else {
+        pb_release(LIVEKIT_SIGNAL_RESPONSE_FIELDS, res);
     }
-    // TODO: Cleanup
 }
 
 static void livekit_sig_on_data(livekit_sig_t *sg, const char *data, size_t len)
@@ -106,16 +103,7 @@ void livekit_sig_event_handler(void *ctx, esp_event_base_t base, int32_t event_i
                 log_error_if_nonzero("reported from tls stack", data->error_handle.esp_tls_stack_err);
                 log_error_if_nonzero("captured as transport's socket errno", data->error_handle.esp_transport_sock_errno);
             }
-            livekit_sig_event_t event = {
-                .kind = LIVEKIT_SIG_EVENT_CLOSE,
-                .close = LIVEKIT_SIG_CLOSE_REASON_STREAM,
-            };
-            esp_peer_signaling_msg_t msg = {
-                .type = ESP_PEER_SIGNALING_MSG_CUSTOMIZED,
-                .data = (uint8_t *)&event,
-                .size = sizeof(event),
-            };
-            sg->cfg.on_msg(&msg, sg->cfg.ctx);
+            sg->cfg.on_close(sg->cfg.ctx);
             break;
         case WEBSOCKET_EVENT_DATA:
             if (data->op_code != WS_TRANSPORT_OPCODES_BINARY) {
