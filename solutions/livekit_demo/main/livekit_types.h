@@ -5,6 +5,7 @@ extern "C" {
 #endif
 
 #include <stdbool.h>
+#include "esp_webrtc.h"
 
 /// @brief  LiveKit room handle
 typedef void *livekit_handle_t;

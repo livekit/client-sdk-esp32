@@ -43,10 +43,14 @@ static bool room_event_handler(livekit_event_t *event);
 
 static int join_room(int argc, char **argv)
 {
+    esp_webrtc_media_provider_t media_provider = {};
+    media_sys_get_provider(&media_provider);
+
     // TODO: Dynamic configuration + sandbox tokens
     livekit_options_t options = {
         .server_url = "wss://example.livekit.io:7880/",
         .token = "token",
+        .media_provider = media_provider,
         .event_handler = room_event_handler,
         .audio_dir = LIVEKIT_AUDIO_DIR_NONE,
         .video_dir = LIVEKIT_VIDEO_DIR_NONE,
