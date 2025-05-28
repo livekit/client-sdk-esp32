@@ -48,8 +48,8 @@ static int join_room(int argc, char **argv)
 
     // TODO: Dynamic configuration + sandbox tokens
     livekit_options_t options = {
-        .server_url = "wss://example.livekit.io:7880/",
-        .token = "token",
+        .server_url = LK_SERVER_URL,
+        .token = LK_TOKEN,
         .media_provider = media_provider,
         .event_handler = room_event_handler,
         .audio_dir = LIVEKIT_AUDIO_DIR_NONE,
