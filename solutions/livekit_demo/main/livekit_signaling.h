@@ -4,9 +4,12 @@
 extern "C" {
 #endif
 
+#include <sys/time.h>
+#include <inttypes.h>
 #include "livekit_core.h"
 #include "esp_peer_signaling.h"
 #include "esp_netif.h"
+#include "media_lib_os.h"
 #ifdef CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
 #include "esp_crt_bundle.h"
 #endif
@@ -33,8 +36,12 @@ typedef struct {
 typedef struct {
     livekit_wss_client_t          *wss_client;
     esp_peer_signaling_cfg_t      cfg;
+
+    bool                          pinging;
+    bool                          ping_stop;
     int32_t                       ping_timeout;
     int32_t                       ping_interval;
+    int64_t                       rtt;
 } livekit_sig_t;
 
 const esp_peer_signaling_impl_t *livekit_sig_get_impl(void);

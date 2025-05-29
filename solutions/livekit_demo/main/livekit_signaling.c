@@ -1,5 +1,11 @@
 #include "livekit_signaling.h"
 
+static int64_t get_unix_time_ms() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (int64_t)tv.tv_sec * 1000LL + (tv.tv_usec / 1000LL);
+}
+
 static void log_error_if_nonzero(const char *message, int error_code)
 {
     if (error_code != 0) {
@@ -7,12 +13,94 @@ static void log_error_if_nonzero(const char *message, int error_code)
     }
 }
 
+static int livekit_sig_send_req(livekit_sig_t *sg, livekit_signal_request_t *req, uint8_t *enc_buf, size_t enc_buf_size)
+{
+    pb_ostream_t stream = pb_ostream_from_buffer(enc_buf, enc_buf_size);
+
+    if (!pb_encode(&stream, &livekit_signal_request_t_msg, req)) {
+        ESP_LOGE(LK_TAG, "Failed to encode request: %s", PB_GET_ERROR(&stream));
+        return -1;
+    }
+    // TODO: Set send timeout
+    if (esp_websocket_client_send_bin(sg->wss_client->ws, (const char *)enc_buf, stream.bytes_written, 0) < 0) {
+        ESP_LOGE(LK_TAG, "Failed to send request");
+        return -1;
+    }
+    return 0;
+}
+
+static void livekit_sig_send_ping(livekit_sig_t *sg)
+{
+    int64_t timestamp = get_unix_time_ms();
+    int64_t rtt = sg->rtt;
+    ESP_LOGI(LK_TAG, "Sending ping: timestamp=%" PRId64 "ms, rtt=%" PRId64 "ms", timestamp, rtt);
+
+    livekit_signal_request_t req = LIVEKIT_SIGNAL_REQUEST_INIT_DEFAULT;
+    req.which_message = LIVEKIT_SIGNAL_REQUEST_PING_REQ_TAG;
+    req.message.ping_req.timestamp = timestamp;
+    req.message.ping_req.rtt = rtt;
+
+    uint8_t enc_buf[512];
+    if (livekit_sig_send_req(sg, &req, enc_buf, sizeof(enc_buf)) != 0) {
+        ESP_LOGE(LK_TAG, "Failed to send ping");
+        return;
+    }
+}
+
+static void livekit_sig_ping_task(void *arg)
+{
+    assert(arg != NULL);
+    livekit_sig_t *sg = (livekit_sig_t *)arg;
+    ESP_LOGI(LK_TAG, "Ping task started");
+
+    while (!sg->ping_stop) {
+        media_lib_thread_sleep(sg->ping_interval * 1000);
+        livekit_sig_send_ping(sg);
+    }
+    media_lib_thread_destroy(NULL);
+}
+
+static int livekit_sig_start_ping_task(livekit_sig_t *sg)
+{
+    if (sg->pinging) return -1;
+    sg->ping_stop = false;
+    sg->pinging = false;
+
+    media_lib_thread_handle_t handle;
+
+    // Use larger stack size to accommodate livekit_signal_request_t. This type is
+    // especially large because it contains a union of all possible messages (even though
+    // the ping_req message is small).
+    media_lib_thread_create(
+        &handle,
+        "ping",
+        livekit_sig_ping_task,
+        sg,
+        8 * 1024,
+        10, // MEDIA_LIB_DEFAULT_THREAD_PRIORITY
+        0 // MEDIA_LIB_DEFAULT_THREAD_CORE
+    );
+    if (!handle) return -1;
+    sg->pinging = true;
+    return 0;
+}
+
+static int livekit_sig_stop_ping_task(livekit_sig_t *sg)
+{
+    sg->ping_stop = true;
+    while (sg->pinging) {
+        media_lib_thread_sleep(50);
+    }
+    return 0;
+}
+
 static void livekit_sig_handle_res(livekit_sig_t *sg, livekit_signal_response_t *res)
 {
     bool should_forward = false;
     switch (res->which_message) {
-        case LIVEKIT_SIGNAL_RESPONSE_PONG_TAG:
         case LIVEKIT_SIGNAL_RESPONSE_PONG_RESP_TAG:
+            livekit_pong_t *pong = &res->message.pong_resp;
+            sg->rtt = get_unix_time_ms() - pong->last_ping_timestamp;
             // TODO: Reset ping timeout
             break;
         case LIVEKIT_SIGNAL_RESPONSE_REFRESH_TOKEN_TAG:
@@ -23,7 +111,12 @@ static void livekit_sig_handle_res(livekit_sig_t *sg, livekit_signal_response_t 
             livekit_join_response_t *join_res = &res->message.join;
             sg->ping_interval = join_res->ping_interval;
             sg->ping_timeout = join_res->ping_timeout;
-            // TODO: Start ping interval
+            ESP_LOGI(LK_TAG,
+                "Join res: ping_interval=%" PRId32 "ms, ping_timeout=%" PRId32 "ms",
+                sg->ping_interval,
+                sg->ping_timeout
+            );
+            livekit_sig_start_ping_task(sg);
             should_forward = true;
             break;
 
@@ -83,7 +176,6 @@ static void livekit_sig_on_data(livekit_sig_t *sg, const char *data, size_t len)
 
     ESP_LOGI(LK_TAG, "Decoded signal res: type=%d", res.which_message);
     livekit_sig_handle_res(sg, &res);
-    // TODO: Cleanup
 }
 
 void livekit_sig_event_handler(void *ctx, esp_event_base_t base, int32_t event_id, void *event_data)
@@ -107,7 +199,7 @@ void livekit_sig_event_handler(void *ctx, esp_event_base_t base, int32_t event_i
             break;
         case WEBSOCKET_EVENT_DATA:
             if (data->op_code != WS_TRANSPORT_OPCODES_BINARY) {
-                ESP_LOGD(LK_TAG, "Message, opcode=%d, len=%d", data->op_code, data->data_len);
+                ESP_LOGD(LK_TAG, "Message: opcode=%d, len=%d", data->op_code, data->data_len);
                 break;
             }
             if (data->data_len < 1) break;
@@ -171,6 +263,7 @@ static void livekit_wss_destroy(livekit_wss_client_t *wss)
 static int livekit_sig_stop(esp_peer_signaling_handle_t h)
 {
     livekit_sig_t *sg = (livekit_sig_t *)h;
+    livekit_sig_stop_ping_task(sg);
     if (sg->wss_client) {
         livekit_wss_destroy(sg->wss_client);
     }
@@ -199,7 +292,6 @@ static int livekit_sig_start(esp_peer_signaling_cfg_t *cfg, esp_peer_signaling_h
     }
 
     ESP_LOGI(LK_TAG, "LiveKit signaling client created");
-    // TODO:
     return 0;
 }
 
