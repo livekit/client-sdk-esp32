@@ -16,16 +16,17 @@ typedef enum {
 } livekit_err_t;
 
 typedef struct {
-    char *server_url;
-    char *token;
+    char *server_url; /*!< LiveKit server URL */
+    char *token;      /*!< Access token */
     // TODO: Media provider, event handler, etc.
-} livekit_join_options_t;
+} livekit_room_options_t;
 
-livekit_err_t livekit_room_create(livekit_room_handle_t *handle);
+livekit_err_t livekit_room_create(livekit_room_handle_t *handle, livekit_room_options_t *options);
 livekit_err_t livekit_room_destroy(livekit_room_handle_t handle);
 
-livekit_err_t livekit_room_join(livekit_room_handle_t handle, livekit_join_options_t *options);
-livekit_err_t livekit_room_leave(livekit_room_handle_t handle);
+livekit_err_t livekit_room_connect(livekit_room_handle_t handle);
+livekit_err_t livekit_room_close(livekit_room_handle_t handle);
+// TODO: Add disconnect reason argument
 
 #ifdef __cplusplus
 }
