@@ -688,7 +688,7 @@ static int signal_closed(void *ctx)
 
 int livekit_eng_open(livekit_eng_cfg_t *cfg, livekit_eng_handle_t *handle)
 {
-    if (cfg == NULL || cfg->peer_impl == NULL) {
+    if (cfg == NULL) {
         return ESP_PEER_ERR_INVALID_ARG;
     }
     webrtc_t *rtc = (webrtc_t *)calloc(1, sizeof(webrtc_t));

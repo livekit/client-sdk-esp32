@@ -96,7 +96,6 @@ typedef struct {
  */
 typedef struct {
     livekit_eng_signaling_cfg_t       signaling_cfg;  /*!< Signaling configuration */
-    const esp_peer_ops_t            *peer_impl;      /*!< P2eer connection implementation */
     livekit_eng_peer_cfg_t            peer_cfg;       /*!< Peer connection configuration */
 } livekit_eng_cfg_t;
 
