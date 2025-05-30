@@ -5,7 +5,7 @@
 static const char *TAG = "livekit_demo";
 
 static livekit_room_handle_t room_handle;
-static livekit_join_options_t join_options = {
+static livekit_room_options_t room_options = {
     .server_url = LK_SERVER_URL,
     .token = LK_TOKEN
 };
@@ -16,12 +16,12 @@ int join_room()
         ESP_LOGE(TAG, "Room already created");
         return -1;
     }
-    if (livekit_room_create(&room_handle) != LIVEKIT_ERR_NONE) {
+    if (livekit_room_create(&room_handle, &room_options) != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to create room");
         return -1;
     }
-    if (livekit_room_join(room_handle, &join_options) != LIVEKIT_ERR_NONE) {
-        ESP_LOGE(TAG, "Failed to join room");
+    if (livekit_room_connect(room_handle) != LIVEKIT_ERR_NONE) {
+        ESP_LOGE(TAG, "Failed to connect to room");
         return -1;
     }
     return 0;
@@ -33,7 +33,7 @@ int leave_room()
         ESP_LOGE(TAG, "Room not created");
         return -1;
     }
-    if (livekit_room_leave(room_handle) != LIVEKIT_ERR_NONE) {
+    if (livekit_room_close(room_handle) != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to leave room");
         return -1;
     }
