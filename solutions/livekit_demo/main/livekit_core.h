@@ -5,8 +5,12 @@ extern "C" {
 #endif
 
 #include <esp_log.h>
+
 #include <esp_peer.h>
-#include <esp_webrtc.h>
+#include <esp_peer_signaling.h>
+#include <esp_capture.h>
+#include <av_render.h>
+
 #include <pb_encode.h>
 #include <pb_decode.h>
 
