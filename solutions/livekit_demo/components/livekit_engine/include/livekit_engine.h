@@ -36,13 +36,13 @@ extern "C" {
 /**
  * @brief  ESP WebRTC handle
  */
-typedef void *esp_webrtc_handle_t;
+typedef void *livekit_eng_handle_t;
 
 typedef enum {
-    ESP_WEBRTC_CUSTOM_DATA_VIA_NONE,
-    ESP_WEBRTC_CUSTOM_DATA_VIA_SIGNALING,
-    ESP_WEBRTC_CUSTOM_DATA_VIA_DATA_CHANNEL,
-} esp_webrtc_custom_data_via_t;
+    LIVEKIT_ENG_CUSTOM_DATA_VIA_NONE,
+    LIVEKIT_ENG_CUSTOM_DATA_VIA_SIGNALING,
+    LIVEKIT_ENG_CUSTOM_DATA_VIA_DATA_CHANNEL,
+} livekit_eng_custom_data_via_t;
 
 /**
  * @brief  ESP WebRTC peer connection configuration
@@ -62,7 +62,7 @@ typedef struct {
     bool                         no_auto_reconnect;       /*!< Disable auto reconnect
                                                                In room related WebRTC application, connection build up with peer
                                                                If peer leaves, it will auto re-enter same room (send new SDP) after clear up
-                                                               Disable reconnect will do nothing after clear up until call `esp_webrtc_enable_peer_connection` */
+                                                               Disable reconnect will do nothing after clear up until call `livekit_eng_enable_peer_connection` */
     void                        *extra_cfg;               /*!< Extra configuration for peer connection */
     int                          extra_size;              /*!< Size of extra configuration */
     void                        *ctx;                     /*!< User context */
@@ -71,7 +71,7 @@ typedef struct {
      * @brief  This API is used for users who do not care the data channel or signaling details
      *         And want to receive data from them only
      */
-    int (*on_custom_data)(esp_webrtc_custom_data_via_t via, uint8_t *data, int size, void *ctx);
+    int (*on_custom_data)(livekit_eng_custom_data_via_t via, uint8_t *data, int size, void *ctx);
 
     /**
      * @brief  Following API are function groups for users who want more control over data channels
@@ -79,7 +79,7 @@ typedef struct {
     int (*on_channel_open)(esp_peer_data_channel_info_t *ch, void *ctx);   /*!< Callback invoked when a data channel is opened */
     int (*on_data)(esp_peer_data_frame_t *frame, void *ctx);               /*!< Callback invoked when data is received on the channel */
     int (*on_channel_close)(esp_peer_data_channel_info_t *ch, void *ctx);  /*!< Callback invoked when a data channel is closed */
-} esp_webrtc_peer_cfg_t;
+} livekit_eng_peer_cfg_t;
 
 /**
  * @brief  ESP WebRTC signaling configuration
@@ -89,39 +89,39 @@ typedef struct {
     void *extra_cfg;  /*!< Extra configuration for special signaling server */
     int   extra_size; /*!< Size of extra configuration */
     void *ctx;        /*!< User context */
-} esp_webrtc_signaling_cfg_t;
+} livekit_eng_signaling_cfg_t;
 
 /**
  * @brief  ESP WebRTC configuration
  */
 typedef struct {
     const esp_peer_signaling_impl_t *signaling_impl; /*!< Signaling implementation */
-    esp_webrtc_signaling_cfg_t       signaling_cfg;  /*!< Signaling configuration */
+    livekit_eng_signaling_cfg_t       signaling_cfg;  /*!< Signaling configuration */
     const esp_peer_ops_t            *peer_impl;      /*!< P2eer connection implementation */
-    esp_webrtc_peer_cfg_t            peer_cfg;       /*!< Peer connection configuration */
-} esp_webrtc_cfg_t;
+    livekit_eng_peer_cfg_t            peer_cfg;       /*!< Peer connection configuration */
+} livekit_eng_cfg_t;
 
 /**
  * @brief  WebRTC event type
  */
 typedef enum {
-    ESP_WEBRTC_EVENT_NONE                      = 0, /*!< None event */
-    ESP_WEBRTC_EVENT_CONNECTED                 = 1, /*!< Connected event */
-    ESP_WEBRTC_EVENT_CONNECT_FAILED            = 2, /*!< Connected failed event */
-    ESP_WEBRTC_EVENT_DISCONNECTED              = 3, /*!< Disconnected event */
-    ESP_WEBRTC_EVENT_DATA_CHANNEL_CONNECTED    = 4, /*!< Data channel connected event */
-    ESP_WEBRTC_EVENT_DATA_CHANNEL_DISCONNECTED = 5, /*!< Data channel disconnected event */
-    ESP_WEBRTC_EVENT_DATA_CHANNEL_OPENED       = 6, /*!< Data channel opened event, suitable for one data channel only */
-    ESP_WEBRTC_EVENT_DATA_CHANNEL_CLOSED       = 7, /*!< Data channel closed event, suitable for one data channel only */
-} esp_webrtc_event_type_t;
+    LIVEKIT_ENG_EVENT_NONE                      = 0, /*!< None event */
+    LIVEKIT_ENG_EVENT_CONNECTED                 = 1, /*!< Connected event */
+    LIVEKIT_ENG_EVENT_CONNECT_FAILED            = 2, /*!< Connected failed event */
+    LIVEKIT_ENG_EVENT_DISCONNECTED              = 3, /*!< Disconnected event */
+    LIVEKIT_ENG_EVENT_DATA_CHANNEL_CONNECTED    = 4, /*!< Data channel connected event */
+    LIVEKIT_ENG_EVENT_DATA_CHANNEL_DISCONNECTED = 5, /*!< Data channel disconnected event */
+    LIVEKIT_ENG_EVENT_DATA_CHANNEL_OPENED       = 6, /*!< Data channel opened event, suitable for one data channel only */
+    LIVEKIT_ENG_EVENT_DATA_CHANNEL_CLOSED       = 7, /*!< Data channel closed event, suitable for one data channel only */
+} livekit_eng_event_type_t;
 
 /**
  * @brief  WebRTC event
  */
 typedef struct {
-    esp_webrtc_event_type_t type; /*!< Event type */
+    livekit_eng_event_type_t type; /*!< Event type */
     char                   *body; /*!< Event body (maybe NULL) */
-} esp_webrtc_event_t;
+} livekit_eng_event_t;
 
 /**
  * @brief  WebRTC media provider
@@ -132,7 +132,7 @@ typedef struct {
 typedef struct {
     esp_capture_handle_t capture; /*!< Capture system handle */
     av_render_handle_t   player;  /*!< Player handle */
-} esp_webrtc_media_provider_t;
+} livekit_eng_media_provider_t;
 
 /**
  * @brief  WebRTC event handler
@@ -142,7 +142,7 @@ typedef struct {
  *
  * @return  Status to indicate success or failure
  */
-typedef int (*esp_webrtc_event_handler_t)(esp_webrtc_event_t *event, void *ctx);
+typedef int (*livekit_eng_event_handler_t)(livekit_eng_event_t *event, void *ctx);
 
 /**
  * @brief  WebRTC event handler
@@ -155,7 +155,7 @@ typedef int (*esp_webrtc_event_handler_t)(esp_webrtc_event_t *event, void *ctx);
  *      - ESP_PEER_ERR_INVALID_ARG  Invalid argument
  *      - ESP_PEER_ERR_NO_MEM       Not enough memory
  */
-int esp_webrtc_open(esp_webrtc_cfg_t *cfg, esp_webrtc_handle_t *rtc_handle);
+int livekit_eng_open(livekit_eng_cfg_t *cfg, livekit_eng_handle_t *rtc_handle);
 
 /**
  * @brief  WebRTC set media provider
@@ -167,7 +167,7 @@ int esp_webrtc_open(esp_webrtc_cfg_t *cfg, esp_webrtc_handle_t *rtc_handle);
  *      - ESP_PEER_ERR_NONE         On success
  *      - ESP_PEER_ERR_INVALID_ARG  Invalid argument
  */
-int esp_webrtc_set_media_provider(esp_webrtc_handle_t rtc_handle, esp_webrtc_media_provider_t *provider);
+int livekit_eng_set_media_provider(livekit_eng_handle_t rtc_handle, livekit_eng_media_provider_t *provider);
 
 /**
  * @brief  WebRTC set event handler
@@ -180,7 +180,7 @@ int esp_webrtc_set_media_provider(esp_webrtc_handle_t rtc_handle, esp_webrtc_med
  *      - ESP_PEER_ERR_NONE         On success
  *      - ESP_PEER_ERR_INVALID_ARG  Invalid argument
  */
-int esp_webrtc_set_event_handler(esp_webrtc_handle_t rtc_handle, esp_webrtc_event_handler_t handler, void *ctx);
+int livekit_eng_set_event_handler(livekit_eng_handle_t rtc_handle, livekit_eng_event_handler_t handler, void *ctx);
 
 /**
  * @brief  Start WebRTC
@@ -192,7 +192,7 @@ int esp_webrtc_set_event_handler(esp_webrtc_handle_t rtc_handle, esp_webrtc_even
  *      - ESP_PEER_ERR_INVALID_ARG  Invalid argument
  *      - ESP_PEER_ERR_NO_MEM       Not enough memory
  */
-int esp_webrtc_enable_peer_connection(esp_webrtc_handle_t rtc_handle, bool enable);
+int livekit_eng_enable_peer_connection(livekit_eng_handle_t rtc_handle, bool enable);
 
 /**
  * @brief  Start WebRTC
@@ -204,7 +204,7 @@ int esp_webrtc_enable_peer_connection(esp_webrtc_handle_t rtc_handle, bool enabl
  *      - ESP_PEER_ERR_INVALID_ARG  Invalid argument
  *      - Others                    Fail to start
  */
-int esp_webrtc_start(esp_webrtc_handle_t rtc_handle);
+int livekit_eng_start(livekit_eng_handle_t rtc_handle);
 
 /**
  * @brief  Send customized data
@@ -216,7 +216,7 @@ int esp_webrtc_start(esp_webrtc_handle_t rtc_handle);
  *      - ESP_PEER_ERR_INVALID_ARG  Invalid argument
  *      - Others                    Fail to send customized data
  */
-int esp_webrtc_send_custom_data(esp_webrtc_handle_t rtc_handle, esp_webrtc_custom_data_via_t via, uint8_t *data, int size);
+int livekit_eng_send_custom_data(livekit_eng_handle_t rtc_handle, livekit_eng_custom_data_via_t via, uint8_t *data, int size);
 
 /**
  * @brief  Get Peer Connection handle
@@ -229,7 +229,7 @@ int esp_webrtc_send_custom_data(esp_webrtc_handle_t rtc_handle, esp_webrtc_custo
  *      - ESP_PEER_ERR_INVALID_ARG  Invalid argument
  *      - ESP_PEER_ERR_WRONG_STATE  Wrong state for peer connection not build yet
  */
-int esp_webrtc_get_peer_connection(esp_webrtc_handle_t rtc_handle, esp_peer_handle_t *peer_handle);
+int livekit_eng_get_peer_connection(livekit_eng_handle_t rtc_handle, esp_peer_handle_t *peer_handle);
 
 /**
  * @brief  Query status of WebRTC
@@ -240,7 +240,7 @@ int esp_webrtc_get_peer_connection(esp_webrtc_handle_t rtc_handle, esp_peer_hand
  *      - ESP_PEER_ERR_NONE         On success
  *      - ESP_PEER_ERR_INVALID_ARG  Invalid argument
  */
-int esp_webrtc_query(esp_webrtc_handle_t rtc_handle);
+int livekit_eng_query(livekit_eng_handle_t rtc_handle);
 
 /**
  * @brief  Stop WebRTC
@@ -252,7 +252,7 @@ int esp_webrtc_query(esp_webrtc_handle_t rtc_handle);
  *      - ESP_PEER_ERR_INVALID_ARG  Invalid argument
  *      - Others                    Fail to send customized data
  */
-int esp_webrtc_stop(esp_webrtc_handle_t rtc_handle);
+int livekit_eng_stop(livekit_eng_handle_t rtc_handle);
 
 /**
  * @brief  Close WebRTC
@@ -263,7 +263,7 @@ int esp_webrtc_stop(esp_webrtc_handle_t rtc_handle);
  *      - ESP_PEER_ERR_NONE         On success
  *      - ESP_PEER_ERR_INVALID_ARG  Invalid argument
  */
-int esp_webrtc_close(esp_webrtc_handle_t rtc_handle);
+int livekit_eng_close(livekit_eng_handle_t rtc_handle);
 
 #ifdef __cplusplus
 }
