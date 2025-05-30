@@ -97,15 +97,15 @@ typedef struct {
     uint8_t  vid_send_num;
     uint8_t  aud_recv_num;
     uint8_t  vid_recv_num;
-} webrtc_t;
+} livekit_eng_t;
 
-static const char *TAG = "webrtc";
+static const char *TAG = "livekit_engine";
 
 bool webrtc_tracing = false;
 
 static void _media_send(void *ctx)
 {
-    webrtc_t *rtc = (webrtc_t *)ctx;
+    livekit_eng_t *rtc = (livekit_eng_t *)ctx;
     if (rtc->rtc_cfg.peer_cfg.audio_info.codec) {
         esp_capture_stream_frame_t audio_frame = {
             .stream_type = ESP_CAPTURE_STREAM_TYPE_AUDIO,
@@ -161,7 +161,7 @@ static void _media_send(void *ctx)
 
 void media_send_task(void *arg)
 {
-    webrtc_t *rtc = (webrtc_t *)arg;
+    livekit_eng_t *rtc = (livekit_eng_t *)arg;
     while (rtc->send_going) {
         _media_send(arg);
         media_lib_thread_sleep(AUDIO_FRAME_INTERVAL);
@@ -170,7 +170,7 @@ void media_send_task(void *arg)
     media_lib_thread_destroy(NULL);
 }
 
-static int start_stream(webrtc_t *rtc)
+static int start_stream(livekit_eng_t *rtc)
 {
     int ret = esp_capture_start(rtc->media_provider.capture);
     if (ret == ESP_CAPTURE_ERR_OK) {
@@ -186,7 +186,7 @@ static int start_stream(webrtc_t *rtc)
     return ret;
 }
 
-static int stop_stream(webrtc_t *rtc)
+static int stop_stream(livekit_eng_t *rtc)
 {
     if (rtc->send_going) {
         rtc->send_going = false;
@@ -197,7 +197,7 @@ static int stop_stream(webrtc_t *rtc)
     return 0;
 }
 
-static void pc_notify_app(webrtc_t *rtc, livekit_eng_event_type_t event_type)
+static void pc_notify_app(livekit_eng_t *rtc, livekit_eng_event_type_t event_type)
 {
     livekit_eng_event_t event = {
         .type = event_type,
@@ -209,7 +209,7 @@ static void pc_notify_app(webrtc_t *rtc, livekit_eng_event_type_t event_type)
 
 static int pc_on_state(esp_peer_state_t state, void *ctx)
 {
-    webrtc_t *rtc = (webrtc_t *)ctx;
+    livekit_eng_t *rtc = (livekit_eng_t *)ctx;
     ESP_LOGI(TAG, "PeerConnectionState: %d", state);
     if (state != ESP_PEER_STATE_DATA_CHANNEL_OPENED &&
         state != ESP_PEER_STATE_DATA_CHANNEL_CLOSED &&
@@ -241,14 +241,14 @@ static int pc_on_state(esp_peer_state_t state, void *ctx)
 
 static int pc_on_msg(esp_peer_msg_t *info, void *ctx)
 {
-    webrtc_t *rtc = (webrtc_t *)ctx;
+    livekit_eng_t *rtc = (livekit_eng_t *)ctx;
     ESP_LOGI(TAG, "Send client sdp: %s\n", info->data);
     return esp_peer_signaling_send_msg(rtc->signaling, (esp_peer_signaling_msg_t *)info);
 }
 
 static void pc_task(void *arg)
 {
-    webrtc_t *rtc = (webrtc_t *)arg;
+    livekit_eng_t *rtc = (livekit_eng_t *)arg;
     ESP_LOGI(TAG, "peer_connection_task started");
     while (rtc->running) {
         if (rtc->pause) {
@@ -284,7 +284,7 @@ static void convert_dec_vid_info(esp_peer_video_stream_info_t *info, av_render_v
 
 static int pc_on_video_info(esp_peer_video_stream_info_t *info, void *ctx)
 {
-    webrtc_t *rtc = (webrtc_t *)ctx;
+    livekit_eng_t *rtc = (livekit_eng_t *)ctx;
     av_render_video_info_t video_info = {};
     convert_dec_vid_info(info, &video_info);
     av_render_add_video_stream(rtc->play_handle, &video_info);
@@ -320,7 +320,7 @@ static void convert_dec_aud_info(esp_peer_audio_stream_info_t *info, av_render_a
 
 static int pc_on_audio_info(esp_peer_audio_stream_info_t *info, void *ctx)
 {
-    webrtc_t *rtc = (webrtc_t *)ctx;
+    livekit_eng_t *rtc = (livekit_eng_t *)ctx;
     rtc->recv_aud_info = *info;
     av_render_audio_info_t audio_info = {};
     convert_dec_aud_info(info, &audio_info);
@@ -332,7 +332,7 @@ static int pc_on_audio_info(esp_peer_audio_stream_info_t *info, void *ctx)
 
 static int pc_on_audio_data(esp_peer_audio_frame_t *info, void *ctx)
 {
-    webrtc_t *rtc = (webrtc_t *)ctx;
+    livekit_eng_t *rtc = (livekit_eng_t *)ctx;
     if (rtc->running == false || rtc->recv_aud_info.codec == ESP_PEER_AUDIO_CODEC_NONE) {
         return 0;
     }
@@ -350,7 +350,7 @@ static int pc_on_audio_data(esp_peer_audio_frame_t *info, void *ctx)
 
 static int pc_on_video_data(esp_peer_video_frame_t *info, void *ctx)
 {
-    webrtc_t *rtc = (webrtc_t *)ctx;
+    livekit_eng_t *rtc = (livekit_eng_t *)ctx;
     if (rtc->running == false) {
         return 0;
     }
@@ -367,7 +367,7 @@ static int pc_on_video_data(esp_peer_video_frame_t *info, void *ctx)
 
 static int pc_on_data(esp_peer_data_frame_t *frame, void *ctx)
 {
-    webrtc_t *rtc = (webrtc_t *)ctx;
+    livekit_eng_t *rtc = (livekit_eng_t *)ctx;
     // Notify custom data over data channel
     if (rtc->rtc_cfg.peer_cfg.video_over_data_channel == false) {
         if (rtc->rtc_cfg.peer_cfg.on_data) {
@@ -396,7 +396,7 @@ static int pc_on_data(esp_peer_data_frame_t *frame, void *ctx)
     return 0;
 }
 
-static void free_server_cfg(webrtc_t *rtc)
+static void free_server_cfg(livekit_eng_t *rtc)
 {
     if (rtc->rtc_cfg.peer_cfg.server_lists == NULL) {
         return;
@@ -411,7 +411,7 @@ static void free_server_cfg(webrtc_t *rtc)
     rtc->rtc_cfg.peer_cfg.server_num = 0;
 }
 
-static int malloc_server_cfg(webrtc_t *rtc, esp_peer_ice_server_cfg_t *cfg, int server_num)
+static int malloc_server_cfg(livekit_eng_t *rtc, esp_peer_ice_server_cfg_t *cfg, int server_num)
 {
     if (server_num == 0) {
         return ESP_PEER_ERR_NONE;
@@ -472,7 +472,7 @@ static esp_capture_codec_type_t get_capture_video_codec(esp_peer_audio_codec_t v
     }
 }
 
-static int pc_close(webrtc_t *rtc)
+static int pc_close(livekit_eng_t *rtc)
 {
     if (rtc->pc) {
         esp_peer_disconnect(rtc->pc);
@@ -498,7 +498,7 @@ static int pc_close(webrtc_t *rtc)
 
 static int pc_on_channel_open(esp_peer_data_channel_info_t *ch, void *ctx)
 {
-    webrtc_t *rtc = (webrtc_t *)ctx;
+    livekit_eng_t *rtc = (livekit_eng_t *)ctx;
     if (rtc->rtc_cfg.peer_cfg.on_channel_open) {
         return rtc->rtc_cfg.peer_cfg.on_channel_open(ch, rtc->ctx);
     }
@@ -507,14 +507,14 @@ static int pc_on_channel_open(esp_peer_data_channel_info_t *ch, void *ctx)
 
 static int pc_on_channel_close(esp_peer_data_channel_info_t *ch, void *ctx)
 {
-    webrtc_t *rtc = (webrtc_t *)ctx;
+    livekit_eng_t *rtc = (livekit_eng_t *)ctx;
     if (rtc->rtc_cfg.peer_cfg.on_channel_close) {
         return rtc->rtc_cfg.peer_cfg.on_channel_close(ch, rtc->ctx);
     }
     return 0;
 }
 
-static int pc_start(webrtc_t *rtc, esp_peer_ice_server_cfg_t *server_info, int server_num)
+static int pc_start(livekit_eng_t *rtc, esp_peer_ice_server_cfg_t *server_info, int server_num)
 {
     if (rtc->pc) {
         return esp_peer_update_ice_info(rtc->pc, rtc->ice_role, server_info, server_num);
@@ -587,7 +587,7 @@ static int pc_start(webrtc_t *rtc, esp_peer_ice_server_cfg_t *server_info, int s
     return ret;
 }
 
-static int start_peer_connection(webrtc_t *rtc, esp_peer_signaling_ice_info_t *info)
+static int start_peer_connection(livekit_eng_t *rtc, esp_peer_signaling_ice_info_t *info)
 {
     rtc->ice_role = info->is_initiator ? ESP_PEER_ROLE_CONTROLLING : ESP_PEER_ROLE_CONTROLLED;
     int ret;
@@ -601,7 +601,7 @@ static int start_peer_connection(webrtc_t *rtc, esp_peer_signaling_ice_info_t *i
 
 static int signal_ice_received(esp_peer_signaling_ice_info_t *info, void *ctx)
 {
-    webrtc_t *rtc = (webrtc_t *)ctx;
+    livekit_eng_t *rtc = (livekit_eng_t *)ctx;
     rtc->ice_info_loaded = true;
     rtc->ice_info = *info;
     if (rtc->pending_connect) {
@@ -613,7 +613,7 @@ static int signal_ice_received(esp_peer_signaling_ice_info_t *info, void *ctx)
 
 static int signal_connected(void *ctx)
 {
-    webrtc_t *rtc = (webrtc_t *)ctx;
+    livekit_eng_t *rtc = (livekit_eng_t *)ctx;
     rtc->signaling_connected = true;
     if (rtc->rtc_cfg.peer_cfg.no_auto_reconnect && rtc->pending_connect) {
         printf("Signaling connected, pending for use not enable\n");
@@ -628,7 +628,7 @@ static int signal_connected(void *ctx)
 
 static int signal_new_msg(esp_peer_signaling_msg_t *msg, void *ctx)
 {
-    webrtc_t *rtc = (webrtc_t *)ctx;
+    livekit_eng_t *rtc = (livekit_eng_t *)ctx;
     if (msg->type == ESP_PEER_SIGNALING_MSG_BYE) {
         ESP_LOGI(TAG, "Received BYE");
         int ret = ESP_PEER_ERR_NONE;
@@ -679,7 +679,7 @@ static int signal_new_msg(esp_peer_signaling_msg_t *msg, void *ctx)
 
 static int signal_closed(void *ctx)
 {
-    webrtc_t *rtc = (webrtc_t *)ctx;
+    livekit_eng_t *rtc = (livekit_eng_t *)ctx;
     rtc->signaling_connected = false;
     // TODO disconnect if peer closed
     esp_peer_disconnect(rtc->pc);
@@ -691,7 +691,7 @@ int livekit_eng_open(livekit_eng_cfg_t *cfg, livekit_eng_handle_t *handle)
     if (cfg == NULL) {
         return ESP_PEER_ERR_INVALID_ARG;
     }
-    webrtc_t *rtc = (webrtc_t *)calloc(1, sizeof(webrtc_t));
+    livekit_eng_t *rtc = (livekit_eng_t *)calloc(1, sizeof(livekit_eng_t));
     if (rtc == NULL) {
         return ESP_PEER_ERR_NO_MEM;
     }
@@ -723,7 +723,7 @@ int livekit_eng_enable_peer_connection(livekit_eng_handle_t handle, bool enable)
     if (handle == NULL) {
         return ESP_PEER_ERR_INVALID_ARG;
     }
-    webrtc_t *rtc = (webrtc_t *)handle;
+    livekit_eng_t *rtc = (livekit_eng_t *)handle;
     rtc->pending_connect = !enable;
     int ret = ESP_PEER_ERR_NONE;
     if (rtc->pending_connect == false) {
@@ -763,7 +763,7 @@ int livekit_eng_set_event_handler(livekit_eng_handle_t handle, livekit_eng_event
     if (handle == NULL || handler == NULL) {
         return ESP_PEER_ERR_INVALID_ARG;
     }
-    webrtc_t *rtc = (webrtc_t *)handle;
+    livekit_eng_t *rtc = (livekit_eng_t *)handle;
     rtc->event_handler = handler;
     rtc->ctx = ctx;
     return ESP_PEER_ERR_NONE;
@@ -774,7 +774,7 @@ int livekit_eng_set_media_provider(livekit_eng_handle_t handle, livekit_eng_medi
     if (handle == NULL || provider->capture == NULL) {
         return ESP_PEER_ERR_INVALID_ARG;
     }
-    webrtc_t *rtc = (webrtc_t *)handle;
+    livekit_eng_t *rtc = (livekit_eng_t *)handle;
     rtc->media_provider = *provider;
     // Temp use esp_codec_dev as simple player
     rtc->play_handle = provider->player;
@@ -786,7 +786,7 @@ int livekit_eng_start(livekit_eng_handle_t handle)
     if (handle == NULL) {
         return ESP_PEER_ERR_INVALID_ARG;
     }
-    webrtc_t *rtc = (webrtc_t *)handle;
+    livekit_eng_t *rtc = (livekit_eng_t *)handle;
     if (rtc->signaling) {
         ESP_LOGW(TAG, "Already started");
         return ESP_PEER_ERR_WRONG_STATE;
@@ -816,7 +816,7 @@ int livekit_eng_send_custom_data(livekit_eng_handle_t handle, livekit_eng_custom
     if (handle == NULL) {
         return ESP_PEER_ERR_INVALID_ARG;
     }
-    webrtc_t *rtc = (webrtc_t *)handle;
+    livekit_eng_t *rtc = (livekit_eng_t *)handle;
     if (via == LIVEKIT_ENG_CUSTOM_DATA_VIA_SIGNALING) {
         esp_peer_signaling_msg_t msg = {
             .type = ESP_PEER_SIGNALING_MSG_CUSTOMIZED,
@@ -841,7 +841,7 @@ int livekit_eng_get_peer_connection(livekit_eng_handle_t handle, esp_peer_handle
     if (handle == NULL) {
         return ESP_PEER_ERR_INVALID_ARG;
     }
-    webrtc_t *rtc = (webrtc_t *)handle;
+    livekit_eng_t *rtc = (livekit_eng_t *)handle;
     if (rtc->pc == NULL) {
         return ESP_PEER_ERR_WRONG_STATE;
     }
@@ -863,7 +863,7 @@ int livekit_eng_query(livekit_eng_handle_t handle)
     if (handle == NULL) {
         return ESP_PEER_ERR_INVALID_ARG;
     }
-    webrtc_t *rtc = (webrtc_t *)handle;
+    livekit_eng_t *rtc = (livekit_eng_t *)handle;
     if (rtc->peer_state != ESP_PEER_STATE_CONNECTED) {
         return ESP_PEER_ERR_WRONG_STATE;
     }
@@ -898,7 +898,7 @@ int livekit_eng_stop(livekit_eng_handle_t handle)
     if (handle == NULL) {
         return ESP_PEER_ERR_INVALID_ARG;
     }
-    webrtc_t *rtc = (webrtc_t *)handle;
+    livekit_eng_t *rtc = (livekit_eng_t *)handle;
     int ret = 0;
     stop_stream(rtc);
     // TODO stop agent
@@ -915,7 +915,7 @@ int livekit_eng_close(livekit_eng_handle_t handle)
     if (handle == NULL) {
         return ESP_PEER_ERR_INVALID_ARG;
     }
-    webrtc_t *rtc = (webrtc_t *)handle;
+    livekit_eng_t *rtc = (livekit_eng_t *)handle;
     livekit_eng_stop(handle);
     free_server_cfg(rtc);
     SAFE_FREE(rtc->rtc_cfg.peer_cfg.extra_cfg);
