@@ -1,22 +1,9 @@
+
 #pragma once
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <sys/time.h>
-#include <inttypes.h>
-#include "livekit_core.h"
-#include "esp_peer_signaling.h"
-#include "esp_netif.h"
-#include "media_lib_os.h"
-#ifdef CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
-#include "esp_crt_bundle.h"
-#endif
-#include "esp_websocket_client.h"
-#include "esp_tls.h"
-
-#include <cJSON.h>
 
 #define LIVEKIT_PROTOCOL_VERSION "15"
 #define LIVEKIT_SDK_ID "esp32"
@@ -28,21 +15,6 @@ extern "C" {
 
 #define LIVEKIT_SIG_REQ_MAX_SIZE 2048 // Outgoing messages
 #define LIVEKIT_SIG_RES_MAX_SIZE 2048 // Incoming messages
-
-typedef struct {
-    esp_websocket_client_handle_t ws;
-} livekit_wss_client_t;
-
-typedef struct {
-    livekit_wss_client_t          *wss_client;
-    esp_peer_signaling_cfg_t      cfg;
-
-    bool                          pinging;
-    bool                          ping_stop;
-    int32_t                       ping_timeout;
-    int32_t                       ping_interval;
-    int64_t                       rtt;
-} livekit_sig_t;
 
 const esp_peer_signaling_impl_t *livekit_sig_get_impl(void);
 

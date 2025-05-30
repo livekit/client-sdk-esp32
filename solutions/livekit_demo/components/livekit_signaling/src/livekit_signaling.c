@@ -1,4 +1,35 @@
+#include <sys/time.h>
+#include <inttypes.h>
+#include <cJSON.h>
+#include "esp_log.h"
+#include "esp_peer_signaling.h"
+#include "esp_netif.h"
+#include "media_lib_os.h"
+#ifdef CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
+#include "esp_crt_bundle.h"
+#endif
+#include "esp_websocket_client.h"
+#include "esp_tls.h"
+
+#include <livekit_protocol.h>
 #include "livekit_signaling.h"
+
+static const char *TAG = "livekit_signaling";
+
+typedef struct {
+    esp_websocket_client_handle_t ws;
+} livekit_wss_client_t;
+
+typedef struct {
+    livekit_wss_client_t          *wss_client;
+    esp_peer_signaling_cfg_t      cfg;
+
+    bool                          pinging;
+    bool                          ping_stop;
+    int32_t                       ping_timeout;
+    int32_t                       ping_interval;
+    int64_t                       rtt;
+} livekit_sig_t;
 
 static int64_t get_unix_time_ms() {
     struct timeval tv;
@@ -9,7 +40,7 @@ static int64_t get_unix_time_ms() {
 static void log_error_if_nonzero(const char *message, int error_code)
 {
     if (error_code != 0) {
-        ESP_LOGE(LK_TAG, "Last error %s: 0x%x", message, error_code);
+        ESP_LOGE(TAG, "Last error %s: 0x%x", message, error_code);
     }
 }
 
@@ -18,12 +49,12 @@ static int livekit_sig_send_req(livekit_sig_t *sg, livekit_signal_request_t *req
     pb_ostream_t stream = pb_ostream_from_buffer(enc_buf, enc_buf_size);
 
     if (!pb_encode(&stream, &livekit_signal_request_t_msg, req)) {
-        ESP_LOGE(LK_TAG, "Failed to encode request: %s", PB_GET_ERROR(&stream));
+        ESP_LOGE(TAG, "Failed to encode request: %s", PB_GET_ERROR(&stream));
         return -1;
     }
     // TODO: Set send timeout
     if (esp_websocket_client_send_bin(sg->wss_client->ws, (const char *)enc_buf, stream.bytes_written, 0) < 0) {
-        ESP_LOGE(LK_TAG, "Failed to send request");
+        ESP_LOGE(TAG, "Failed to send request");
         return -1;
     }
     return 0;
@@ -33,7 +64,7 @@ static void livekit_sig_send_ping(livekit_sig_t *sg)
 {
     int64_t timestamp = get_unix_time_ms();
     int64_t rtt = sg->rtt;
-    ESP_LOGI(LK_TAG, "Sending ping: timestamp=%" PRId64 "ms, rtt=%" PRId64 "ms", timestamp, rtt);
+    ESP_LOGI(TAG, "Sending ping: timestamp=%" PRId64 "ms, rtt=%" PRId64 "ms", timestamp, rtt);
 
     livekit_signal_request_t req = LIVEKIT_SIGNAL_REQUEST_INIT_DEFAULT;
     req.which_message = LIVEKIT_SIGNAL_REQUEST_PING_REQ_TAG;
@@ -42,7 +73,7 @@ static void livekit_sig_send_ping(livekit_sig_t *sg)
 
     uint8_t enc_buf[512];
     if (livekit_sig_send_req(sg, &req, enc_buf, sizeof(enc_buf)) != 0) {
-        ESP_LOGE(LK_TAG, "Failed to send ping");
+        ESP_LOGE(TAG, "Failed to send ping");
         return;
     }
 }
@@ -51,7 +82,7 @@ static void livekit_sig_ping_task(void *arg)
 {
     assert(arg != NULL);
     livekit_sig_t *sg = (livekit_sig_t *)arg;
-    ESP_LOGI(LK_TAG, "Ping task started");
+    ESP_LOGI(TAG, "Ping task started");
 
     while (!sg->ping_stop) {
         media_lib_thread_sleep(sg->ping_interval * 1000);
@@ -111,7 +142,7 @@ static void livekit_sig_handle_res(livekit_sig_t *sg, livekit_signal_response_t 
             livekit_join_response_t *join_res = &res->message.join;
             sg->ping_interval = join_res->ping_interval;
             sg->ping_timeout = join_res->ping_timeout;
-            ESP_LOGI(LK_TAG,
+            ESP_LOGI(TAG,
                 "Join res: ping_interval=%" PRId32 "ms, ping_timeout=%" PRId32 "ms",
                 sg->ping_interval,
                 sg->ping_timeout
@@ -142,7 +173,7 @@ static void livekit_sig_handle_res(livekit_sig_t *sg, livekit_signal_response_t 
             should_forward = true;
             break;
         default:
-            ESP_LOGI(LK_TAG, "Unknown signal res type");
+            ESP_LOGI(TAG, "Unknown signal res type");
     }
     if (should_forward) {
         esp_peer_signaling_msg_t msg = {
@@ -158,9 +189,9 @@ static void livekit_sig_handle_res(livekit_sig_t *sg, livekit_signal_response_t 
 
 static void livekit_sig_on_data(livekit_sig_t *sg, const char *data, size_t len)
 {
-    ESP_LOGI(LK_TAG, "Incoming signal res: %d byte(s)", len);
+    ESP_LOGI(TAG, "Incoming signal res: %d byte(s)", len);
     if (len > LIVEKIT_SIG_RES_MAX_SIZE) {
-        ESP_LOGE(LK_TAG,
+        ESP_LOGE(TAG,
             "Signal res too large: received %d, max %d",
             len,
             LIVEKIT_SIG_RES_MAX_SIZE
@@ -170,11 +201,11 @@ static void livekit_sig_on_data(livekit_sig_t *sg, const char *data, size_t len)
     livekit_signal_response_t res = {};
     pb_istream_t stream = pb_istream_from_buffer((const pb_byte_t *)data, len);
     if (!pb_decode(&stream, LIVEKIT_SIGNAL_RESPONSE_FIELDS, &res)) {
-        ESP_LOGE(LK_TAG, "Failed to decode signal res: %s", stream.errmsg);
+        ESP_LOGE(TAG, "Failed to decode signal res: %s", stream.errmsg);
         return;
     }
 
-    ESP_LOGI(LK_TAG, "Decoded signal res: type=%d", res.which_message);
+    ESP_LOGI(TAG, "Decoded signal res: type=%d", res.which_message);
     livekit_sig_handle_res(sg, &res);
 }
 
@@ -185,10 +216,10 @@ void livekit_sig_event_handler(void *ctx, esp_event_base_t base, int32_t event_i
     esp_websocket_event_data_t *data = (esp_websocket_event_data_t *)event_data;
     switch (event_id) {
         case WEBSOCKET_EVENT_CONNECTED:
-            ESP_LOGI(LK_TAG, "Signaling connected");
+            ESP_LOGI(TAG, "Signaling connected");
             break;
         case WEBSOCKET_EVENT_DISCONNECTED:
-            ESP_LOGI(LK_TAG, "Signaling disconnected");
+            ESP_LOGI(TAG, "Signaling disconnected");
             log_error_if_nonzero("HTTP status code", data->error_handle.esp_ws_handshake_status_code);
             if (data->error_handle.error_type == WEBSOCKET_ERROR_TYPE_TCP_TRANSPORT) {
                 log_error_if_nonzero("reported from esp-tls", data->error_handle.esp_tls_last_esp_err);
@@ -199,14 +230,14 @@ void livekit_sig_event_handler(void *ctx, esp_event_base_t base, int32_t event_i
             break;
         case WEBSOCKET_EVENT_DATA:
             if (data->op_code != WS_TRANSPORT_OPCODES_BINARY) {
-                ESP_LOGD(LK_TAG, "Message: opcode=%d, len=%d", data->op_code, data->data_len);
+                ESP_LOGD(TAG, "Message: opcode=%d, len=%d", data->op_code, data->data_len);
                 break;
             }
             if (data->data_len < 1) break;
             livekit_sig_on_data(sg, data->data_ptr, data->data_len);
             break;
         case WEBSOCKET_EVENT_ERROR:
-            ESP_LOGE(LK_TAG, "Failed to connect to server");
+            ESP_LOGE(TAG, "Failed to connect to server");
             log_error_if_nonzero("HTTP status code", data->error_handle.esp_ws_handshake_status_code);
             if (data->error_handle.error_type == WEBSOCKET_ERROR_TYPE_TCP_TRANSPORT) {
                 log_error_if_nonzero("reported from esp-tls", data->error_handle.esp_tls_last_esp_err);
@@ -291,20 +322,20 @@ static int livekit_sig_start(esp_peer_signaling_cfg_t *cfg, esp_peer_signaling_h
         return ret;
     }
 
-    ESP_LOGI(LK_TAG, "LiveKit signaling client created");
+    ESP_LOGI(TAG, "LiveKit signaling client created");
     return 0;
 }
 
 static int livekit_sig_send_msg(esp_peer_signaling_handle_t h, esp_peer_signaling_msg_t *msg)
 {
-    ESP_LOGI(LK_TAG, "livekit_sig_send_msg");
+    ESP_LOGI(TAG, "livekit_sig_send_msg");
     // TODO: Implement
     return 0;
 }
 
 const esp_peer_signaling_impl_t *livekit_sig_get_impl(void)
 {
-    ESP_LOGI(LK_TAG, "livekit_sig_get_impl");
+    ESP_LOGI(TAG, "livekit_sig_get_impl");
     static const esp_peer_signaling_impl_t impl = {
         .start = livekit_sig_start,
         .send_msg = livekit_sig_send_msg,
@@ -323,12 +354,12 @@ int livekit_sig_build_url(const char *base_url, const char *token, char **out_ur
     }
     size_t url_len = strlen(base_url);
     if (url_len < 1) {
-        ESP_LOGE(LK_TAG, "URL cannot be empty");
+        ESP_LOGE(TAG, "URL cannot be empty");
         return -1;
     }
 
     if (strncmp(base_url, "ws://", 5) != 0 && strncmp(base_url, "wss://", 6) != 0) {
-        ESP_LOGE(LK_TAG, "Unsupported URL scheme");
+        ESP_LOGE(TAG, "Unsupported URL scheme");
         return -1;
     }
     // Do not add a trailing slash if the URL already has one
@@ -343,7 +374,7 @@ int livekit_sig_build_url(const char *base_url, const char *token, char **out_ur
     );
 
     if (final_len >= LIVEKIT_URL_MAX_LEN) {
-        ESP_LOGE(LK_TAG, "Final URL exceeds max length of %d", LIVEKIT_URL_MAX_LEN);
+        ESP_LOGE(TAG, "Final URL exceeds max length of %d", LIVEKIT_URL_MAX_LEN);
         return -1;
     }
 
@@ -362,6 +393,6 @@ int livekit_sig_build_url(const char *base_url, const char *token, char **out_ur
 
     // Token is redacted from logging for security
     size_t token_len = strlen(token);
-    ESP_LOGI(LK_TAG, "Signaling URL: %.*s[REDACTED]", (int)(final_len - token_len), *out_url);
+    ESP_LOGI(TAG, "Signaling URL: %.*s[REDACTED]", (int)(final_len - token_len), *out_url);
     return 0;
 }

@@ -26,7 +26,7 @@
 #include "network.h"
 #include "sys_state.h"
 #include "board.h"
-#include "livekit.h"
+#include "livekit_demo.h"
 
 static const char *TAG = "livekit_demo";
 
@@ -38,44 +38,16 @@ static const char *TAG = "livekit_demo";
     }                                   \
     media_lib_thread_create_from_scheduler(NULL, #name, run_async##name, NULL);
 
-static livekit_handle_t room_handle;
-static bool room_event_handler(livekit_event_t *event);
-
-static int join_room(int argc, char **argv)
+static int join_room_cmd(int argc, char **argv)
 {
-    esp_webrtc_media_provider_t media_provider = {};
-    media_sys_get_provider(&media_provider);
-
-    // TODO: Dynamic configuration + sandbox tokens
-    livekit_options_t options = {
-        .server_url = LK_SERVER_URL,
-        .token = LK_TOKEN,
-        .media_provider = media_provider,
-        .event_handler = room_event_handler,
-        .audio_dir = LIVEKIT_AUDIO_DIR_NONE,
-        .video_dir = LIVEKIT_VIDEO_DIR_NONE,
-    };
-    livekit_create(&options, &room_handle);
-
-    ESP_LOGI(TAG, "Connecting to room");
-    if (livekit_connect(room_handle) != LIVEKIT_ERR_NONE) {
-        ESP_LOGE(TAG, "Failed to connect to room");
-    }
+    join_room();
     return 0;
 }
 
-static bool room_event_handler(livekit_event_t *event)
-{
-    // TODO: Handle room events
-    return false; // Event not handled
-}
-
-static int leave_room(int argc, char **argv)
+static int leave_room_cmd(int argc, char **argv)
 {
     RUN_ASYNC(leave, {
-        livekit_disconnect(room_handle);
-        livekit_destroy(room_handle);
-        room_handle = NULL;
+        leave_room();
     });
     return 0;
 }
@@ -104,12 +76,12 @@ static int init_console()
         {
             .command = "join",
             .help = "Please enter a room name.\r\n",
-            .func = join_room
+            .func = join_room_cmd
         },
         {
             .command = "leave",
             .help = "Leave from room\n",
-            .func = leave_room,
+            .func = leave_room_cmd,
         }
     };
     for (int i = 0; i < sizeof(cmds) / sizeof(cmds[0]); i++) {
@@ -145,11 +117,8 @@ static void thread_scheduler(const char *thread_name, media_lib_thread_cfg_t *th
 
 static int network_event_handler(bool connected)
 {
-    if (connected && room_handle == NULL) {
-        join_room(0, NULL);
-    } else {
-        leave_room(0, NULL);
-    }
+    // Auto-join when network is connected
+    if (connected) join_room();
     return 0;
 }
 

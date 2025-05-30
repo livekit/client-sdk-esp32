@@ -7,8 +7,8 @@ import subprocess
 import configparser
 
 required_files = ["livekit_rtc.proto", "livekit_models.proto", "livekit_metrics.proto"]
-protobuf_location = "protobufs"
-bindings_dest = "../main/protocol"
+protobuf_location = "../protobufs"
+bindings_src_dest = "../src"
 
 def main():
     version = read_version()
@@ -76,7 +76,7 @@ def generate_bindings(verbose = False):
         protoc_path,
         *(["--nanopb_opt=-v"] if verbose else []), # Verbose output
         "--nanopb_opt=--c-style",
-        f"--nanopb_out={os.path.abspath(bindings_dest)}"
+        f"--nanopb_out={os.path.abspath(bindings_src_dest)}"
     ] + input_files
 
     print(f"Generating bindings: {" ".join(protoc_cmd)}")
