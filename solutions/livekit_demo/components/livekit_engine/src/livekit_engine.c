@@ -34,6 +34,7 @@
 #include "esp_codec_dev.h"
 #include "esp_webrtc_defaults.h"
 
+#include "livekit_signaling.h"
 #include "livekit_engine.h"
 
 #define AUDIO_FRAME_INTERVAL (20)
@@ -687,7 +688,7 @@ static int signal_closed(void *ctx)
 
 int livekit_eng_open(livekit_eng_cfg_t *cfg, livekit_eng_handle_t *handle)
 {
-    if (cfg == NULL || cfg->signaling_impl == NULL || cfg->peer_impl == NULL) {
+    if (cfg == NULL || cfg->peer_impl == NULL) {
         return ESP_PEER_ERR_INVALID_ARG;
     }
     webrtc_t *rtc = (webrtc_t *)calloc(1, sizeof(webrtc_t));
@@ -802,7 +803,7 @@ int livekit_eng_start(livekit_eng_handle_t handle)
         .on_close = signal_closed,
         .ctx = rtc
     };
-    int ret = esp_peer_signaling_start(&sig_cfg, rtc->rtc_cfg.signaling_impl, &rtc->signaling);
+    int ret = esp_peer_signaling_start(&sig_cfg, livekit_sig_get_impl(), &rtc->signaling);
     if (ret != ESP_PEER_ERR_NONE) {
         ESP_LOGE(TAG, "Fail to start signaling");
         return ret;
