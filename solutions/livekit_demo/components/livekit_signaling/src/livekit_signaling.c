@@ -216,29 +216,9 @@ static void livekit_sig_handle_res(livekit_sig_t *sg, livekit_signal_response_t 
             should_forward = true;
             break;
 
-        case LIVEKIT_SIGNAL_RESPONSE_RECONNECT_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_ANSWER_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_OFFER_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_TRICKLE_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_TRACK_PUBLISHED_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_LEAVE_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_UPDATE_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_MUTE_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_SPEAKERS_CHANGED_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_ROOM_UPDATE_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_CONNECTION_QUALITY_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_STREAM_STATE_UPDATE_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_SUBSCRIBED_QUALITY_UPDATE_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_SUBSCRIPTION_PERMISSION_UPDATE_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_TRACK_UNPUBLISHED_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_SUBSCRIPTION_RESPONSE_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_REQUEST_RESPONSE_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_TRACK_SUBSCRIBED_TAG:
-        case LIVEKIT_SIGNAL_RESPONSE_ROOM_MOVED_TAG:
+        default:
             should_forward = true;
             break;
-        default:
-            ESP_LOGI(TAG, "Unknown signal res type");
     }
     if (should_forward) {
         sg->options.on_message(res, sg->options.ctx);
