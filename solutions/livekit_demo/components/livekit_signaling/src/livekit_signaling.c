@@ -16,13 +16,20 @@
 
 static const char *TAG = "livekit_signaling";
 
-typedef struct {
-    esp_websocket_client_handle_t ws;
-} livekit_wss_client_t;
+#define LIVEKIT_PROTOCOL_VERSION "15"
+#define LIVEKIT_SDK_ID           "esp32"
+#define LIVEKIT_SDK_VERSION      "alpha"
+
+#define LIVEKIT_SIG_WS_BUFFER_SIZE          2048
+#define LIVEKIT_SIG_WS_RECONNECT_TIMEOUT_MS 1000
+#define LIVEKIT_SIG_WS_NETWORK_TIMEOUT_MS   1000
+#define LIVEKIT_SIG_WS_CLOSE_CODE           1000
+#define LIVEKIT_SIG_WS_CLOSE_TIMEOUT_MS     250
 
 typedef struct {
-    livekit_wss_client_t          *wss_client;
-    esp_peer_signaling_cfg_t      cfg;
+    char* url;
+    esp_websocket_client_handle_t ws;
+    livekit_sig_options_t         options;
 
     bool                          pinging;
     bool                          ping_stop;
@@ -30,6 +37,16 @@ typedef struct {
     int32_t                       ping_interval;
     int64_t                       rtt;
 } livekit_sig_t;
+
+static esp_websocket_client_config_t default_ws_cfg = {
+    .buffer_size = LIVEKIT_SIG_WS_BUFFER_SIZE,
+    .disable_pingpong_discon = true,
+    .reconnect_timeout_ms = LIVEKIT_SIG_WS_RECONNECT_TIMEOUT_MS,
+    .network_timeout_ms = LIVEKIT_SIG_WS_NETWORK_TIMEOUT_MS,
+#ifdef CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
+    .crt_bundle_attach = esp_crt_bundle_attach
+#endif
+};
 
 static int64_t get_unix_time_ms() {
     struct timeval tv;
@@ -44,20 +61,68 @@ static void log_error_if_nonzero(const char *message, int error_code)
     }
 }
 
-static int livekit_sig_send_req(livekit_sig_t *sg, livekit_signal_request_t *req, uint8_t *enc_buf, size_t enc_buf_size)
+static livekit_sig_err_t livekit_sig_build_url(const char *server_url, const char *token, char **out_url)
+{
+    static const char url_format[] = "%s%srtc?sdk=%s&version=%s&auto_subscribe=true&access_token=%s";
+    // Access token parameter must stay at the end for logging
+
+    if (base_url == NULL || token == NULL || out_url == NULL) {
+        return LIVEKIT_SIG_ERR_INVALID_ARG;
+    }
+    size_t url_len = strlen(base_url);
+    if (url_len < 1) {
+        ESP_LOGE(TAG, "URL cannot be empty");
+        return LIVEKIT_SIG_ERR_INVALID_URL;
+    }
+
+    if (strncmp(base_url, "ws://", 5) != 0 && strncmp(base_url, "wss://", 6) != 0) {
+        ESP_LOGE(TAG, "Unsupported URL scheme");
+        return LIVEKIT_SIG_ERR_INVALID_URL;
+    }
+    // Do not add a trailing slash if the URL already has one
+    const char *separator = base_url[url_len - 1] == '/' ? "" : "/";
+
+    int final_len = snprintf(NULL, 0, url_format,
+        base_url,
+        separator,
+        LIVEKIT_SDK_ID,
+        LIVEKIT_SDK_VERSION,
+        token
+    );
+
+    *out_url = (char *)malloc(final_len + 1);
+    if (*out_url == NULL) {
+        return LIVEKIT_SIG_ERR_NO_MEM;
+    }
+
+    sprintf(*out_url, url_format,
+        base_url,
+        separator,
+        LIVEKIT_SDK_ID,
+        LIVEKIT_SDK_VERSION,
+        token
+    );
+
+    // Token is redacted from logging for security
+    size_t token_len = strlen(token);
+    ESP_LOGI(TAG, "Signaling URL: %.*s[REDACTED]", (int)(final_len - token_len), *out_url);
+    return 0;
+}
+
+static livekit_sig_err_t livekit_sig_send_req(livekit_sig_t *sg, livekit_signal_request_t *req, uint8_t *enc_buf, size_t enc_buf_size)
 {
     pb_ostream_t stream = pb_ostream_from_buffer(enc_buf, enc_buf_size);
 
     if (!pb_encode(&stream, &livekit_signal_request_t_msg, req)) {
         ESP_LOGE(TAG, "Failed to encode request: %s", PB_GET_ERROR(&stream));
-        return -1;
+        return LIVEKIT_SIG_ERR_MESSAGE;
     }
     // TODO: Set send timeout
     if (esp_websocket_client_send_bin(sg->wss_client->ws, (const char *)enc_buf, stream.bytes_written, 0) < 0) {
         ESP_LOGE(TAG, "Failed to send request");
-        return -1;
+        return LIVEKIT_SIG_ERR_MESSAGE;
     }
-    return 0;
+    return LIVEKIT_SIG_ERR_NONE;
 }
 
 static void livekit_sig_send_ping(livekit_sig_t *sg)
@@ -91,9 +156,9 @@ static void livekit_sig_ping_task(void *arg)
     media_lib_thread_destroy(NULL);
 }
 
-static int livekit_sig_start_ping_task(livekit_sig_t *sg)
+static livekit_sig_err_t livekit_sig_start_ping_task(livekit_sig_t *sg)
 {
-    if (sg->pinging) return -1;
+    if (sg->pinging) return LIVEKIT_SIG_ERR_OTHER;
     sg->ping_stop = false;
     sg->pinging = false;
 
@@ -111,18 +176,18 @@ static int livekit_sig_start_ping_task(livekit_sig_t *sg)
         10, // MEDIA_LIB_DEFAULT_THREAD_PRIORITY
         0 // MEDIA_LIB_DEFAULT_THREAD_CORE
     );
-    if (!handle) return -1;
+    if (!handle) return LIVEKIT_SIG_ERR_OTHER;
     sg->pinging = true;
-    return 0;
+    return LIVEKIT_SIG_ERR_NONE;
 }
 
-static int livekit_sig_stop_ping_task(livekit_sig_t *sg)
+static livekit_sig_err_t livekit_sig_stop_ping_task(livekit_sig_t *sg)
 {
     sg->ping_stop = true;
     while (sg->pinging) {
         media_lib_thread_sleep(50);
     }
-    return 0;
+    return LIVEKIT_SIG_ERR_NONE;
 }
 
 static void livekit_sig_handle_res(livekit_sig_t *sg, livekit_signal_response_t *res)
@@ -176,28 +241,14 @@ static void livekit_sig_handle_res(livekit_sig_t *sg, livekit_signal_response_t 
             ESP_LOGI(TAG, "Unknown signal res type");
     }
     if (should_forward) {
-        esp_peer_signaling_msg_t msg = {
-            .type = ESP_PEER_SIGNALING_MSG_CUSTOMIZED,
-            .data = (uint8_t *)res,
-            .size = sizeof(res),
-        };
-        sg->cfg.on_msg(&msg, sg->cfg.ctx);
-    } else {
-        pb_release(LIVEKIT_SIGNAL_RESPONSE_FIELDS, res);
+        sg->options.on_message(res, sg->options.ctx);
     }
+    pb_release(LIVEKIT_SIGNAL_RESPONSE_FIELDS, res);
 }
 
 static void livekit_sig_on_data(livekit_sig_t *sg, const char *data, size_t len)
 {
     ESP_LOGI(TAG, "Incoming signal res: %d byte(s)", len);
-    if (len > LIVEKIT_SIG_RES_MAX_SIZE) {
-        ESP_LOGE(TAG,
-            "Signal res too large: received %d, max %d",
-            len,
-            LIVEKIT_SIG_RES_MAX_SIZE
-        );
-        return;
-    }
     livekit_signal_response_t res = {};
     pb_istream_t stream = pb_istream_from_buffer((const pb_byte_t *)data, len);
     if (!pb_decode(&stream, LIVEKIT_SIGNAL_RESPONSE_FIELDS, &res)) {
@@ -217,6 +268,7 @@ void livekit_sig_event_handler(void *ctx, esp_event_base_t base, int32_t event_i
     switch (event_id) {
         case WEBSOCKET_EVENT_CONNECTED:
             ESP_LOGI(TAG, "Signaling connected");
+            sg->options.on_connect(sg->options->ctx);
             break;
         case WEBSOCKET_EVENT_DISCONNECTED:
             ESP_LOGI(TAG, "Signaling disconnected");
@@ -226,7 +278,7 @@ void livekit_sig_event_handler(void *ctx, esp_event_base_t base, int32_t event_i
                 log_error_if_nonzero("reported from tls stack", data->error_handle.esp_tls_stack_err);
                 log_error_if_nonzero("captured as transport's socket errno", data->error_handle.esp_transport_sock_errno);
             }
-            sg->cfg.on_close(sg->cfg.ctx);
+            sg->options.on_disconnect(sg->options->ctx);
             break;
         case WEBSOCKET_EVENT_DATA:
             if (data->op_code != WS_TRANSPORT_OPCODES_BINARY) {
@@ -244,155 +296,102 @@ void livekit_sig_event_handler(void *ctx, esp_event_base_t base, int32_t event_i
                 log_error_if_nonzero("reported from tls stack", data->error_handle.esp_tls_stack_err);
                 log_error_if_nonzero("captured as transport's socket errno", data->error_handle.esp_transport_sock_errno);
             }
+            sg->options.on_error(sg->options->ctx);
             break;
         default: break;
     }
 }
 
-int livekit_wss_create(livekit_sig_t *sg)
+livekit_sig_err_t livekit_sig_create(livekit_sig_options_t *options, livekit_sig_handle_t *handle)
 {
-    assert(sg != NULL);
-    livekit_wss_client_t *wss = calloc(1, sizeof(livekit_wss_client_t));
-    if (wss == NULL)  return -1;
+    if (options == NULL || handle == NULL) {
+        return LIVEKIT_SIG_ERR_INVALID_ARG;
+    }
+    livekit_sig_t *sg = calloc(1, sizeof(livekit_sig_t));
+    if (sg == NULL) {
+        return LIVEKIT_SIG_ERR_NO_MEM;
+    }
+    sg->options = *options;
 
-    esp_websocket_client_config_t ws_cfg = {
-        .uri = sg->cfg.signal_url,
-        .buffer_size = LIVEKIT_SIG_BUFFER_SIZE,
-        .disable_pingpong_discon = true,
-        .reconnect_timeout_ms = LIVEKIT_SIG_RECONNECT_TIMEOUT_MS,
-        .network_timeout_ms = LIVEKIT_SIG_NETWORK_TIMEOUT_MS,
-#ifdef CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
-        .crt_bundle_attach = esp_crt_bundle_attach
-#endif
-    };
-
-    wss->ws = esp_websocket_client_init(&ws_cfg);
-    if (wss->ws == NULL) return -1;
-
+    // URL will be set on connect
+    sg->ws = esp_websocket_client_init(&default_ws_cfg);
+    if (sg->ws == NULL) {
+        ESP_LOGE(TAG, "Failed to initialize WebSocket client");
+        free(sg);
+        return LIVEKIT_SIG_ERR_WEBSOCKET;
+    }
     esp_websocket_register_events(
-        wss->ws,
+        sg->ws,
         WEBSOCKET_EVENT_ANY,
         livekit_sig_event_handler,
         (void *)sg
     );
-    int ret = esp_websocket_client_start(wss->ws);
-    if (ret != ESP_OK) return ret;
-
-    sg->wss_client = wss;
-    return 0;
+    *handle = sg;
+    return LIVEKIT_SIG_ERR_NONE;
 }
 
-static void livekit_wss_destroy(livekit_wss_client_t *wss)
+livekit_sig_err_t livekit_sig_destroy(livekit_sig_handle_t handle)
 {
-    if (wss->ws) {
-        esp_websocket_client_stop(wss->ws);
-        esp_websocket_client_destroy(wss->ws);
+    if (handle == NULL) {
+        return LIVEKIT_SIG_ERR_INVALID_ARG;
     }
-    free(wss);
-}
-
-static int livekit_sig_stop(esp_peer_signaling_handle_t h)
-{
-    livekit_sig_t *sg = (livekit_sig_t *)h;
-    livekit_sig_stop_ping_task(sg);
-    if (sg->wss_client) {
-        livekit_wss_destroy(sg->wss_client);
-    }
+    livekit_sig_t *sg = (livekit_sig_t *)handle;
+    livekit_sig_close(true, handle);
+    esp_websocket_client_destroy(sg->ws);
     free(sg);
-    return 0;
+    return LIVEKIT_SIG_ERR_NONE;
 }
 
-static int livekit_sig_start(esp_peer_signaling_cfg_t *cfg, esp_peer_signaling_handle_t *h)
+livekit_sig_err_t livekit_sig_connect(const char* server_url, const char* token, livekit_sig_handle_t handle)
 {
-    if (cfg == NULL || cfg->signal_url == NULL || h == NULL) {
-        return -1;
+    if (server_url == NULL || token == NULL || handle == NULL) {
+        return LIVEKIT_SIG_ERR_INVALID_ARG;
     }
-    livekit_sig_t *sg = calloc(1, sizeof(livekit_sig_t));
-    if (sg == NULL) {
-        return -1;
-    }
+    livekit_sig_t *sg = (livekit_sig_t *)handle;
 
-    // Copy configuration
-    sg->cfg = *cfg;
-    *h = sg;
-    int ret = livekit_wss_create(sg);
-    if (ret != ESP_OK) {
-        *h = NULL;
-        livekit_sig_stop(sg);
-        return ret;
-    }
+    livekit_sig_close(true, handle);
+    int ret = livekit_sig_build_url(server_url, token, &sg->url);
+    if (ret != LIVEKIT_SIG_ERR_NONE) return ret;
 
-    ESP_LOGI(TAG, "LiveKit signaling client created");
-    return 0;
+    if (esp_websocket_client_set_uri(sg->ws, sg->url) != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to set WebSocket URI");
+        return LIVEKIT_SIG_ERR_WEBSOCKET;
+    }
+    if (esp_websocket_client_start(sg->ws) != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to start WebSocket");
+        return LIVEKIT_SIG_ERR_WEBSOCKET;
+    }
+    return LIVEKIT_SIG_ERR_NONE;
 }
 
-static int livekit_sig_send_msg(esp_peer_signaling_handle_t h, esp_peer_signaling_msg_t *msg)
+livekit_sig_err_t livekit_sig_close(bool force, livekit_sig_handle_t handle)
 {
-    ESP_LOGI(TAG, "livekit_sig_send_msg");
-    // TODO: Implement
-    return 0;
+    if (handle == NULL) {
+        return LIVEKIT_SIG_ERR_INVALID_ARG;
+    }
+    livekit_sig_t *sg = (livekit_sig_t *)handle;
+    if (sg->ws != NULL) {
+        if (livekit_sig_stop_ping_task(sg) != LIVEKIT_SIG_ERR_NONE) {
+            ESP_LOGE(TAG, "Failed to stop ping task");
+            return LIVEKIT_SIG_ERR_OTHER;
+        }
+        int res = force ?
+            esp_websocket_client_stop(sg->ws) :
+            esp_websocket_client_close_with_code(
+                sg->ws, LIVEKIT_SIG_WS_CLOSE_CODE, NULL, 0, pdMS_TO_TICKS(LIVEKIT_SIG_WS_CLOSE_TIMEOUT_MS));
+        if (res != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to close WebSocket");
+            return LIVEKIT_SIG_ERR_WEBSOCKET;
+        }
+    }
+    if (sg->url != NULL) {
+        free(sg->url);
+        sg->url = NULL;
+    }
+    return LIVEKIT_SIG_ERR_NONE;
 }
 
-const esp_peer_signaling_impl_t *livekit_sig_get_impl(void)
+livekit_sig_err_t livekit_sig_send_message(livekit_signal_request_t *request, livekit_sig_handle_t handle)
 {
-    ESP_LOGI(TAG, "livekit_sig_get_impl");
-    static const esp_peer_signaling_impl_t impl = {
-        .start = livekit_sig_start,
-        .send_msg = livekit_sig_send_msg,
-        .stop = livekit_sig_stop,
-    };
-    return &impl;
-}
-
-int livekit_sig_build_url(const char *base_url, const char *token, char **out_url)
-{
-    static const char url_format[] = "%s%srtc?sdk=%s&version=%s&auto_subscribe=true&access_token=%s";
-    // Access token parameter must stay at the end for logging
-
-    if (base_url == NULL || token == NULL || out_url == NULL) {
-        return -1;
-    }
-    size_t url_len = strlen(base_url);
-    if (url_len < 1) {
-        ESP_LOGE(TAG, "URL cannot be empty");
-        return -1;
-    }
-
-    if (strncmp(base_url, "ws://", 5) != 0 && strncmp(base_url, "wss://", 6) != 0) {
-        ESP_LOGE(TAG, "Unsupported URL scheme");
-        return -1;
-    }
-    // Do not add a trailing slash if the URL already has one
-    const char *separator = base_url[url_len - 1] == '/' ? "" : "/";
-
-    int final_len = snprintf(NULL, 0, url_format,
-        base_url,
-        separator,
-        LIVEKIT_SDK_ID,
-        LIVEKIT_SDK_VERSION,
-        token
-    );
-
-    if (final_len >= LIVEKIT_URL_MAX_LEN) {
-        ESP_LOGE(TAG, "Final URL exceeds max length of %d", LIVEKIT_URL_MAX_LEN);
-        return -1;
-    }
-
-    *out_url = (char *)malloc(final_len + 1);
-    if (*out_url == NULL) {
-        return -1;
-    }
-
-    sprintf(*out_url, url_format,
-        base_url,
-        separator,
-        LIVEKIT_SDK_ID,
-        LIVEKIT_SDK_VERSION,
-        token
-    );
-
-    // Token is redacted from logging for security
-    size_t token_len = strlen(token);
-    ESP_LOGI(TAG, "Signaling URL: %.*s[REDACTED]", (int)(final_len - token_len), *out_url);
-    return 0;
+    return LIVEKIT_SIG_ERR_NONE;
 }

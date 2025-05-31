@@ -5,25 +5,40 @@
 extern "C" {
 #endif
 
-#define LIVEKIT_PROTOCOL_VERSION "15"
-#define LIVEKIT_SDK_ID "esp32"
-#define LIVEKIT_SDK_VERSION "alpha"
-#define LIVEKIT_URL_MAX_LEN 2048
-#define LIVEKIT_SIG_BUFFER_SIZE 2048
-#define LIVEKIT_SIG_RECONNECT_TIMEOUT_MS 1000
-#define LIVEKIT_SIG_NETWORK_TIMEOUT_MS 1000
+typedef void *livekit_sig_handle_t;
 
-#define LIVEKIT_SIG_REQ_MAX_SIZE 2048 // Outgoing messages
-#define LIVEKIT_SIG_RES_MAX_SIZE 2048 // Incoming messages
+typedef enum {
+    LIVEKIT_SIG_ERR_NONE        =  0,
+    LIVEKIT_SIG_ERR_INVALID_ARG = -1,
+    LIVEKIT_SIG_ERR_NO_MEM      = -2,
+    LIVEKIT_SIG_ERR_WEBSOCKET   = -3,
+    LIVEKIT_SIG_ERR_INVALID_URL = -4,
+    LIVEKIT_SIG_ERR_MESSAGE     = -5,
+    LIVEKIT_SIG_ERR_OTHER       = -6,
+    // TODO: Add more error cases as needed
+} livekit_sig_err_t;
 
-const esp_peer_signaling_impl_t *livekit_sig_get_impl(void);
+typedef struct {
+    void* ctx;
+    int (*on_connect)(void *ctx);
+    int (*on_disconnect)(void *ctx);
+    int (*on_error)(void *ctx);
+    // TODO: Consider adding additional callbacks for specific message types
+    int (*on_message)(livekit_signal_response_t *message, void *ctx);
+} livekit_sig_options_t;
 
-/// @brief Builds a URL with the given URL and token, allocating memory for the result.
-/// @param[in] base_url The base URL provided by the user.
-/// @param[in] token The token provided by the user.
-/// @param[out] out_url The resulting URL, allocated by the function.
-/// @return 0 on success, -1 on error
-int livekit_sig_build_url(const char *base_url, const char *token, char **out_url);
+livekit_sig_err_t livekit_sig_create(livekit_sig_options_t *options, livekit_sig_handle_t *handle);
+livekit_sig_err_t livekit_sig_destroy(livekit_sig_handle_t handle);
+
+/// @brief Establishes the WebSocket connection
+/// @note This function will close the existing connection if already connected.
+livekit_sig_err_t livekit_sig_connect(const char* server_url, const char* token, livekit_sig_handle_t handle);
+
+/// @brief Closes the WebSocket connection
+/// @param force If true, the connection will be closed immediately without sending a leave message.
+livekit_sig_err_t livekit_sig_close(bool force, livekit_sig_handle_t handle);
+
+livekit_sig_err_t livekit_sig_send_message(livekit_signal_request_t *request, livekit_sig_handle_t handle);
 
 #ifdef __cplusplus
 }
