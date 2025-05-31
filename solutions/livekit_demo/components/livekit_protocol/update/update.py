@@ -77,7 +77,8 @@ def generate_bindings(verbose = False):
         protoc_path,
         *(["--nanopb_opt=-v"] if verbose else []), # Verbose output
         "--nanopb_opt=--c-style",
-        f"--nanopb_out={os.path.abspath(bindings_src_dest)}"
+        "--nanopb_opt=--error-on-unmatched",
+        f"--nanopb_out={os.path.abspath(bindings_src_dest)}",
     ] + input_files
 
     print(f"Generating bindings: {" ".join(protoc_cmd)}")
