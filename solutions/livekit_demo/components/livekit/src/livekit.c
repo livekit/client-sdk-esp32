@@ -76,7 +76,7 @@ static void on_eng_stream_trailer(livekit_eng_event_stream_trailer_t detail, voi
     // TODO: Implement
 }
 
-livekit_err_t livekit_room_create(livekit_room_handle_t *handle, livekit_room_options_t *options)
+livekit_err_t livekit_room_create(livekit_room_options_t *options, livekit_room_handle_t *handle)
 {
     livekit_room_t *room = (livekit_room_t *)malloc(sizeof(livekit_room_t));
     if (room == NULL) {
@@ -100,7 +100,7 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, livekit_room_op
     };
     livekit_eng_create(&eng_options, &room->engine);
     if (room->engine == NULL) {
-        ESP_LOGE(TAG, "Failed to open engine");
+        ESP_LOGE(TAG, "Failed to create engine");
         free(room);
         return LIVEKIT_ERR_OTHER;
     }
@@ -115,19 +115,31 @@ livekit_err_t livekit_room_destroy(livekit_room_handle_t handle)
     if (room == NULL) {
         return LIVEKIT_ERR_INVALID_ARG;
     }
-    livekit_eng_close(LIVEKIT_DISCONNECT_REASON_UNKNOWN_REASON, room->engine);
+    livekit_eng_destroy(room->engine);
     free(room);
     return LIVEKIT_ERR_NONE;
 }
 
-livekit_err_t livekit_room_connect(livekit_room_handle_t handle)
+livekit_err_t livekit_room_connect(const char *server_url, const char *token, livekit_room_handle_t handle)
 {
-    // TODO: Implement
+    if (server_url == NULL || token == NULL || handle == NULL) {
+        return LIVEKIT_ERR_INVALID_ARG;
+    }
+    livekit_room_t *room = (livekit_room_t *)handle;
+
+    if (livekit_eng_connect(server_url, token, room->engine) != LIVEKIT_ENG_ERR_NONE) {
+        ESP_LOGE(TAG, "Failed to connect engine");
+        return LIVEKIT_ERR_OTHER;
+    }
     return LIVEKIT_ERR_NONE;
 }
 
 livekit_err_t livekit_room_close(livekit_room_handle_t handle)
 {
-    // TODO: Implement
+    if (handle == NULL) {
+        return LIVEKIT_ERR_INVALID_ARG;
+    }
+    livekit_room_t *room = (livekit_room_t *)handle;
+    livekit_eng_close(LIVEKIT_DISCONNECT_REASON_CLIENT_INITIATED, room->engine);
     return LIVEKIT_ERR_NONE;
 }

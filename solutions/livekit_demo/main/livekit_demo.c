@@ -5,10 +5,6 @@
 static const char *TAG = "livekit_demo";
 
 static livekit_room_handle_t room_handle;
-static livekit_room_options_t room_options = {
-    .server_url = LK_SERVER_URL,
-    .token = LK_TOKEN
-};
 
 int join_room()
 {
@@ -20,7 +16,7 @@ int join_room()
         ESP_LOGE(TAG, "Failed to create room");
         return -1;
     }
-    if (livekit_room_connect(room_handle) != LIVEKIT_ERR_NONE) {
+    if (livekit_room_connect(LK_SERVER_URL, LK_TOKEN, room_handle) != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to connect to room");
         return -1;
     }

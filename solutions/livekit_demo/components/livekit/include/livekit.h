@@ -16,15 +16,13 @@ typedef enum {
 } livekit_err_t;
 
 typedef struct {
-    char *server_url; /*!< LiveKit server URL */
-    char *token;      /*!< Access token */
     // TODO: Media provider, event handler, etc.
 } livekit_room_options_t;
 
-livekit_err_t livekit_room_create(livekit_room_handle_t *handle, livekit_room_options_t *options);
+livekit_err_t livekit_room_create(livekit_room_options_t *options, livekit_room_handle_t *handle);
 livekit_err_t livekit_room_destroy(livekit_room_handle_t handle);
 
-livekit_err_t livekit_room_connect(livekit_room_handle_t handle);
+livekit_err_t livekit_room_connect(const char *server_url, const char *token, livekit_room_handle_t handle);
 livekit_err_t livekit_room_close(livekit_room_handle_t handle);
 // TODO: Add disconnect reason argument
 
