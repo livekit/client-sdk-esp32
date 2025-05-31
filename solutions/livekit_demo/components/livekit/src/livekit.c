@@ -8,7 +8,7 @@ static const char *TAG = "livekit";
 typedef struct {
     livekit_eng_handle_t engine;
     // TODO: Add fields here
-} livekit_room_t;
+} livekit_room_room_t;
 
 static void on_eng_connected(livekit_eng_event_connected_t detail, void *ctx)
 {
@@ -78,7 +78,7 @@ static void on_eng_stream_trailer(livekit_eng_event_stream_trailer_t detail, voi
 
 livekit_err_t livekit_room_create(livekit_room_options_t *options, livekit_room_handle_t *handle)
 {
-    livekit_room_t *room = (livekit_room_t *)malloc(sizeof(livekit_room_t));
+    livekit_room_room_t *room = (livekit_room_room_t *)malloc(sizeof(livekit_room_room_t));
     if (room == NULL) {
         ESP_LOGE(TAG, "Failed to allocate memory for new room");
         return LIVEKIT_ERR_NO_MEM;
@@ -111,7 +111,7 @@ livekit_err_t livekit_room_create(livekit_room_options_t *options, livekit_room_
 
 livekit_err_t livekit_room_destroy(livekit_room_handle_t handle)
 {
-    livekit_room_t *room = (livekit_room_t *)handle;
+    livekit_room_room_t *room = (livekit_room_room_t *)handle;
     if (room == NULL) {
         return LIVEKIT_ERR_INVALID_ARG;
     }
@@ -125,7 +125,7 @@ livekit_err_t livekit_room_connect(const char *server_url, const char *token, li
     if (server_url == NULL || token == NULL || handle == NULL) {
         return LIVEKIT_ERR_INVALID_ARG;
     }
-    livekit_room_t *room = (livekit_room_t *)handle;
+    livekit_room_room_t *room = (livekit_room_room_t *)handle;
 
     if (livekit_eng_connect(server_url, token, room->engine) != LIVEKIT_ENG_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to connect engine");
@@ -139,7 +139,7 @@ livekit_err_t livekit_room_close(livekit_room_handle_t handle)
     if (handle == NULL) {
         return LIVEKIT_ERR_INVALID_ARG;
     }
-    livekit_room_t *room = (livekit_room_t *)handle;
+    livekit_room_room_t *room = (livekit_room_room_t *)handle;
     livekit_eng_close(LIVEKIT_DISCONNECT_REASON_CLIENT_INITIATED, room->engine);
     return LIVEKIT_ERR_NONE;
 }

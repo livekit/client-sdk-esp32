@@ -66,24 +66,24 @@ static livekit_sig_err_t livekit_sig_build_url(const char *server_url, const cha
     static const char url_format[] = "%s%srtc?sdk=%s&version=%s&auto_subscribe=true&access_token=%s";
     // Access token parameter must stay at the end for logging
 
-    if (base_url == NULL || token == NULL || out_url == NULL) {
+    if (server_url == NULL || token == NULL || out_url == NULL) {
         return LIVEKIT_SIG_ERR_INVALID_ARG;
     }
-    size_t url_len = strlen(base_url);
+    size_t url_len = strlen(server_url);
     if (url_len < 1) {
         ESP_LOGE(TAG, "URL cannot be empty");
         return LIVEKIT_SIG_ERR_INVALID_URL;
     }
 
-    if (strncmp(base_url, "ws://", 5) != 0 && strncmp(base_url, "wss://", 6) != 0) {
+    if (strncmp(server_url, "ws://", 5) != 0 && strncmp(server_url, "wss://", 6) != 0) {
         ESP_LOGE(TAG, "Unsupported URL scheme");
         return LIVEKIT_SIG_ERR_INVALID_URL;
     }
     // Do not add a trailing slash if the URL already has one
-    const char *separator = base_url[url_len - 1] == '/' ? "" : "/";
+    const char *separator = server_url[url_len - 1] == '/' ? "" : "/";
 
     int final_len = snprintf(NULL, 0, url_format,
-        base_url,
+        server_url,
         separator,
         LIVEKIT_SDK_ID,
         LIVEKIT_SDK_VERSION,
@@ -96,7 +96,7 @@ static livekit_sig_err_t livekit_sig_build_url(const char *server_url, const cha
     }
 
     sprintf(*out_url, url_format,
-        base_url,
+        server_url,
         separator,
         LIVEKIT_SDK_ID,
         LIVEKIT_SDK_VERSION,
@@ -118,7 +118,7 @@ static livekit_sig_err_t livekit_sig_send_req(livekit_sig_t *sg, livekit_signal_
         return LIVEKIT_SIG_ERR_MESSAGE;
     }
     // TODO: Set send timeout
-    if (esp_websocket_client_send_bin(sg->wss_client->ws, (const char *)enc_buf, stream.bytes_written, 0) < 0) {
+    if (esp_websocket_client_send_bin(sg->ws, (const char *)enc_buf, stream.bytes_written, 0) < 0) {
         ESP_LOGE(TAG, "Failed to send request");
         return LIVEKIT_SIG_ERR_MESSAGE;
     }
@@ -268,7 +268,7 @@ void livekit_sig_event_handler(void *ctx, esp_event_base_t base, int32_t event_i
     switch (event_id) {
         case WEBSOCKET_EVENT_CONNECTED:
             ESP_LOGI(TAG, "Signaling connected");
-            sg->options.on_connect(sg->options->ctx);
+            sg->options.on_connect(sg->options.ctx);
             break;
         case WEBSOCKET_EVENT_DISCONNECTED:
             ESP_LOGI(TAG, "Signaling disconnected");
@@ -278,7 +278,7 @@ void livekit_sig_event_handler(void *ctx, esp_event_base_t base, int32_t event_i
                 log_error_if_nonzero("reported from tls stack", data->error_handle.esp_tls_stack_err);
                 log_error_if_nonzero("captured as transport's socket errno", data->error_handle.esp_transport_sock_errno);
             }
-            sg->options.on_disconnect(sg->options->ctx);
+            sg->options.on_disconnect(sg->options.ctx);
             break;
         case WEBSOCKET_EVENT_DATA:
             if (data->op_code != WS_TRANSPORT_OPCODES_BINARY) {
@@ -296,7 +296,7 @@ void livekit_sig_event_handler(void *ctx, esp_event_base_t base, int32_t event_i
                 log_error_if_nonzero("reported from tls stack", data->error_handle.esp_tls_stack_err);
                 log_error_if_nonzero("captured as transport's socket errno", data->error_handle.esp_transport_sock_errno);
             }
-            sg->options.on_error(sg->options->ctx);
+            sg->options.on_error(sg->options.ctx);
             break;
         default: break;
     }

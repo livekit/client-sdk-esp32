@@ -5,6 +5,7 @@
 static const char *TAG = "livekit_demo";
 
 static livekit_room_handle_t room_handle;
+static livekit_room_options_t room_options = {};
 
 int join_room()
 {
@@ -12,7 +13,7 @@ int join_room()
         ESP_LOGE(TAG, "Room already created");
         return -1;
     }
-    if (livekit_room_create(&room_handle, &room_options) != LIVEKIT_ERR_NONE) {
+    if (livekit_room_create(&room_options, &room_handle) != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to create room");
         return -1;
     }
