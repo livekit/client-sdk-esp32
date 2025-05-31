@@ -8,11 +8,3 @@
 #include "livekit_models.pb.h"
 #include "livekit_metrics.pb.h"
 #include "timestamp.pb.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#ifdef __cplusplus
-}
-#endif
