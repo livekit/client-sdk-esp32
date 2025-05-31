@@ -7,6 +7,7 @@ static const char *TAG = "livekit_engine";
 typedef struct {
     livekit_eng_options_t options;
     livekit_sig_handle_t  sig;
+    livekit_eng_media_provider_t media_provider;
 } livekit_eng_t;
 
 static void on_sig_connect(void *ctx)
@@ -115,6 +116,10 @@ int livekit_eng_send_request(livekit_signal_request_t request, livekit_eng_handl
 
 int livekit_eng_set_media_provider(livekit_eng_media_provider_t* provider, livekit_eng_handle_t handle)
 {
-    // TODO: Implement
-    return 0;
+    if (handle == NULL || provider == NULL) {
+        return LIVEKIT_ENG_ERR_INVALID_ARG;
+    }
+    livekit_eng_t *eng = (livekit_eng_t *)handle;
+    eng->media_provider = *provider;
+    return LIVEKIT_ENG_ERR_NONE;
 }
