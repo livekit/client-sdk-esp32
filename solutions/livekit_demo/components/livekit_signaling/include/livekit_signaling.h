@@ -20,11 +20,11 @@ typedef enum {
 
 typedef struct {
     void* ctx;
-    int (*on_connect)(void *ctx);
-    int (*on_disconnect)(void *ctx);
-    int (*on_error)(void *ctx);
+    void (*on_connect)(void *ctx);
+    void (*on_disconnect)(void *ctx);
+    void (*on_error)(void *ctx);
     // TODO: Consider adding additional callbacks for specific message types
-    int (*on_message)(livekit_signal_response_t *message, void *ctx);
+    void (*on_message)(livekit_signal_response_t *message, void *ctx);
 } livekit_sig_options_t;
 
 livekit_sig_err_t livekit_sig_create(livekit_sig_options_t *options, livekit_sig_handle_t *handle);
