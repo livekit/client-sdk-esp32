@@ -6,7 +6,7 @@
 #error Regenerate this file with the current version of nanopb generator.
 #endif
 
-PB_BIND(LIVEKIT_SIGNAL_REQUEST, livekit_signal_request_t, 2)
+PB_BIND(LIVEKIT_SIGNAL_REQUEST, livekit_signal_request_t, AUTO)
 
 
 PB_BIND(LIVEKIT_SIGNAL_RESPONSE, livekit_signal_response_t, 2)
@@ -18,7 +18,7 @@ PB_BIND(LIVEKIT_SIMULCAST_CODEC, livekit_simulcast_codec_t, AUTO)
 PB_BIND(LIVEKIT_ADD_TRACK_REQUEST, livekit_add_track_request_t, AUTO)
 
 
-PB_BIND(LIVEKIT_TRICKLE_REQUEST, livekit_trickle_request_t, 2)
+PB_BIND(LIVEKIT_TRICKLE_REQUEST, livekit_trickle_request_t, AUTO)
 
 
 PB_BIND(LIVEKIT_MUTE_TRACK_REQUEST, livekit_mute_track_request_t, AUTO)
@@ -36,7 +36,7 @@ PB_BIND(LIVEKIT_TRACK_PUBLISHED_RESPONSE, livekit_track_published_response_t, AU
 PB_BIND(LIVEKIT_TRACK_UNPUBLISHED_RESPONSE, livekit_track_unpublished_response_t, AUTO)
 
 
-PB_BIND(LIVEKIT_SESSION_DESCRIPTION, livekit_session_description_t, 2)
+PB_BIND(LIVEKIT_SESSION_DESCRIPTION, livekit_session_description_t, AUTO)
 
 
 PB_BIND(LIVEKIT_PARTICIPANT_UPDATE, livekit_participant_update_t, AUTO)
@@ -108,7 +108,7 @@ PB_BIND(LIVEKIT_SUBSCRIPTION_PERMISSION_UPDATE, livekit_subscription_permission_
 PB_BIND(LIVEKIT_ROOM_MOVED_RESPONSE, livekit_room_moved_response_t, 2)
 
 
-PB_BIND(LIVEKIT_SYNC_STATE, livekit_sync_state_t, 2)
+PB_BIND(LIVEKIT_SYNC_STATE, livekit_sync_state_t, AUTO)
 
 
 PB_BIND(LIVEKIT_DATA_CHANNEL_INFO, livekit_data_channel_info_t, AUTO)
