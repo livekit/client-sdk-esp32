@@ -15,10 +15,19 @@ static const char *TAG = "livekit_peer";
 #define PC_RESUME_BIT    (1 << 2)
 #define PC_SEND_QUIT_BIT (1 << 3)
 
+#define SAFE_FREE(ptr) if (ptr != NULL) {   \
+    free(ptr);                      \
+    ptr = NULL;                     \
+}
+
 typedef struct {
     livekit_peer_kind_t kind;
+    esp_peer_role_t ice_role;
     esp_peer_handle_t connection;
     esp_peer_state_t state;
+
+    esp_peer_ice_server_cfg_t *ice_servers;
+    int ice_server_count;
 
     bool running;
     bool pause;
@@ -43,6 +52,19 @@ static void peer_task(void *ctx)
     }
     media_lib_event_group_set_bits(peer->wait_event, PC_EXIT_BIT);
     media_lib_thread_destroy(NULL);
+}
+
+static void free_ice_servers(livekit_peer_t *peer)
+{
+    if (peer->ice_servers == NULL) return;
+    esp_peer_ice_server_cfg_t *ice_servers = peer->ice_servers;
+    for (int i = 0; i < peer->ice_server_count; i++) {
+        SAFE_FREE(ice_servers[i].stun_url);
+        SAFE_FREE(ice_servers[i].user);
+        SAFE_FREE(ice_servers[i].psw);
+    }
+    SAFE_FREE(peer->ice_servers);
+    peer->ice_server_count = 0;
 }
 
 static int on_state(esp_peer_state_t state, void *ctx)
@@ -118,6 +140,8 @@ livekit_peer_err_t livekit_peer_create(livekit_peer_kind_t kind, livekit_peer_ha
         return LIVEKIT_PEER_ERR_NO_MEM;
     }
     peer->kind = kind;
+    peer->ice_role = kind == LIVEKIT_PEER_KIND_SUBSCRIBER ?
+            ESP_PEER_ROLE_CONTROLLED : ESP_PEER_ROLE_CONTROLLING;
     peer->connection = NULL;
     peer->running = false;
     peer->wait_event = NULL;
@@ -132,32 +156,29 @@ livekit_peer_err_t livekit_peer_destroy(livekit_peer_handle_t handle)
     }
     livekit_peer_t *peer = (livekit_peer_t *)handle;
     esp_peer_close(peer->connection);
+    free_ice_servers(peer);
     free(peer);
     return LIVEKIT_PEER_ERR_NONE;
 }
 
-livekit_peer_err_t livekit_peer_connect(esp_peer_ice_server_cfg_t *server_info, int server_num, livekit_peer_handle_t handle)
+livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle)
 {
-    if (handle == NULL || server_info == NULL || server_num <= 0) {
+    if (handle == NULL) {
         return LIVEKIT_PEER_ERR_INVALID_ARG;
     }
     livekit_peer_t *peer = (livekit_peer_t *)handle;
 
-    esp_peer_role_t ice_role = peer->kind == LIVEKIT_PEER_KIND_SUBSCRIBER ?
-            ESP_PEER_ROLE_CONTROLLED : ESP_PEER_ROLE_CONTROLLING;
-
+    if (peer->ice_servers == NULL || peer->ice_server_count == 0) {
+        ESP_LOGE(TAG, "No ICE servers configured");
+        return LIVEKIT_PEER_ERR_INVALID_STATE;
+    }
     if (peer->connection != NULL) {
-        // Already connected, just update ICE info
-        if (esp_peer_update_ice_info(peer->connection, ice_role, server_info, server_num) != ESP_PEER_ERR_NONE) {
-            ESP_LOGE(TAG, "Failed to update ICE info");
-            return LIVEKIT_PEER_ERR_RTC;
-        }
+        ESP_LOGI(TAG, "Already connected, ignoring");
         return LIVEKIT_PEER_ERR_NONE;
     }
-
     esp_peer_cfg_t peer_cfg = {
-        .server_lists = server_info,
-        .server_num = server_num,
+        .server_lists = peer->ice_servers,
+        .server_num = peer->ice_server_count,
         .ice_trans_policy = ESP_PEER_ICE_TRANS_POLICY_RELAY, // Only relay candidates
         .audio_dir = peer->kind == LIVEKIT_PEER_KIND_SUBSCRIBER ?
             ESP_PEER_MEDIA_DIR_RECV_ONLY : ESP_PEER_MEDIA_DIR_SEND_ONLY,
@@ -177,7 +198,7 @@ livekit_peer_err_t livekit_peer_connect(esp_peer_ice_server_cfg_t *server_info, 
         .on_channel_open = on_channel_open,
         .on_channel_close = on_channel_close,
         .on_data = on_data,
-        .role = ice_role,
+        .role = peer->ice_role,
         .ctx = peer
     };
 
@@ -229,5 +250,35 @@ livekit_peer_err_t livekit_peer_disconnect(livekit_peer_handle_t handle)
         media_lib_event_group_destroy(peer->wait_event);
         peer->wait_event = NULL;
     }
+    return LIVEKIT_PEER_ERR_NONE;
+}
+
+livekit_peer_err_t livekit_peer_set_ice_servers(livekit_ice_server_t *servers, int count, livekit_peer_handle_t handle)
+{
+    if (handle == NULL || servers == NULL || count <= 0 || servers[0].urls_count == 0) {
+        return LIVEKIT_PEER_ERR_INVALID_ARG;
+    }
+    livekit_peer_t *peer = (livekit_peer_t *)handle;
+
+    esp_peer_ice_server_cfg_t *ice_servers = malloc(count * sizeof(esp_peer_ice_server_cfg_t));
+    if (ice_servers == NULL) {
+        return LIVEKIT_PEER_ERR_NO_MEM;
+    }
+    // TODO: Support multiple URLs as per protocol
+    for (int i = 0; i < count; i++) {
+        ESP_LOGI(TAG, "Adding ICE server: %s", servers[i].urls[0]);
+        ice_servers[i].stun_url = strdup(servers[i].urls[0]);
+        ice_servers[i].user = strdup(servers[i].username);
+        ice_servers[i].psw = strdup(servers[i].credential);
+    }
+
+    if (peer->connection != NULL) {
+        // Update if already connected
+        esp_peer_update_ice_info(peer->connection, peer->ice_role, ice_servers, count);
+    }
+    free_ice_servers(peer);
+    peer->ice_servers = ice_servers;
+    peer->ice_server_count = count;
+
     return LIVEKIT_PEER_ERR_NONE;
 }
