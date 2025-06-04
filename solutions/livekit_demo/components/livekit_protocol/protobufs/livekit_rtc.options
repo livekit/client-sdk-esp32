@@ -16,5 +16,6 @@ livekit.ICEServer.username type:FT_POINTER
 livekit.ICEServer.credential type:FT_POINTER
 
 livekit.SessionDescription.type max_length:8
-livekit.SessionDescription.sdp max_size:1024
-livekit.TrickleRequest.candidateInit max_size:1024
+livekit.SessionDescription.sdp type:FT_POINTER
+
+livekit.TrickleRequest.candidateInit type:FT_POINTER

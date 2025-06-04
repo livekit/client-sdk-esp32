@@ -76,7 +76,7 @@ typedef struct livekit_add_track_request {
 } livekit_add_track_request_t;
 
 typedef struct livekit_trickle_request {
-    char candidate_init[1024];
+    char *candidate_init;
     livekit_signal_target_t target;
     bool final;
 } livekit_trickle_request_t;
@@ -104,7 +104,7 @@ typedef struct livekit_track_unpublished_response {
 
 typedef struct livekit_session_description {
     char type[9]; /* "answer" | "offer" | "pranswer" | "rollback" */
-    char sdp[1024];
+    char *sdp;
 } livekit_session_description_t;
 
 typedef struct livekit_participant_update {
@@ -537,13 +537,13 @@ extern "C" {
 #define LIVEKIT_SIGNAL_RESPONSE_INIT_DEFAULT     {0, {LIVEKIT_JOIN_RESPONSE_INIT_DEFAULT}}
 #define LIVEKIT_SIMULCAST_CODEC_INIT_DEFAULT     {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_ADD_TRACK_REQUEST_INIT_DEFAULT   {{{NULL}, NULL}, {{NULL}, NULL}, _LIVEKIT_TRACK_TYPE_MIN, 0, 0, 0, 0, _LIVEKIT_TRACK_SOURCE_MIN, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0, _LIVEKIT_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, _LIVEKIT_BACKUP_CODEC_POLICY_MIN, {{NULL}, NULL}}
-#define LIVEKIT_TRICKLE_REQUEST_INIT_DEFAULT     {"", _LIVEKIT_SIGNAL_TARGET_MIN, 0}
+#define LIVEKIT_TRICKLE_REQUEST_INIT_DEFAULT     {NULL, _LIVEKIT_SIGNAL_TARGET_MIN, 0}
 #define LIVEKIT_MUTE_TRACK_REQUEST_INIT_DEFAULT  {{{NULL}, NULL}, 0}
 #define LIVEKIT_JOIN_RESPONSE_INIT_DEFAULT       {0, {LIVEKIT_ICE_SERVER_INIT_DEFAULT, LIVEKIT_ICE_SERVER_INIT_DEFAULT, LIVEKIT_ICE_SERVER_INIT_DEFAULT, LIVEKIT_ICE_SERVER_INIT_DEFAULT}, 0, 0, 0}
 #define LIVEKIT_RECONNECT_RESPONSE_INIT_DEFAULT  {{{NULL}, NULL}, false, LIVEKIT_CLIENT_CONFIGURATION_INIT_DEFAULT}
 #define LIVEKIT_TRACK_PUBLISHED_RESPONSE_INIT_DEFAULT {{{NULL}, NULL}, false, LIVEKIT_TRACK_INFO_INIT_DEFAULT}
 #define LIVEKIT_TRACK_UNPUBLISHED_RESPONSE_INIT_DEFAULT {{{NULL}, NULL}}
-#define LIVEKIT_SESSION_DESCRIPTION_INIT_DEFAULT {"", ""}
+#define LIVEKIT_SESSION_DESCRIPTION_INIT_DEFAULT {"", NULL}
 #define LIVEKIT_PARTICIPANT_UPDATE_INIT_DEFAULT  {{{NULL}, NULL}}
 #define LIVEKIT_UPDATE_SUBSCRIPTION_INIT_DEFAULT {{{NULL}, NULL}, 0, {{NULL}, NULL}}
 #define LIVEKIT_UPDATE_TRACK_SETTINGS_INIT_DEFAULT {{{NULL}, NULL}, 0, _LIVEKIT_VIDEO_QUALITY_MIN, 0, 0, 0, 0}
@@ -581,13 +581,13 @@ extern "C" {
 #define LIVEKIT_SIGNAL_RESPONSE_INIT_ZERO        {0, {LIVEKIT_JOIN_RESPONSE_INIT_ZERO}}
 #define LIVEKIT_SIMULCAST_CODEC_INIT_ZERO        {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_ADD_TRACK_REQUEST_INIT_ZERO      {{{NULL}, NULL}, {{NULL}, NULL}, _LIVEKIT_TRACK_TYPE_MIN, 0, 0, 0, 0, _LIVEKIT_TRACK_SOURCE_MIN, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0, _LIVEKIT_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, _LIVEKIT_BACKUP_CODEC_POLICY_MIN, {{NULL}, NULL}}
-#define LIVEKIT_TRICKLE_REQUEST_INIT_ZERO        {"", _LIVEKIT_SIGNAL_TARGET_MIN, 0}
+#define LIVEKIT_TRICKLE_REQUEST_INIT_ZERO        {NULL, _LIVEKIT_SIGNAL_TARGET_MIN, 0}
 #define LIVEKIT_MUTE_TRACK_REQUEST_INIT_ZERO     {{{NULL}, NULL}, 0}
 #define LIVEKIT_JOIN_RESPONSE_INIT_ZERO          {0, {LIVEKIT_ICE_SERVER_INIT_ZERO, LIVEKIT_ICE_SERVER_INIT_ZERO, LIVEKIT_ICE_SERVER_INIT_ZERO, LIVEKIT_ICE_SERVER_INIT_ZERO}, 0, 0, 0}
 #define LIVEKIT_RECONNECT_RESPONSE_INIT_ZERO     {{{NULL}, NULL}, false, LIVEKIT_CLIENT_CONFIGURATION_INIT_ZERO}
 #define LIVEKIT_TRACK_PUBLISHED_RESPONSE_INIT_ZERO {{{NULL}, NULL}, false, LIVEKIT_TRACK_INFO_INIT_ZERO}
 #define LIVEKIT_TRACK_UNPUBLISHED_RESPONSE_INIT_ZERO {{{NULL}, NULL}}
-#define LIVEKIT_SESSION_DESCRIPTION_INIT_ZERO    {"", ""}
+#define LIVEKIT_SESSION_DESCRIPTION_INIT_ZERO    {"", NULL}
 #define LIVEKIT_PARTICIPANT_UPDATE_INIT_ZERO     {{{NULL}, NULL}}
 #define LIVEKIT_UPDATE_SUBSCRIPTION_INIT_ZERO    {{{NULL}, NULL}, 0, {{NULL}, NULL}}
 #define LIVEKIT_UPDATE_TRACK_SETTINGS_INIT_ZERO  {{{NULL}, NULL}, 0, _LIVEKIT_VIDEO_QUALITY_MIN, 0, 0, 0, 0}
@@ -908,7 +908,7 @@ X(a, CALLBACK, REPEATED, UENUM,    audio_features,   17)
 #define livekit_add_track_request_t_simulcast_codecs_MSGTYPE livekit_simulcast_codec_t
 
 #define LIVEKIT_TRICKLE_REQUEST_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, STRING,   candidate_init,    1) \
+X(a, POINTER,  SINGULAR, STRING,   candidate_init,    1) \
 X(a, STATIC,   SINGULAR, UENUM,    target,            2) \
 X(a, STATIC,   SINGULAR, BOOL,     final,             3)
 #define LIVEKIT_TRICKLE_REQUEST_CALLBACK NULL
@@ -951,7 +951,7 @@ X(a, CALLBACK, SINGULAR, STRING,   track_sid,         1)
 
 #define LIVEKIT_SESSION_DESCRIPTION_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, STRING,   type,              1) \
-X(a, STATIC,   SINGULAR, STRING,   sdp,               2)
+X(a, POINTER,  SINGULAR, STRING,   sdp,               2)
 #define LIVEKIT_SESSION_DESCRIPTION_CALLBACK NULL
 #define LIVEKIT_SESSION_DESCRIPTION_DEFAULT NULL
 
@@ -1298,11 +1298,13 @@ extern const pb_msgdesc_t livekit_track_subscribed_t_msg;
 /* livekit_SignalResponse_size depends on runtime parameters */
 /* livekit_SimulcastCodec_size depends on runtime parameters */
 /* livekit_AddTrackRequest_size depends on runtime parameters */
+/* livekit_TrickleRequest_size depends on runtime parameters */
 /* livekit_MuteTrackRequest_size depends on runtime parameters */
 /* livekit_JoinResponse_size depends on runtime parameters */
 /* livekit_ReconnectResponse_size depends on runtime parameters */
 /* livekit_TrackPublishedResponse_size depends on runtime parameters */
 /* livekit_TrackUnpublishedResponse_size depends on runtime parameters */
+/* livekit_SessionDescription_size depends on runtime parameters */
 /* livekit_ParticipantUpdate_size depends on runtime parameters */
 /* livekit_UpdateSubscription_size depends on runtime parameters */
 /* livekit_UpdateTrackSettings_size depends on runtime parameters */
@@ -1331,16 +1333,14 @@ extern const pb_msgdesc_t livekit_track_subscribed_t_msg;
 /* livekit_SubscriptionResponse_size depends on runtime parameters */
 /* livekit_RequestResponse_size depends on runtime parameters */
 /* livekit_TrackSubscribed_size depends on runtime parameters */
-#define LIVEKIT_LIVEKIT_RTC_PB_H_MAX_SIZE        LIVEKIT_SESSION_DESCRIPTION_SIZE
-#define LIVEKIT_PING_SIZE                        22
-#define LIVEKIT_PONG_SIZE                        22
-#define LIVEKIT_SESSION_DESCRIPTION_SIZE         1036
-#define LIVEKIT_SIMULATE_SCENARIO_SIZE           11
-#define LIVEKIT_SUBSCRIBED_QUALITY_SIZE          4
-#define LIVEKIT_TRICKLE_REQUEST_SIZE             1030
 #if defined(livekit_Room_size)
 #define LIVEKIT_ROOM_UPDATE_SIZE                 (6 + livekit_Room_size)
 #endif
+#define LIVEKIT_LIVEKIT_RTC_PB_H_MAX_SIZE        LIVEKIT_PING_SIZE
+#define LIVEKIT_PING_SIZE                        22
+#define LIVEKIT_PONG_SIZE                        22
+#define LIVEKIT_SIMULATE_SCENARIO_SIZE           11
+#define LIVEKIT_SUBSCRIBED_QUALITY_SIZE          4
 
 #ifdef __cplusplus
 } /* extern "C" */
