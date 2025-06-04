@@ -78,7 +78,7 @@ static void on_eng_stream_trailer(livekit_eng_event_stream_trailer_t detail, voi
 
 livekit_err_t livekit_room_create(livekit_room_options_t *options, livekit_room_handle_t *handle)
 {
-    livekit_room_room_t *room = (livekit_room_room_t *)malloc(sizeof(livekit_room_room_t));
+    livekit_room_room_t *room = (livekit_room_room_t *)calloc(1, sizeof(livekit_room_room_t));
     if (room == NULL) {
         ESP_LOGE(TAG, "Failed to allocate memory for new room");
         return LIVEKIT_ERR_NO_MEM;

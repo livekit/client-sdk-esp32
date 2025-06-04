@@ -135,11 +135,10 @@ livekit_peer_err_t livekit_peer_create(livekit_peer_kind_t kind, livekit_peer_ha
     if (handle == NULL || kind == LIVEKIT_PEER_KIND_NONE) {
         return LIVEKIT_PEER_ERR_INVALID_ARG;
     }
-    livekit_peer_t *peer = (livekit_peer_t *)malloc(sizeof(livekit_peer_t));
+    livekit_peer_t *peer = (livekit_peer_t *)calloc(1, sizeof(livekit_peer_t));
     if (peer == NULL) {
         return LIVEKIT_PEER_ERR_NO_MEM;
     }
-    memset(peer, 0, sizeof(livekit_peer_t));
     peer->kind = kind;
     peer->ice_role = kind == LIVEKIT_PEER_KIND_SUBSCRIBER ?
             ESP_PEER_ROLE_CONTROLLED : ESP_PEER_ROLE_CONTROLLING;
@@ -274,7 +273,7 @@ livekit_peer_err_t livekit_peer_set_ice_servers(livekit_ice_server_t *servers, i
         }
     }
 
-    esp_peer_ice_server_cfg_t *cfgs = malloc(cfg_count * sizeof(esp_peer_ice_server_cfg_t));
+    esp_peer_ice_server_cfg_t *cfgs = calloc(cfg_count, sizeof(esp_peer_ice_server_cfg_t));
     if (cfgs == NULL) {
         return LIVEKIT_PEER_ERR_NO_MEM;
     }
