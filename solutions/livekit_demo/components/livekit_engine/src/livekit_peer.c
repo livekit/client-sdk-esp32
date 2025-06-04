@@ -139,12 +139,11 @@ livekit_peer_err_t livekit_peer_create(livekit_peer_kind_t kind, livekit_peer_ha
     if (peer == NULL) {
         return LIVEKIT_PEER_ERR_NO_MEM;
     }
+    memset(peer, 0, sizeof(livekit_peer_t));
     peer->kind = kind;
     peer->ice_role = kind == LIVEKIT_PEER_KIND_SUBSCRIBER ?
             ESP_PEER_ROLE_CONTROLLED : ESP_PEER_ROLE_CONTROLLING;
-    peer->connection = NULL;
-    peer->running = false;
-    peer->wait_event = NULL;
+
     *handle = (livekit_peer_handle_t)peer;
     return LIVEKIT_PEER_ERR_NONE;
 }
@@ -255,30 +254,53 @@ livekit_peer_err_t livekit_peer_disconnect(livekit_peer_handle_t handle)
 
 livekit_peer_err_t livekit_peer_set_ice_servers(livekit_ice_server_t *servers, int count, livekit_peer_handle_t handle)
 {
-    if (handle == NULL || servers == NULL || count <= 0 || servers[0].urls_count == 0) {
+    if (handle == NULL || servers == NULL || count <= 0) {
         return LIVEKIT_PEER_ERR_INVALID_ARG;
     }
     livekit_peer_t *peer = (livekit_peer_t *)handle;
 
-    esp_peer_ice_server_cfg_t *ice_servers = malloc(count * sizeof(esp_peer_ice_server_cfg_t));
-    if (ice_servers == NULL) {
+    // A single livekit_ice_server_t can contain multiple URLs, which
+    // will map to multiple esp_peer_ice_server_cfg_t entries.
+    size_t cfg_count = 0;
+    for (int i = 0; i < count; i++) {
+        if (servers[i].urls_count <= 0) {
+            return LIVEKIT_PEER_ERR_INVALID_ARG;
+        }
+        for (int j = 0; j < servers[i].urls_count; j++) {
+            if (servers[i].urls[j] == NULL) {
+                return LIVEKIT_PEER_ERR_INVALID_ARG;
+            }
+            cfg_count++;
+        }
+    }
+
+    esp_peer_ice_server_cfg_t *cfgs = malloc(cfg_count * sizeof(esp_peer_ice_server_cfg_t));
+    if (cfgs == NULL) {
         return LIVEKIT_PEER_ERR_NO_MEM;
     }
-    // TODO: Support multiple URLs as per protocol
+
+    int cfg_idx = 0;
     for (int i = 0; i < count; i++) {
-        ESP_LOGI(TAG, "Adding ICE server: %s", servers[i].urls[0]);
-        ice_servers[i].stun_url = strdup(servers[i].urls[0]);
-        ice_servers[i].user = strdup(servers[i].username);
-        ice_servers[i].psw = strdup(servers[i].credential);
+        for (int j = 0; j < servers[i].urls_count; j++) {
+            ESP_LOGI(TAG, "Adding ICE server: %s", servers[i].urls[j]);
+            cfgs[cfg_idx].stun_url = strdup(servers[i].urls[j]);
+            if (servers[i].username != NULL) {
+                cfgs[cfg_idx].user = strdup(servers[i].username);
+            }
+            if (servers[i].credential != NULL) {
+                cfgs[cfg_idx].psw = strdup(servers[i].credential);
+            }
+            cfg_idx++;
+        }
     }
 
     if (peer->connection != NULL) {
         // Update if already connected
-        esp_peer_update_ice_info(peer->connection, peer->ice_role, ice_servers, count);
+        esp_peer_update_ice_info(peer->connection, peer->ice_role, cfgs, cfg_count);
     }
     free_ice_servers(peer);
-    peer->ice_servers = ice_servers;
-    peer->ice_server_count = count;
+    peer->ice_servers = cfgs;
+    peer->ice_server_count = cfg_count;
 
     return LIVEKIT_PEER_ERR_NONE;
 }
