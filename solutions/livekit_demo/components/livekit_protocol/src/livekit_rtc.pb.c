@@ -24,7 +24,7 @@ PB_BIND(LIVEKIT_TRICKLE_REQUEST, livekit_trickle_request_t, 2)
 PB_BIND(LIVEKIT_MUTE_TRACK_REQUEST, livekit_mute_track_request_t, AUTO)
 
 
-PB_BIND(LIVEKIT_JOIN_RESPONSE, livekit_join_response_t, 2)
+PB_BIND(LIVEKIT_JOIN_RESPONSE, livekit_join_response_t, AUTO)
 
 
 PB_BIND(LIVEKIT_RECONNECT_RESPONSE, livekit_reconnect_response_t, AUTO)

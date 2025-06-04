@@ -1,3 +1,20 @@
+livekit.JoinResponse.room type:FT_IGNORE
+livekit.JoinResponse.participant type:FT_IGNORE
+livekit.JoinResponse.other_participants type:FT_IGNORE
+livekit.JoinResponse.server_version type:FT_IGNORE
+livekit.JoinResponse.alternative_url type:FT_IGNORE
+livekit.JoinResponse.client_configuration type:FT_IGNORE
+livekit.JoinResponse.server_region type:FT_IGNORE
+livekit.JoinResponse.server_info type:FT_IGNORE
+livekit.JoinResponse.sif_trailer type:FT_IGNORE
+livekit.JoinResponse.enabled_publish_codecs type:FT_IGNORE
+livekit.JoinResponse.fast_publish type:FT_IGNORE
+livekit.JoinResponse.ice_servers max_count:4
+
+livekit.ICEServer.urls type:FT_POINTER
+livekit.ICEServer.username type:FT_POINTER
+livekit.ICEServer.credential type:FT_POINTER
+
 livekit.SessionDescription.type max_length:8
 livekit.SessionDescription.sdp max_size:1024
 livekit.TrickleRequest.candidateInit max_size:1024

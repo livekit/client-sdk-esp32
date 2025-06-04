@@ -86,35 +86,6 @@ typedef struct livekit_mute_track_request {
     bool muted;
 } livekit_mute_track_request_t;
 
-typedef struct livekit_join_response {
-    bool has_room;
-    livekit_room_t room;
-    bool has_participant;
-    livekit_participant_info_t participant;
-    pb_callback_t other_participants;
-    /* deprecated. use server_info.version instead. */
-    pb_callback_t server_version;
-    pb_callback_t ice_servers;
-    /* use subscriber as the primary PeerConnection */
-    bool subscriber_primary;
-    /* when the current server isn't available, return alternate url to retry connection
- when this is set, the other fields will be largely empty */
-    pb_callback_t alternative_url;
-    bool has_client_configuration;
-    livekit_client_configuration_t client_configuration;
-    /* deprecated. use server_info.region instead. */
-    pb_callback_t server_region;
-    int32_t ping_timeout;
-    int32_t ping_interval;
-    bool has_server_info;
-    livekit_server_info_t server_info;
-    /* Server-Injected-Frame byte trailer, used to identify unencrypted frames when e2ee is enabled */
-    pb_callback_t sif_trailer;
-    pb_callback_t enabled_publish_codecs;
-    /* when set, client should attempt to establish publish peer connection when joining room to speed up publishing */
-    bool fast_publish;
-} livekit_join_response_t;
-
 typedef struct livekit_reconnect_response {
     pb_callback_t ice_servers;
     bool has_client_configuration;
@@ -199,10 +170,20 @@ typedef struct livekit_update_participant_metadata_attributes_entry {
 } livekit_update_participant_metadata_attributes_entry_t;
 
 typedef struct livekit_ice_server {
-    pb_callback_t urls;
-    pb_callback_t username;
-    pb_callback_t credential;
+    pb_size_t urls_count;
+    char **urls;
+    char *username;
+    char *credential;
 } livekit_ice_server_t;
+
+typedef struct livekit_join_response {
+    pb_size_t ice_servers_count;
+    livekit_ice_server_t ice_servers[4];
+    /* use subscriber as the primary PeerConnection */
+    bool subscriber_primary;
+    int32_t ping_timeout;
+    int32_t ping_interval;
+} livekit_join_response_t;
 
 typedef struct livekit_speakers_changed {
     pb_callback_t speakers;
@@ -558,7 +539,7 @@ extern "C" {
 #define LIVEKIT_ADD_TRACK_REQUEST_INIT_DEFAULT   {{{NULL}, NULL}, {{NULL}, NULL}, _LIVEKIT_TRACK_TYPE_MIN, 0, 0, 0, 0, _LIVEKIT_TRACK_SOURCE_MIN, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0, _LIVEKIT_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, _LIVEKIT_BACKUP_CODEC_POLICY_MIN, {{NULL}, NULL}}
 #define LIVEKIT_TRICKLE_REQUEST_INIT_DEFAULT     {"", _LIVEKIT_SIGNAL_TARGET_MIN, 0}
 #define LIVEKIT_MUTE_TRACK_REQUEST_INIT_DEFAULT  {{{NULL}, NULL}, 0}
-#define LIVEKIT_JOIN_RESPONSE_INIT_DEFAULT       {false, LIVEKIT_ROOM_INIT_DEFAULT, false, LIVEKIT_PARTICIPANT_INFO_INIT_DEFAULT, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, {{NULL}, NULL}, false, LIVEKIT_CLIENT_CONFIGURATION_INIT_DEFAULT, {{NULL}, NULL}, 0, 0, false, LIVEKIT_SERVER_INFO_INIT_DEFAULT, {{NULL}, NULL}, {{NULL}, NULL}, 0}
+#define LIVEKIT_JOIN_RESPONSE_INIT_DEFAULT       {0, {LIVEKIT_ICE_SERVER_INIT_DEFAULT, LIVEKIT_ICE_SERVER_INIT_DEFAULT, LIVEKIT_ICE_SERVER_INIT_DEFAULT, LIVEKIT_ICE_SERVER_INIT_DEFAULT}, 0, 0, 0}
 #define LIVEKIT_RECONNECT_RESPONSE_INIT_DEFAULT  {{{NULL}, NULL}, false, LIVEKIT_CLIENT_CONFIGURATION_INIT_DEFAULT}
 #define LIVEKIT_TRACK_PUBLISHED_RESPONSE_INIT_DEFAULT {{{NULL}, NULL}, false, LIVEKIT_TRACK_INFO_INIT_DEFAULT}
 #define LIVEKIT_TRACK_UNPUBLISHED_RESPONSE_INIT_DEFAULT {{{NULL}, NULL}}
@@ -572,7 +553,7 @@ extern "C" {
 #define LIVEKIT_UPDATE_VIDEO_LAYERS_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_UPDATE_PARTICIPANT_METADATA_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0}
 #define LIVEKIT_UPDATE_PARTICIPANT_METADATA_ATTRIBUTES_ENTRY_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_ICE_SERVER_INIT_DEFAULT          {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_ICE_SERVER_INIT_DEFAULT          {0, NULL, NULL, NULL}
 #define LIVEKIT_SPEAKERS_CHANGED_INIT_DEFAULT    {{{NULL}, NULL}}
 #define LIVEKIT_ROOM_UPDATE_INIT_DEFAULT         {false, LIVEKIT_ROOM_INIT_DEFAULT}
 #define LIVEKIT_CONNECTION_QUALITY_INFO_INIT_DEFAULT {{{NULL}, NULL}, _LIVEKIT_CONNECTION_QUALITY_MIN, 0}
@@ -602,7 +583,7 @@ extern "C" {
 #define LIVEKIT_ADD_TRACK_REQUEST_INIT_ZERO      {{{NULL}, NULL}, {{NULL}, NULL}, _LIVEKIT_TRACK_TYPE_MIN, 0, 0, 0, 0, _LIVEKIT_TRACK_SOURCE_MIN, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0, _LIVEKIT_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, _LIVEKIT_BACKUP_CODEC_POLICY_MIN, {{NULL}, NULL}}
 #define LIVEKIT_TRICKLE_REQUEST_INIT_ZERO        {"", _LIVEKIT_SIGNAL_TARGET_MIN, 0}
 #define LIVEKIT_MUTE_TRACK_REQUEST_INIT_ZERO     {{{NULL}, NULL}, 0}
-#define LIVEKIT_JOIN_RESPONSE_INIT_ZERO          {false, LIVEKIT_ROOM_INIT_ZERO, false, LIVEKIT_PARTICIPANT_INFO_INIT_ZERO, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, {{NULL}, NULL}, false, LIVEKIT_CLIENT_CONFIGURATION_INIT_ZERO, {{NULL}, NULL}, 0, 0, false, LIVEKIT_SERVER_INFO_INIT_ZERO, {{NULL}, NULL}, {{NULL}, NULL}, 0}
+#define LIVEKIT_JOIN_RESPONSE_INIT_ZERO          {0, {LIVEKIT_ICE_SERVER_INIT_ZERO, LIVEKIT_ICE_SERVER_INIT_ZERO, LIVEKIT_ICE_SERVER_INIT_ZERO, LIVEKIT_ICE_SERVER_INIT_ZERO}, 0, 0, 0}
 #define LIVEKIT_RECONNECT_RESPONSE_INIT_ZERO     {{{NULL}, NULL}, false, LIVEKIT_CLIENT_CONFIGURATION_INIT_ZERO}
 #define LIVEKIT_TRACK_PUBLISHED_RESPONSE_INIT_ZERO {{{NULL}, NULL}, false, LIVEKIT_TRACK_INFO_INIT_ZERO}
 #define LIVEKIT_TRACK_UNPUBLISHED_RESPONSE_INIT_ZERO {{{NULL}, NULL}}
@@ -616,7 +597,7 @@ extern "C" {
 #define LIVEKIT_UPDATE_VIDEO_LAYERS_INIT_ZERO    {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_UPDATE_PARTICIPANT_METADATA_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0}
 #define LIVEKIT_UPDATE_PARTICIPANT_METADATA_ATTRIBUTES_ENTRY_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_ICE_SERVER_INIT_ZERO             {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_ICE_SERVER_INIT_ZERO             {0, NULL, NULL, NULL}
 #define LIVEKIT_SPEAKERS_CHANGED_INIT_ZERO       {{{NULL}, NULL}}
 #define LIVEKIT_ROOM_UPDATE_INIT_ZERO            {false, LIVEKIT_ROOM_INIT_ZERO}
 #define LIVEKIT_CONNECTION_QUALITY_INFO_INIT_ZERO {{{NULL}, NULL}, _LIVEKIT_CONNECTION_QUALITY_MIN, 0}
@@ -666,21 +647,6 @@ extern "C" {
 #define LIVEKIT_TRICKLE_REQUEST_FINAL_TAG        3
 #define LIVEKIT_MUTE_TRACK_REQUEST_SID_TAG       1
 #define LIVEKIT_MUTE_TRACK_REQUEST_MUTED_TAG     2
-#define LIVEKIT_JOIN_RESPONSE_ROOM_TAG           1
-#define LIVEKIT_JOIN_RESPONSE_PARTICIPANT_TAG    2
-#define LIVEKIT_JOIN_RESPONSE_OTHER_PARTICIPANTS_TAG 3
-#define LIVEKIT_JOIN_RESPONSE_SERVER_VERSION_TAG 4
-#define LIVEKIT_JOIN_RESPONSE_ICE_SERVERS_TAG    5
-#define LIVEKIT_JOIN_RESPONSE_SUBSCRIBER_PRIMARY_TAG 6
-#define LIVEKIT_JOIN_RESPONSE_ALTERNATIVE_URL_TAG 7
-#define LIVEKIT_JOIN_RESPONSE_CLIENT_CONFIGURATION_TAG 8
-#define LIVEKIT_JOIN_RESPONSE_SERVER_REGION_TAG  9
-#define LIVEKIT_JOIN_RESPONSE_PING_TIMEOUT_TAG   10
-#define LIVEKIT_JOIN_RESPONSE_PING_INTERVAL_TAG  11
-#define LIVEKIT_JOIN_RESPONSE_SERVER_INFO_TAG    12
-#define LIVEKIT_JOIN_RESPONSE_SIF_TRAILER_TAG    13
-#define LIVEKIT_JOIN_RESPONSE_ENABLED_PUBLISH_CODECS_TAG 14
-#define LIVEKIT_JOIN_RESPONSE_FAST_PUBLISH_TAG   15
 #define LIVEKIT_RECONNECT_RESPONSE_ICE_SERVERS_TAG 1
 #define LIVEKIT_RECONNECT_RESPONSE_CLIENT_CONFIGURATION_TAG 2
 #define LIVEKIT_TRACK_PUBLISHED_RESPONSE_CID_TAG 1
@@ -715,6 +681,10 @@ extern "C" {
 #define LIVEKIT_ICE_SERVER_URLS_TAG              1
 #define LIVEKIT_ICE_SERVER_USERNAME_TAG          2
 #define LIVEKIT_ICE_SERVER_CREDENTIAL_TAG        3
+#define LIVEKIT_JOIN_RESPONSE_ICE_SERVERS_TAG    5
+#define LIVEKIT_JOIN_RESPONSE_SUBSCRIBER_PRIMARY_TAG 6
+#define LIVEKIT_JOIN_RESPONSE_PING_TIMEOUT_TAG   10
+#define LIVEKIT_JOIN_RESPONSE_PING_INTERVAL_TAG  11
 #define LIVEKIT_SPEAKERS_CHANGED_SPEAKERS_TAG    1
 #define LIVEKIT_ROOM_UPDATE_ROOM_TAG             1
 #define LIVEKIT_CONNECTION_QUALITY_INFO_PARTICIPANT_SID_TAG 1
@@ -951,30 +921,13 @@ X(a, STATIC,   SINGULAR, BOOL,     muted,             2)
 #define LIVEKIT_MUTE_TRACK_REQUEST_DEFAULT NULL
 
 #define LIVEKIT_JOIN_RESPONSE_FIELDLIST(X, a) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  room,              1) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  participant,       2) \
-X(a, CALLBACK, REPEATED, MESSAGE,  other_participants,   3) \
-X(a, CALLBACK, SINGULAR, STRING,   server_version,    4) \
-X(a, CALLBACK, REPEATED, MESSAGE,  ice_servers,       5) \
+X(a, STATIC,   REPEATED, MESSAGE,  ice_servers,       5) \
 X(a, STATIC,   SINGULAR, BOOL,     subscriber_primary,   6) \
-X(a, CALLBACK, SINGULAR, STRING,   alternative_url,   7) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  client_configuration,   8) \
-X(a, CALLBACK, SINGULAR, STRING,   server_region,     9) \
 X(a, STATIC,   SINGULAR, INT32,    ping_timeout,     10) \
-X(a, STATIC,   SINGULAR, INT32,    ping_interval,    11) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  server_info,      12) \
-X(a, CALLBACK, SINGULAR, BYTES,    sif_trailer,      13) \
-X(a, CALLBACK, REPEATED, MESSAGE,  enabled_publish_codecs,  14) \
-X(a, STATIC,   SINGULAR, BOOL,     fast_publish,     15)
-#define LIVEKIT_JOIN_RESPONSE_CALLBACK pb_default_field_callback
+X(a, STATIC,   SINGULAR, INT32,    ping_interval,    11)
+#define LIVEKIT_JOIN_RESPONSE_CALLBACK NULL
 #define LIVEKIT_JOIN_RESPONSE_DEFAULT NULL
-#define livekit_join_response_t_room_MSGTYPE livekit_room_t
-#define livekit_join_response_t_participant_MSGTYPE livekit_participant_info_t
-#define livekit_join_response_t_other_participants_MSGTYPE livekit_participant_info_t
 #define livekit_join_response_t_ice_servers_MSGTYPE livekit_ice_server_t
-#define livekit_join_response_t_client_configuration_MSGTYPE livekit_client_configuration_t
-#define livekit_join_response_t_server_info_MSGTYPE livekit_server_info_t
-#define livekit_join_response_t_enabled_publish_codecs_MSGTYPE livekit_codec_t
 
 #define LIVEKIT_RECONNECT_RESPONSE_FIELDLIST(X, a) \
 X(a, CALLBACK, REPEATED, MESSAGE,  ice_servers,       1) \
@@ -1072,10 +1025,10 @@ X(a, CALLBACK, SINGULAR, STRING,   value,             2)
 #define LIVEKIT_UPDATE_PARTICIPANT_METADATA_ATTRIBUTES_ENTRY_DEFAULT NULL
 
 #define LIVEKIT_ICE_SERVER_FIELDLIST(X, a) \
-X(a, CALLBACK, REPEATED, STRING,   urls,              1) \
-X(a, CALLBACK, SINGULAR, STRING,   username,          2) \
-X(a, CALLBACK, SINGULAR, STRING,   credential,        3)
-#define LIVEKIT_ICE_SERVER_CALLBACK pb_default_field_callback
+X(a, POINTER,  REPEATED, STRING,   urls,              1) \
+X(a, POINTER,  SINGULAR, STRING,   username,          2) \
+X(a, POINTER,  SINGULAR, STRING,   credential,        3)
+#define LIVEKIT_ICE_SERVER_CALLBACK NULL
 #define LIVEKIT_ICE_SERVER_DEFAULT NULL
 
 #define LIVEKIT_SPEAKERS_CHANGED_FIELDLIST(X, a) \
