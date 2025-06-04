@@ -1,6 +1,8 @@
 #include "esp_log.h"
+#include "livekit_protocol.h"
 #include "livekit_engine.h"
 #include "livekit_signaling.h"
+#include "livekit_peer.h"
 
 static const char *TAG = "livekit_engine";
 
@@ -8,6 +10,9 @@ typedef struct {
     livekit_eng_options_t options;
     livekit_sig_handle_t  sig;
     livekit_eng_media_provider_t media_provider;
+
+    livekit_peer_handle_t pub_peer;
+    livekit_peer_handle_t sub_peer;
 } livekit_eng_t;
 
 static void on_sig_connect(void *ctx)
@@ -28,10 +33,18 @@ static void on_sig_error(void *ctx)
     // TODO: Implement
 }
 
-static void on_sig_message(livekit_signal_response_t *message, void *ctx)
+static void on_sig_message(livekit_signal_response_t *res, void *ctx)
 {
-    ESP_LOGI(TAG, "Received signaling client message event");
-    // TODO: Implement
+    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    switch (res->which_message) {
+        case LIVEKIT_SIGNAL_RESPONSE_JOIN_TAG:
+            livekit_join_response_t* join = &res->message.join;
+            livekit_peer_set_ice_servers(join->ice_servers, join->ice_servers_count, eng->pub_peer);
+            livekit_peer_set_ice_servers(join->ice_servers, join->ice_servers_count, eng->sub_peer);
+            // TODO: Connect
+            break;
+        default: break;
+    }
 }
 
 int livekit_eng_create(livekit_eng_options_t *options, livekit_eng_handle_t *handle)
@@ -44,7 +57,6 @@ int livekit_eng_create(livekit_eng_options_t *options, livekit_eng_handle_t *han
         return LIVEKIT_ENG_ERR_NO_MEM;
     }
     eng->options = *options;
-
     livekit_sig_options_t sig_options = {
         .ctx = eng,
         .on_connect = on_sig_connect,
@@ -52,13 +64,30 @@ int livekit_eng_create(livekit_eng_options_t *options, livekit_eng_handle_t *han
         .on_error = on_sig_error,
         .on_message = on_sig_message,
     };
-    if (livekit_sig_create(&sig_options, &eng->sig) != LIVEKIT_SIG_ERR_NONE) {
-        ESP_LOGE(TAG, "Failed to create signaling client");
-        free(eng);
-        return LIVEKIT_ENG_ERR_OTHER;
-    }
-    *handle = eng;
-    return LIVEKIT_ENG_ERR_NONE;
+    int ret = LIVEKIT_ENG_ERR_OTHER;
+    do {
+        if (livekit_sig_create(&sig_options, &eng->sig) != LIVEKIT_SIG_ERR_NONE) {
+            ESP_LOGE(TAG, "Failed to create signaling client");
+            break;
+        }
+        // TODO: Conditionally create publisher only if needed
+        if (livekit_peer_create(LIVEKIT_PEER_KIND_PUBLISHER, &eng->pub_peer) != LIVEKIT_PEER_ERR_NONE) {
+            ESP_LOGE(TAG, "Failed to create publisher peer");
+            break;
+        }
+        if (livekit_peer_create(LIVEKIT_PEER_KIND_SUBSCRIBER, &eng->sub_peer) != LIVEKIT_PEER_ERR_NONE) {
+            ESP_LOGE(TAG, "Failed to create subscriber peer");
+            break;
+        }
+        *handle = eng;
+        return LIVEKIT_ENG_ERR_NONE;
+    } while (0);
+
+    if (eng->sub_peer != NULL) livekit_peer_destroy(eng->sub_peer);
+    if (eng->pub_peer != NULL) livekit_peer_destroy(eng->pub_peer);
+    if (eng->sig != NULL) livekit_sig_destroy(eng->sig);
+    free(eng);
+    return ret;
 }
 
 int livekit_eng_destroy(livekit_eng_handle_t handle)
