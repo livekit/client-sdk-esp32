@@ -1,4 +1,5 @@
 #include "esp_log.h"
+#include "webrtc_utils_time.h"
 #include "livekit_protocol.h"
 #include "livekit_engine.h"
 #include "livekit_signaling.h"
@@ -14,6 +15,21 @@ typedef struct {
     livekit_peer_handle_t pub_peer;
     livekit_peer_handle_t sub_peer;
 } livekit_eng_t;
+
+/// @brief Performs one-time system initialization.
+static void sys_init(void)
+{
+    static bool is_initialized = false;
+    if (is_initialized) {
+        ESP_LOGI(TAG, "System already initialized");
+        return;
+    }
+    is_initialized = webrtc_utils_time_sync_init() == ESP_OK;
+    if (!is_initialized) {
+        ESP_LOGE(TAG, "System initialization failed");
+        return;
+    }
+}
 
 static void on_sig_connect(void *ctx)
 {
@@ -42,7 +58,7 @@ static void on_sig_message(livekit_signal_response_t *res, void *ctx)
             livekit_peer_set_ice_servers(join->ice_servers, join->ice_servers_count, eng->pub_peer);
             livekit_peer_set_ice_servers(join->ice_servers, join->ice_servers_count, eng->sub_peer);
 
-            livekit_peer_connect(eng->sub_peer);
+            // livekit_peer_connect(eng->sub_peer);
             livekit_peer_connect(eng->pub_peer);
             break;
         default: break;
@@ -109,6 +125,8 @@ int livekit_eng_connect(const char* server_url, const char* token, livekit_eng_h
         return LIVEKIT_ENG_ERR_INVALID_ARG;
     }
     livekit_eng_t *eng = (livekit_eng_t *)handle;
+
+    sys_init();
 
     if (livekit_sig_connect(server_url, token, eng->sig) != LIVEKIT_SIG_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to connect signaling client");
