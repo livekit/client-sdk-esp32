@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include "esp_log.h"
 #include "esp_peer.h"
+#include "esp_peer_default.h"
 #include "esp_peer_signaling.h"
 #include "esp_webrtc_defaults.h"
 #include "media_lib_os.h"
@@ -174,6 +175,14 @@ livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle)
         ESP_LOGI(TAG, "Already connected, ignoring");
         return LIVEKIT_PEER_ERR_NONE;
     }
+    esp_peer_default_cfg_t peer_cfg = {
+        .agent_recv_timeout = 10000,
+        .data_ch_cfg = {
+            .cache_timeout = 5000,
+            .send_cache_size = 100 * 1024,
+            .recv_cache_size = 100 * 1024
+        }
+    };
     esp_peer_cfg_t peer_cfg = {
         .server_lists = peer->ice_servers,
         .server_num = peer->ice_server_count,
@@ -185,8 +194,8 @@ livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle)
         .enable_data_channel = peer->kind != LIVEKIT_PEER_KIND_SUBSCRIBER,
         .manual_ch_create = true,
         .no_auto_reconnect = false,
-        .extra_cfg = NULL,
-        .extra_size = 0,
+        .extra_cfg = &peer_cfg,
+        .extra_size = sizeof(peer_cfg),
         .on_state = on_state,
         .on_msg = on_msg,
         .on_video_info = on_video_info,
