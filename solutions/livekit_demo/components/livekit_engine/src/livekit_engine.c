@@ -41,7 +41,9 @@ static void on_sig_message(livekit_signal_response_t *res, void *ctx)
             livekit_join_response_t* join = &res->message.join;
             livekit_peer_set_ice_servers(join->ice_servers, join->ice_servers_count, eng->pub_peer);
             livekit_peer_set_ice_servers(join->ice_servers, join->ice_servers_count, eng->sub_peer);
-            // TODO: Connect
+
+            livekit_peer_connect(eng->sub_peer);
+            livekit_peer_connect(eng->pub_peer);
             break;
         default: break;
     }
