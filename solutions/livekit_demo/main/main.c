@@ -93,7 +93,9 @@ static int init_console()
 
 static void thread_scheduler(const char *thread_name, media_lib_thread_cfg_t *thread_cfg)
 {
-    if (strcmp(thread_name, "pc_task") == 0) {
+    // TODO: Handle internally
+    if (strcmp(thread_name, "lk_pub_task") == 0 ||
+        strcmp(thread_name, "lk_sub_task") == 0) {
         thread_cfg->stack_size = 25 * 1024;
         thread_cfg->priority = 18;
         thread_cfg->core_id = 1;

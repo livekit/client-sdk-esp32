@@ -222,7 +222,7 @@ livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle)
 
     peer->running = true;
     media_lib_thread_handle_t thread;
-    const char* thread_name = peer->kind == LIVEKIT_PEER_KIND_SUBSCRIBER ? "peer_sub_task" : "peer_pub_task";
+    const char* thread_name = peer->kind == LIVEKIT_PEER_KIND_SUBSCRIBER ? "lk_sub_task" : "lk_pub_task";
     if (media_lib_thread_create_from_scheduler(&thread, thread_name, peer_task, peer) != ESP_PEER_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to create peer task");
         return LIVEKIT_PEER_ERR_RTC;
