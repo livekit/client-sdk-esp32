@@ -175,7 +175,8 @@ livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle)
         ESP_LOGI(TAG, "Already connected, ignoring");
         return LIVEKIT_PEER_ERR_NONE;
     }
-    esp_peer_default_cfg_t peer_cfg = {
+    // Configuration for the default peer implementation.
+    esp_peer_default_cfg_t default_peer_cfg = {
         .agent_recv_timeout = 10000,
         .data_ch_cfg = {
             .cache_timeout = 5000,
@@ -194,8 +195,8 @@ livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle)
         .enable_data_channel = peer->kind != LIVEKIT_PEER_KIND_SUBSCRIBER,
         .manual_ch_create = true,
         .no_auto_reconnect = false,
-        .extra_cfg = &peer_cfg,
-        .extra_size = sizeof(peer_cfg),
+        .extra_cfg = &default_peer_cfg,
+        .extra_size = sizeof(default_peer_cfg),
         .on_state = on_state,
         .on_msg = on_msg,
         .on_video_info = on_video_info,
