@@ -239,7 +239,7 @@ livekit_peer_err_t livekit_peer_disconnect(livekit_peer_handle_t handle)
     }
     livekit_peer_t *peer = (livekit_peer_t *)handle;
 
-    if (peer->connection == NULL) {
+    if (peer->connection != NULL) {
         esp_peer_disconnect(peer->connection);
         bool still_running = peer->running;
         if (peer->pause) {
