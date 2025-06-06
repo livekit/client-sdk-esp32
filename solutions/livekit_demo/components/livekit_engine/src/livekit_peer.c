@@ -9,7 +9,9 @@
 
 #include "livekit_peer.h"
 
-static const char *TAG = "livekit_peer";
+static const char *SUB_TAG = "livekit_peer.sub";
+static const char *PUB_TAG = "livekit_peer.pub";
+#define TAG(peer) (peer->options.target == LIVEKIT_SIGNAL_TARGET_SUBSCRIBER ? SUB_TAG : PUB_TAG)
 
 #define PC_EXIT_BIT      (1 << 0)
 #define PC_PAUSED_BIT    (1 << 1)
@@ -22,7 +24,7 @@ static const char *TAG = "livekit_peer";
 }
 
 typedef struct {
-    livekit_peer_kind_t kind;
+    livekit_peer_options_t options;
     esp_peer_role_t ice_role;
     esp_peer_handle_t connection;
     esp_peer_state_t state;
@@ -40,7 +42,7 @@ typedef struct {
 static void peer_task(void *ctx)
 {
     livekit_peer_t *peer = (livekit_peer_t *)ctx;
-    ESP_LOGI(TAG, "Peer task started");
+    ESP_LOGI(TAG(peer), "Task started");
     while (peer->running) {
         if (peer->pause) {
             media_lib_event_group_set_bits(peer->wait_event, PC_PAUSED_BIT);
@@ -71,77 +73,88 @@ static void free_ice_servers(livekit_peer_t *peer)
 static int on_state(esp_peer_state_t state, void *ctx)
 {
     livekit_peer_t *peer = (livekit_peer_t *)ctx;
-    ESP_LOGI(TAG, "Peer state changed to %d", state);
+    ESP_LOGI(TAG(peer), "State changed to %d", state);
     return 0;
 }
 
 static int on_msg(esp_peer_msg_t *info, void *ctx)
 {
     livekit_peer_t *peer = (livekit_peer_t *)ctx;
-    ESP_LOGI(TAG, "Peer msg received: type=%d", info->type);
+    switch (info->type) {
+        case ESP_PEER_MSG_TYPE_SDP:
+            peer->options.on_sdp((char *)info->data, peer->options.ctx);
+            break;
+        case ESP_PEER_MSG_TYPE_CANDIDATE:
+            peer->options.on_ice_candidate((char *)info->data, peer->options.ctx);
+            break;
+        default:
+            ESP_LOGI(TAG(peer), "Unhandled msg type: %d", info->type);
+            break;
+    }
     return 0;
 }
 
 static int on_video_info(esp_peer_video_stream_info_t *info, void *ctx)
 {
     livekit_peer_t *peer = (livekit_peer_t *)ctx;
-    ESP_LOGI(TAG, "Peer video info received: %d", info->codec);
+    ESP_LOGI(TAG(peer), "Video info received: %d", info->codec);
     return 0;
 }
 
 static int on_audio_info(esp_peer_audio_stream_info_t *info, void *ctx)
 {
     livekit_peer_t *peer = (livekit_peer_t *)ctx;
-    ESP_LOGI(TAG, "Peer audio info received: %d", info->codec);
+    ESP_LOGI(TAG(peer), "Audio info received: %d", info->codec);
     return 0;
 }
 
 static int on_video_data(esp_peer_video_frame_t *info, void *ctx)
 {
     livekit_peer_t *peer = (livekit_peer_t *)ctx;
-    ESP_LOGI(TAG, "Peer video data received: size=%d", info->size);
+    ESP_LOGI(TAG(peer), "Video data received: size=%d", info->size);
     return 0;
 }
 
 static int on_audio_data(esp_peer_audio_frame_t *info, void *ctx)
 {
     livekit_peer_t *peer = (livekit_peer_t *)ctx;
-    ESP_LOGI(TAG, "Peer audio data received: size=%d", info->size);
+    ESP_LOGI(TAG(peer), "Audio data received: size=%d", info->size);
     return 0;
 }
 
 static int on_channel_open(esp_peer_data_channel_info_t *ch, void *ctx)
 {
     livekit_peer_t *peer = (livekit_peer_t *)ctx;
-    ESP_LOGI(TAG, "Peer channel open: label=%s, stream_id=%d", ch->label, ch->stream_id);
+    ESP_LOGI(TAG(peer), "Channel open: label=%s, stream_id=%d", ch->label, ch->stream_id);
     return 0;
 }
 
 static int on_channel_close(esp_peer_data_channel_info_t *ch, void *ctx)
 {
     livekit_peer_t *peer = (livekit_peer_t *)ctx;
-    ESP_LOGI(TAG, "Peer channel close: label=%s, stream_id=%d", ch->label, ch->stream_id);
+    ESP_LOGI(TAG(peer), "Channel close: label=%s, stream_id=%d", ch->label, ch->stream_id);
     return 0;
 }
 
 static int on_data(esp_peer_data_frame_t *frame, void *ctx)
 {
     livekit_peer_t *peer = (livekit_peer_t *)ctx;
-    ESP_LOGI(TAG, "Peer data received: size=%d", frame->size);
+    ESP_LOGI(TAG(peer), "Data received: size=%d", frame->size);
     return 0;
 }
 
-livekit_peer_err_t livekit_peer_create(livekit_peer_kind_t kind, livekit_peer_handle_t *handle)
+livekit_peer_err_t livekit_peer_create(livekit_peer_options_t options, livekit_peer_handle_t *handle)
 {
-    if (handle == NULL || kind == LIVEKIT_PEER_KIND_NONE) {
+    if (handle == NULL || options.on_ice_candidate == NULL || options.on_sdp == NULL) {
         return LIVEKIT_PEER_ERR_INVALID_ARG;
     }
+
     livekit_peer_t *peer = (livekit_peer_t *)calloc(1, sizeof(livekit_peer_t));
     if (peer == NULL) {
         return LIVEKIT_PEER_ERR_NO_MEM;
     }
-    peer->kind = kind;
-    peer->ice_role = kind == LIVEKIT_PEER_KIND_SUBSCRIBER ?
+    peer->options = options;
+    peer->ice_role = options.target == LIVEKIT_SIGNAL_TARGET_SUBSCRIBER ?
             ESP_PEER_ROLE_CONTROLLED : ESP_PEER_ROLE_CONTROLLING;
 
     *handle = (livekit_peer_handle_t)peer;
@@ -168,11 +181,13 @@ livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle)
     livekit_peer_t *peer = (livekit_peer_t *)handle;
 
     if (peer->ice_servers == NULL || peer->ice_server_count == 0) {
-        ESP_LOGE(TAG, "No ICE servers configured");
+        ESP_LOGE(TAG(peer), "No ICE servers configured");
         return LIVEKIT_PEER_ERR_INVALID_STATE;
     }
     if (peer->connection != NULL) {
-        ESP_LOGI(TAG, "Already connected, ignoring");
+        if (peer->options.target == LIVEKIT_SIGNAL_TARGET_PUBLISHER) {
+            esp_peer_new_connection(peer->connection);
+        }
         return LIVEKIT_PEER_ERR_NONE;
     }
     // Configuration for the default peer implementation.
@@ -187,12 +202,10 @@ livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle)
     esp_peer_cfg_t peer_cfg = {
         .server_lists = peer->ice_servers,
         .server_num = peer->ice_server_count,
-        .ice_trans_policy = ESP_PEER_ICE_TRANS_POLICY_RELAY, // Only relay candidates
-        .audio_dir = peer->kind == LIVEKIT_PEER_KIND_SUBSCRIBER ?
-            ESP_PEER_MEDIA_DIR_RECV_ONLY : ESP_PEER_MEDIA_DIR_SEND_ONLY,
-        .video_dir = peer->kind == LIVEKIT_PEER_KIND_SUBSCRIBER ?
-            ESP_PEER_MEDIA_DIR_RECV_ONLY : ESP_PEER_MEDIA_DIR_SEND_ONLY,
-        .enable_data_channel = peer->kind != LIVEKIT_PEER_KIND_SUBSCRIBER,
+        .ice_trans_policy = ESP_PEER_ICE_TRANS_POLICY_ALL, // Allow all candidate types
+        .audio_dir = ESP_PEER_MEDIA_DIR_NONE,
+        .video_dir = ESP_PEER_MEDIA_DIR_NONE,
+        .enable_data_channel = peer->options.target == LIVEKIT_SIGNAL_TARGET_PUBLISHER,
         .manual_ch_create = true,
         .no_auto_reconnect = false,
         .extra_cfg = &default_peer_cfg,
@@ -212,23 +225,28 @@ livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle)
 
     int ret = esp_peer_open(&peer_cfg, esp_peer_get_default_impl(), &peer->connection);
     if (ret != ESP_PEER_ERR_NONE) {
-        ESP_LOGE(TAG, "Failed to open peer connection: %d", ret);
+        ESP_LOGE(TAG(peer), "Failed to open peer connection: %d", ret);
         return LIVEKIT_PEER_ERR_RTC;
     }
 
     media_lib_event_group_create(&peer->wait_event);
     if (peer->wait_event == NULL) {
-        return ESP_PEER_ERR_NO_MEM;
+        return LIVEKIT_PEER_ERR_NO_MEM;
     }
 
     peer->running = true;
     media_lib_thread_handle_t thread;
-    const char* thread_name = peer->kind == LIVEKIT_PEER_KIND_SUBSCRIBER ? "lk_sub_task" : "lk_pub_task";
+    const char* thread_name = peer->options.target == LIVEKIT_SIGNAL_TARGET_SUBSCRIBER ?
+        "lk_sub_task" : "lk_pub_task";
     if (media_lib_thread_create_from_scheduler(&thread, thread_name, peer_task, peer) != ESP_PEER_ERR_NONE) {
-        ESP_LOGE(TAG, "Failed to create peer task");
+        ESP_LOGE(TAG(peer), "Failed to create task");
         return LIVEKIT_PEER_ERR_RTC;
     }
     // TODO: Media configuration & capture setup
+
+    if (peer->options.target == LIVEKIT_SIGNAL_TARGET_PUBLISHER) {
+        esp_peer_new_connection(peer->connection);
+    }
     return LIVEKIT_PEER_ERR_NONE;
 }
 
@@ -291,7 +309,7 @@ livekit_peer_err_t livekit_peer_set_ice_servers(livekit_ice_server_t *servers, i
     int cfg_idx = 0;
     for (int i = 0; i < count; i++) {
         for (int j = 0; j < servers[i].urls_count; j++) {
-            ESP_LOGI(TAG, "Adding ICE server: %s", servers[i].urls[j]);
+            ESP_LOGI(TAG(peer), "Adding ICE server: %s", servers[i].urls[j]);
             cfgs[cfg_idx].stun_url = strdup(servers[i].urls[j]);
             if (servers[i].username != NULL) {
                 cfgs[cfg_idx].user = strdup(servers[i].username);
@@ -311,5 +329,43 @@ livekit_peer_err_t livekit_peer_set_ice_servers(livekit_ice_server_t *servers, i
     peer->ice_servers = cfgs;
     peer->ice_server_count = cfg_count;
 
+    return LIVEKIT_PEER_ERR_NONE;
+}
+
+livekit_peer_err_t livekit_peer_handle_sdp(const char *sdp, livekit_peer_handle_t handle)
+{
+    if (handle == NULL || sdp == NULL) {
+        return LIVEKIT_PEER_ERR_INVALID_ARG;
+    }
+    livekit_peer_t *peer = (livekit_peer_t *)handle;
+
+    esp_peer_msg_t msg = {
+        .type = ESP_PEER_MSG_TYPE_SDP,
+        .data = (void *)sdp,
+        .size = strlen(sdp)
+    };
+    if (esp_peer_send_msg(peer->connection, &msg) != ESP_PEER_ERR_NONE) {
+        ESP_LOGE(TAG(peer), "Failed to handle answer");
+        return LIVEKIT_PEER_ERR_RTC;
+    }
+    return LIVEKIT_PEER_ERR_NONE;
+}
+
+livekit_peer_err_t livekit_peer_handle_ice_candidate(const char *candidate, livekit_peer_handle_t handle)
+{
+    if (handle == NULL || candidate == NULL) {
+        return LIVEKIT_PEER_ERR_INVALID_ARG;
+    }
+    livekit_peer_t *peer = (livekit_peer_t *)handle;
+
+    esp_peer_msg_t msg = {
+        .type = ESP_PEER_MSG_TYPE_CANDIDATE,
+        .data = (void *)candidate,
+        .size = strlen(candidate)
+    };
+    if (esp_peer_send_msg(peer->connection, &msg) != ESP_PEER_ERR_NONE) {
+        ESP_LOGE(TAG(peer), "Failed to handle ICE candidate");
+        return LIVEKIT_PEER_ERR_RTC;
+    }
     return LIVEKIT_PEER_ERR_NONE;
 }
