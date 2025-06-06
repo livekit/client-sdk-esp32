@@ -265,7 +265,7 @@ static void livekit_sig_on_data(livekit_sig_t *sg, const char *data, size_t len)
         return;
     }
 
-    ESP_LOGI(TAG, "Decoded signal res: type=%s", livekit_protocol_sig_res_name(res.which_message));
+    ESP_LOGI(TAG, "Decoded signal res: type=%s(%d)", livekit_protocol_sig_res_name(res.which_message), res.which_message);
     livekit_sig_handle_res(sg, &res);
 }
 
