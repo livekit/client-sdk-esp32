@@ -78,8 +78,12 @@ static void on_sig_join(livekit_join_response_t *join_res, void *ctx)
     livekit_peer_set_ice_servers(join_res->ice_servers, join_res->ice_servers_count, eng->pub_peer);
     livekit_peer_set_ice_servers(join_res->ice_servers, join_res->ice_servers_count, eng->sub_peer);
 
-    livekit_peer_connect(eng->pub_peer);
-    // livekit_peer_connect(eng->sub_peer);
+    livekit_peer_connect_options_t connect_options = {
+        .force_relay = join_res->has_client_configuration &&
+                       join_res->client_configuration.force_relay == LIVEKIT_CLIENT_CONFIG_SETTING_ENABLED
+    };
+    livekit_peer_connect(connect_options, eng->pub_peer);
+    // livekit_peer_connect(connection_options, eng->sub_peer);
 }
 
 static void on_sig_answer(const char *sdp, void *ctx)
