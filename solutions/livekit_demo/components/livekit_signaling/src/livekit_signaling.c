@@ -129,7 +129,7 @@ static void livekit_sig_send_ping(livekit_sig_t *sg)
 {
     int64_t timestamp = get_unix_time_ms();
     int64_t rtt = sg->rtt;
-    ESP_LOGI(TAG, "Sending ping: timestamp=%" PRId64 "ms, rtt=%" PRId64 "ms", timestamp, rtt);
+    //ESP_LOGI(TAG, "Sending ping: timestamp=%" PRId64 "ms, rtt=%" PRId64 "ms", timestamp, rtt);
 
     livekit_signal_request_t req = LIVEKIT_SIGNAL_REQUEST_INIT_DEFAULT;
     req.which_message = LIVEKIT_SIGNAL_REQUEST_PING_REQ_TAG;
