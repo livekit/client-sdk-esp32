@@ -443,7 +443,7 @@ static livekit_sig_err_t send_request(livekit_signal_request_t *request, livekit
     return ret;
 }
 
-livekit_sig_err_t livekit_sig_send_answer(const char *sdp, livekit_sig_handle_t handle);
+livekit_sig_err_t livekit_sig_send_answer(const char *sdp, livekit_sig_handle_t handle)
 {
     if (sdp == NULL || handle == NULL) {
         return LIVEKIT_SIG_ERR_INVALID_ARG;
