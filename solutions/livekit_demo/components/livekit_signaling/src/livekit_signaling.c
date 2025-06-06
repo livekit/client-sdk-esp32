@@ -138,7 +138,7 @@ static void livekit_sig_send_ping(livekit_sig_t *sg)
 
     uint8_t enc_buf[512];
     if (livekit_sig_send_req(sg, &req, enc_buf, sizeof(enc_buf)) != 0) {
-        ESP_LOGE(TAG, "Failed to send ping");
+       //ESP_LOGE(TAG, "Failed to send ping");
         return;
     }
 }
