@@ -78,6 +78,7 @@ def generate_bindings(verbose = False):
         *(["--nanopb_opt=-v"] if verbose else []), # Verbose output
         "--nanopb_opt=--c-style",
         "--nanopb_opt=--error-on-unmatched",
+        "--nanopb_opt=-s discard_deprecated:true",
         f"--nanopb_out={os.path.abspath(bindings_src_dest)}",
     ] + input_files
 
