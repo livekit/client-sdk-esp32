@@ -1,0 +1,3 @@
+livekit.ClientConfiguration.video type:FT_IGNORE
+livekit.ClientConfiguration.screen type:FT_IGNORE
+livekit.ClientConfiguration.disabled_codecs type:FT_IGNORE

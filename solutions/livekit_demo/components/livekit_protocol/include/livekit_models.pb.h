@@ -427,6 +427,12 @@ typedef struct livekit_client_info {
     pb_callback_t other_sdks;
 } livekit_client_info_t;
 
+/* server provided client configuration */
+typedef struct livekit_client_configuration {
+    livekit_client_config_setting_t resume_connection;
+    livekit_client_config_setting_t force_relay;
+} livekit_client_configuration_t;
+
 typedef struct livekit_video_configuration {
     livekit_client_config_setting_t hardware_encoder;
 } livekit_video_configuration_t;
@@ -437,18 +443,6 @@ typedef struct livekit_disabled_codecs {
     /* only disable for publish */
     pb_callback_t publish;
 } livekit_disabled_codecs_t;
-
-/* server provided client configuration */
-typedef struct livekit_client_configuration {
-    bool has_video;
-    livekit_video_configuration_t video;
-    bool has_screen;
-    livekit_video_configuration_t screen;
-    livekit_client_config_setting_t resume_connection;
-    bool has_disabled_codecs;
-    livekit_disabled_codecs_t disabled_codecs;
-    livekit_client_config_setting_t force_relay;
-} livekit_client_configuration_t;
 
 typedef struct livekit_rtp_drift {
     bool has_start_time;
@@ -899,7 +893,7 @@ extern "C" {
 #define LIVEKIT_PARTICIPANT_TRACKS_INIT_DEFAULT  {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_SERVER_INFO_INIT_DEFAULT         {_LIVEKIT_SERVER_INFO_EDITION_MIN, {{NULL}, NULL}, 0, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0}
 #define LIVEKIT_CLIENT_INFO_INIT_DEFAULT         {_LIVEKIT_CLIENT_INFO_SDK_MIN, {{NULL}, NULL}, 0, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_CLIENT_CONFIGURATION_INIT_DEFAULT {false, LIVEKIT_VIDEO_CONFIGURATION_INIT_DEFAULT, false, LIVEKIT_VIDEO_CONFIGURATION_INIT_DEFAULT, _LIVEKIT_CLIENT_CONFIG_SETTING_MIN, false, LIVEKIT_DISABLED_CODECS_INIT_DEFAULT, _LIVEKIT_CLIENT_CONFIG_SETTING_MIN}
+#define LIVEKIT_CLIENT_CONFIGURATION_INIT_DEFAULT {_LIVEKIT_CLIENT_CONFIG_SETTING_MIN, _LIVEKIT_CLIENT_CONFIG_SETTING_MIN}
 #define LIVEKIT_VIDEO_CONFIGURATION_INIT_DEFAULT {_LIVEKIT_CLIENT_CONFIG_SETTING_MIN}
 #define LIVEKIT_DISABLED_CODECS_INIT_DEFAULT     {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_RTP_DRIFT_INIT_DEFAULT           {false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, 0, 0, 0, 0, 0, 0, 0}
@@ -946,7 +940,7 @@ extern "C" {
 #define LIVEKIT_PARTICIPANT_TRACKS_INIT_ZERO     {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_SERVER_INFO_INIT_ZERO            {_LIVEKIT_SERVER_INFO_EDITION_MIN, {{NULL}, NULL}, 0, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0}
 #define LIVEKIT_CLIENT_INFO_INIT_ZERO            {_LIVEKIT_CLIENT_INFO_SDK_MIN, {{NULL}, NULL}, 0, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_CLIENT_CONFIGURATION_INIT_ZERO   {false, LIVEKIT_VIDEO_CONFIGURATION_INIT_ZERO, false, LIVEKIT_VIDEO_CONFIGURATION_INIT_ZERO, _LIVEKIT_CLIENT_CONFIG_SETTING_MIN, false, LIVEKIT_DISABLED_CODECS_INIT_ZERO, _LIVEKIT_CLIENT_CONFIG_SETTING_MIN}
+#define LIVEKIT_CLIENT_CONFIGURATION_INIT_ZERO   {_LIVEKIT_CLIENT_CONFIG_SETTING_MIN, _LIVEKIT_CLIENT_CONFIG_SETTING_MIN}
 #define LIVEKIT_VIDEO_CONFIGURATION_INIT_ZERO    {_LIVEKIT_CLIENT_CONFIG_SETTING_MIN}
 #define LIVEKIT_DISABLED_CODECS_INIT_ZERO        {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_RTP_DRIFT_INIT_ZERO              {false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, 0, 0, 0, 0, 0, 0, 0}
@@ -1075,14 +1069,11 @@ extern "C" {
 #define LIVEKIT_CLIENT_INFO_ADDRESS_TAG          9
 #define LIVEKIT_CLIENT_INFO_NETWORK_TAG          10
 #define LIVEKIT_CLIENT_INFO_OTHER_SDKS_TAG       11
+#define LIVEKIT_CLIENT_CONFIGURATION_RESUME_CONNECTION_TAG 3
+#define LIVEKIT_CLIENT_CONFIGURATION_FORCE_RELAY_TAG 5
 #define LIVEKIT_VIDEO_CONFIGURATION_HARDWARE_ENCODER_TAG 1
 #define LIVEKIT_DISABLED_CODECS_CODECS_TAG       1
 #define LIVEKIT_DISABLED_CODECS_PUBLISH_TAG      2
-#define LIVEKIT_CLIENT_CONFIGURATION_VIDEO_TAG   1
-#define LIVEKIT_CLIENT_CONFIGURATION_SCREEN_TAG  2
-#define LIVEKIT_CLIENT_CONFIGURATION_RESUME_CONNECTION_TAG 3
-#define LIVEKIT_CLIENT_CONFIGURATION_DISABLED_CODECS_TAG 4
-#define LIVEKIT_CLIENT_CONFIGURATION_FORCE_RELAY_TAG 5
 #define LIVEKIT_RTP_DRIFT_START_TIME_TAG         1
 #define LIVEKIT_RTP_DRIFT_END_TIME_TAG           2
 #define LIVEKIT_RTP_DRIFT_DURATION_TAG           3
@@ -1539,16 +1530,10 @@ X(a, CALLBACK, SINGULAR, STRING,   other_sdks,       11)
 #define LIVEKIT_CLIENT_INFO_DEFAULT NULL
 
 #define LIVEKIT_CLIENT_CONFIGURATION_FIELDLIST(X, a) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  video,             1) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  screen,            2) \
 X(a, STATIC,   SINGULAR, UENUM,    resume_connection,   3) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  disabled_codecs,   4) \
 X(a, STATIC,   SINGULAR, UENUM,    force_relay,       5)
 #define LIVEKIT_CLIENT_CONFIGURATION_CALLBACK NULL
 #define LIVEKIT_CLIENT_CONFIGURATION_DEFAULT NULL
-#define livekit_client_configuration_t_video_MSGTYPE livekit_video_configuration_t
-#define livekit_client_configuration_t_screen_MSGTYPE livekit_video_configuration_t
-#define livekit_client_configuration_t_disabled_codecs_MSGTYPE livekit_disabled_codecs_t
 
 #define LIVEKIT_VIDEO_CONFIGURATION_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UENUM,    hardware_encoder,   1)
@@ -1889,7 +1874,6 @@ extern const pb_msgdesc_t livekit_webhook_config_t_msg;
 /* livekit_ParticipantTracks_size depends on runtime parameters */
 /* livekit_ServerInfo_size depends on runtime parameters */
 /* livekit_ClientInfo_size depends on runtime parameters */
-/* livekit_ClientConfiguration_size depends on runtime parameters */
 /* livekit_DisabledCodecs_size depends on runtime parameters */
 /* livekit_RTPStats_size depends on runtime parameters */
 /* livekit_RTPForwarderState_size depends on runtime parameters */
@@ -1901,6 +1885,7 @@ extern const pb_msgdesc_t livekit_webhook_config_t_msg;
 /* livekit_DataStream_Trailer_size depends on runtime parameters */
 /* livekit_DataStream_Trailer_AttributesEntry_size depends on runtime parameters */
 /* livekit_WebhookConfig_size depends on runtime parameters */
+#define LIVEKIT_CLIENT_CONFIGURATION_SIZE        4
 #define LIVEKIT_DATA_STREAM_SIZE                 0
 #define LIVEKIT_ENCRYPTION_SIZE                  0
 #define LIVEKIT_LIVEKIT_MODELS_PB_H_MAX_SIZE     LIVEKIT_RTP_DRIFT_SIZE

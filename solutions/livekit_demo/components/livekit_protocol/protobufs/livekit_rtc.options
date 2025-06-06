@@ -3,7 +3,6 @@ livekit.JoinResponse.participant type:FT_IGNORE
 livekit.JoinResponse.other_participants type:FT_IGNORE
 livekit.JoinResponse.server_version type:FT_IGNORE
 livekit.JoinResponse.alternative_url type:FT_IGNORE
-livekit.JoinResponse.client_configuration type:FT_IGNORE
 livekit.JoinResponse.server_region type:FT_IGNORE
 livekit.JoinResponse.server_info type:FT_IGNORE
 livekit.JoinResponse.sif_trailer type:FT_IGNORE
