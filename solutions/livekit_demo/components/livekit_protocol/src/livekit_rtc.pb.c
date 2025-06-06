@@ -9,7 +9,7 @@
 PB_BIND(LIVEKIT_SIGNAL_REQUEST, livekit_signal_request_t, AUTO)
 
 
-PB_BIND(LIVEKIT_SIGNAL_RESPONSE, livekit_signal_response_t, 2)
+PB_BIND(LIVEKIT_SIGNAL_RESPONSE, livekit_signal_response_t, AUTO)
 
 
 PB_BIND(LIVEKIT_SIMULCAST_CODEC, livekit_simulcast_codec_t, AUTO)
@@ -57,9 +57,6 @@ PB_BIND(LIVEKIT_UPDATE_LOCAL_VIDEO_TRACK, livekit_update_local_video_track_t, AU
 PB_BIND(LIVEKIT_LEAVE_REQUEST, livekit_leave_request_t, AUTO)
 
 
-PB_BIND(LIVEKIT_UPDATE_VIDEO_LAYERS, livekit_update_video_layers_t, AUTO)
-
-
 PB_BIND(LIVEKIT_UPDATE_PARTICIPANT_METADATA, livekit_update_participant_metadata_t, AUTO)
 
 
@@ -105,7 +102,7 @@ PB_BIND(LIVEKIT_SUBSCRIPTION_PERMISSION, livekit_subscription_permission_t, AUTO
 PB_BIND(LIVEKIT_SUBSCRIPTION_PERMISSION_UPDATE, livekit_subscription_permission_update_t, AUTO)
 
 
-PB_BIND(LIVEKIT_ROOM_MOVED_RESPONSE, livekit_room_moved_response_t, 2)
+PB_BIND(LIVEKIT_ROOM_MOVED_RESPONSE, livekit_room_moved_response_t, AUTO)
 
 
 PB_BIND(LIVEKIT_SYNC_STATE, livekit_sync_state_t, AUTO)

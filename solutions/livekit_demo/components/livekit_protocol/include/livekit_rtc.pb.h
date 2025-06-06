@@ -57,14 +57,11 @@ typedef struct livekit_add_track_request {
     uint32_t height;
     /* true to add track and initialize to muted */
     bool muted;
-    /* true if DTX (Discontinuous Transmission) is disabled for audio */
-    bool disable_dtx; /* deprecated in favor of audio_features */
     livekit_track_source_t source;
     pb_callback_t layers;
     pb_callback_t simulcast_codecs;
     /* server ID of track, publish new codec to exist track */
     pb_callback_t sid;
-    bool stereo; /* deprecated in favor of audio_features */
     /* true if RED (Redundant Encoding) is disabled for audio */
     bool disable_red;
     livekit_encryption_type_t encryption;
@@ -149,12 +146,6 @@ typedef struct livekit_update_local_video_track {
     uint32_t height;
 } livekit_update_local_video_track_t;
 
-/* message to indicate published video track dimensions are changing */
-typedef struct livekit_update_video_layers {
-    pb_callback_t track_sid;
-    pb_callback_t layers;
-} livekit_update_video_layers_t;
-
 typedef struct livekit_update_participant_metadata {
     pb_callback_t metadata;
     pb_callback_t name;
@@ -177,6 +168,7 @@ typedef struct livekit_ice_server {
 } livekit_ice_server_t;
 
 typedef struct livekit_join_response {
+    livekit_participant_info_t participant;
     pb_size_t ice_servers_count;
     livekit_ice_server_t ice_servers[4];
     /* use subscriber as the primary PeerConnection */
@@ -351,8 +343,6 @@ typedef struct livekit_signal_request {
         livekit_update_track_settings_t track_setting;
         /* Immediately terminate session */
         livekit_leave_request_t leave;
-        /* Update published video layers */
-        livekit_update_video_layers_t update_layers;
         /* Update subscriber permissions */
         livekit_subscription_permission_t subscription_permission;
         /* sync client's subscribe state to server during reconnect */
@@ -504,7 +494,6 @@ extern "C" {
 
 
 
-
 #define livekit_connection_quality_info_t_quality_ENUMTYPE livekit_connection_quality_t
 
 
@@ -538,10 +527,10 @@ extern "C" {
 #define LIVEKIT_SIGNAL_REQUEST_INIT_DEFAULT      {0, {LIVEKIT_SESSION_DESCRIPTION_INIT_DEFAULT}}
 #define LIVEKIT_SIGNAL_RESPONSE_INIT_DEFAULT     {0, {LIVEKIT_JOIN_RESPONSE_INIT_DEFAULT}}
 #define LIVEKIT_SIMULCAST_CODEC_INIT_DEFAULT     {{{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_ADD_TRACK_REQUEST_INIT_DEFAULT   {{{NULL}, NULL}, {{NULL}, NULL}, _LIVEKIT_TRACK_TYPE_MIN, 0, 0, 0, 0, _LIVEKIT_TRACK_SOURCE_MIN, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0, _LIVEKIT_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, _LIVEKIT_BACKUP_CODEC_POLICY_MIN, {{NULL}, NULL}}
+#define LIVEKIT_ADD_TRACK_REQUEST_INIT_DEFAULT   {{{NULL}, NULL}, {{NULL}, NULL}, _LIVEKIT_TRACK_TYPE_MIN, 0, 0, 0, _LIVEKIT_TRACK_SOURCE_MIN, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, _LIVEKIT_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, _LIVEKIT_BACKUP_CODEC_POLICY_MIN, {{NULL}, NULL}}
 #define LIVEKIT_TRICKLE_REQUEST_INIT_DEFAULT     {NULL, _LIVEKIT_SIGNAL_TARGET_MIN, 0}
 #define LIVEKIT_MUTE_TRACK_REQUEST_INIT_DEFAULT  {{{NULL}, NULL}, 0}
-#define LIVEKIT_JOIN_RESPONSE_INIT_DEFAULT       {0, {LIVEKIT_ICE_SERVER_INIT_DEFAULT, LIVEKIT_ICE_SERVER_INIT_DEFAULT, LIVEKIT_ICE_SERVER_INIT_DEFAULT, LIVEKIT_ICE_SERVER_INIT_DEFAULT}, 0, false, LIVEKIT_CLIENT_CONFIGURATION_INIT_DEFAULT, 0, 0}
+#define LIVEKIT_JOIN_RESPONSE_INIT_DEFAULT       {LIVEKIT_PARTICIPANT_INFO_INIT_DEFAULT, 0, {LIVEKIT_ICE_SERVER_INIT_DEFAULT, LIVEKIT_ICE_SERVER_INIT_DEFAULT, LIVEKIT_ICE_SERVER_INIT_DEFAULT, LIVEKIT_ICE_SERVER_INIT_DEFAULT}, 0, false, LIVEKIT_CLIENT_CONFIGURATION_INIT_DEFAULT, 0, 0}
 #define LIVEKIT_RECONNECT_RESPONSE_INIT_DEFAULT  {{{NULL}, NULL}, false, LIVEKIT_CLIENT_CONFIGURATION_INIT_DEFAULT}
 #define LIVEKIT_TRACK_PUBLISHED_RESPONSE_INIT_DEFAULT {{{NULL}, NULL}, false, LIVEKIT_TRACK_INFO_INIT_DEFAULT}
 #define LIVEKIT_TRACK_UNPUBLISHED_RESPONSE_INIT_DEFAULT {{{NULL}, NULL}}
@@ -552,7 +541,6 @@ extern "C" {
 #define LIVEKIT_UPDATE_LOCAL_AUDIO_TRACK_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_UPDATE_LOCAL_VIDEO_TRACK_INIT_DEFAULT {{{NULL}, NULL}, 0, 0}
 #define LIVEKIT_LEAVE_REQUEST_INIT_DEFAULT       {0, _LIVEKIT_DISCONNECT_REASON_MIN, _LIVEKIT_LEAVE_REQUEST_ACTION_MIN, false, LIVEKIT_REGION_SETTINGS_INIT_DEFAULT}
-#define LIVEKIT_UPDATE_VIDEO_LAYERS_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_UPDATE_PARTICIPANT_METADATA_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0}
 #define LIVEKIT_UPDATE_PARTICIPANT_METADATA_ATTRIBUTES_ENTRY_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_ICE_SERVER_INIT_DEFAULT          {0, NULL, NULL, NULL}
@@ -582,10 +570,10 @@ extern "C" {
 #define LIVEKIT_SIGNAL_REQUEST_INIT_ZERO         {0, {LIVEKIT_SESSION_DESCRIPTION_INIT_ZERO}}
 #define LIVEKIT_SIGNAL_RESPONSE_INIT_ZERO        {0, {LIVEKIT_JOIN_RESPONSE_INIT_ZERO}}
 #define LIVEKIT_SIMULCAST_CODEC_INIT_ZERO        {{{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_ADD_TRACK_REQUEST_INIT_ZERO      {{{NULL}, NULL}, {{NULL}, NULL}, _LIVEKIT_TRACK_TYPE_MIN, 0, 0, 0, 0, _LIVEKIT_TRACK_SOURCE_MIN, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0, _LIVEKIT_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, _LIVEKIT_BACKUP_CODEC_POLICY_MIN, {{NULL}, NULL}}
+#define LIVEKIT_ADD_TRACK_REQUEST_INIT_ZERO      {{{NULL}, NULL}, {{NULL}, NULL}, _LIVEKIT_TRACK_TYPE_MIN, 0, 0, 0, _LIVEKIT_TRACK_SOURCE_MIN, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, _LIVEKIT_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, _LIVEKIT_BACKUP_CODEC_POLICY_MIN, {{NULL}, NULL}}
 #define LIVEKIT_TRICKLE_REQUEST_INIT_ZERO        {NULL, _LIVEKIT_SIGNAL_TARGET_MIN, 0}
 #define LIVEKIT_MUTE_TRACK_REQUEST_INIT_ZERO     {{{NULL}, NULL}, 0}
-#define LIVEKIT_JOIN_RESPONSE_INIT_ZERO          {0, {LIVEKIT_ICE_SERVER_INIT_ZERO, LIVEKIT_ICE_SERVER_INIT_ZERO, LIVEKIT_ICE_SERVER_INIT_ZERO, LIVEKIT_ICE_SERVER_INIT_ZERO}, 0, false, LIVEKIT_CLIENT_CONFIGURATION_INIT_ZERO, 0, 0}
+#define LIVEKIT_JOIN_RESPONSE_INIT_ZERO          {LIVEKIT_PARTICIPANT_INFO_INIT_ZERO, 0, {LIVEKIT_ICE_SERVER_INIT_ZERO, LIVEKIT_ICE_SERVER_INIT_ZERO, LIVEKIT_ICE_SERVER_INIT_ZERO, LIVEKIT_ICE_SERVER_INIT_ZERO}, 0, false, LIVEKIT_CLIENT_CONFIGURATION_INIT_ZERO, 0, 0}
 #define LIVEKIT_RECONNECT_RESPONSE_INIT_ZERO     {{{NULL}, NULL}, false, LIVEKIT_CLIENT_CONFIGURATION_INIT_ZERO}
 #define LIVEKIT_TRACK_PUBLISHED_RESPONSE_INIT_ZERO {{{NULL}, NULL}, false, LIVEKIT_TRACK_INFO_INIT_ZERO}
 #define LIVEKIT_TRACK_UNPUBLISHED_RESPONSE_INIT_ZERO {{{NULL}, NULL}}
@@ -596,7 +584,6 @@ extern "C" {
 #define LIVEKIT_UPDATE_LOCAL_AUDIO_TRACK_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_UPDATE_LOCAL_VIDEO_TRACK_INIT_ZERO {{{NULL}, NULL}, 0, 0}
 #define LIVEKIT_LEAVE_REQUEST_INIT_ZERO          {0, _LIVEKIT_DISCONNECT_REASON_MIN, _LIVEKIT_LEAVE_REQUEST_ACTION_MIN, false, LIVEKIT_REGION_SETTINGS_INIT_ZERO}
-#define LIVEKIT_UPDATE_VIDEO_LAYERS_INIT_ZERO    {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_UPDATE_PARTICIPANT_METADATA_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0}
 #define LIVEKIT_UPDATE_PARTICIPANT_METADATA_ATTRIBUTES_ENTRY_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_ICE_SERVER_INIT_ZERO             {0, NULL, NULL, NULL}
@@ -633,12 +620,10 @@ extern "C" {
 #define LIVEKIT_ADD_TRACK_REQUEST_WIDTH_TAG      4
 #define LIVEKIT_ADD_TRACK_REQUEST_HEIGHT_TAG     5
 #define LIVEKIT_ADD_TRACK_REQUEST_MUTED_TAG      6
-#define LIVEKIT_ADD_TRACK_REQUEST_DISABLE_DTX_TAG 7
 #define LIVEKIT_ADD_TRACK_REQUEST_SOURCE_TAG     8
 #define LIVEKIT_ADD_TRACK_REQUEST_LAYERS_TAG     9
 #define LIVEKIT_ADD_TRACK_REQUEST_SIMULCAST_CODECS_TAG 10
 #define LIVEKIT_ADD_TRACK_REQUEST_SID_TAG        11
-#define LIVEKIT_ADD_TRACK_REQUEST_STEREO_TAG     12
 #define LIVEKIT_ADD_TRACK_REQUEST_DISABLE_RED_TAG 13
 #define LIVEKIT_ADD_TRACK_REQUEST_ENCRYPTION_TAG 14
 #define LIVEKIT_ADD_TRACK_REQUEST_STREAM_TAG     15
@@ -672,8 +657,6 @@ extern "C" {
 #define LIVEKIT_UPDATE_LOCAL_VIDEO_TRACK_TRACK_SID_TAG 1
 #define LIVEKIT_UPDATE_LOCAL_VIDEO_TRACK_WIDTH_TAG 2
 #define LIVEKIT_UPDATE_LOCAL_VIDEO_TRACK_HEIGHT_TAG 3
-#define LIVEKIT_UPDATE_VIDEO_LAYERS_TRACK_SID_TAG 1
-#define LIVEKIT_UPDATE_VIDEO_LAYERS_LAYERS_TAG   2
 #define LIVEKIT_UPDATE_PARTICIPANT_METADATA_METADATA_TAG 1
 #define LIVEKIT_UPDATE_PARTICIPANT_METADATA_NAME_TAG 2
 #define LIVEKIT_UPDATE_PARTICIPANT_METADATA_ATTRIBUTES_TAG 3
@@ -683,6 +666,7 @@ extern "C" {
 #define LIVEKIT_ICE_SERVER_URLS_TAG              1
 #define LIVEKIT_ICE_SERVER_USERNAME_TAG          2
 #define LIVEKIT_ICE_SERVER_CREDENTIAL_TAG        3
+#define LIVEKIT_JOIN_RESPONSE_PARTICIPANT_TAG    2
 #define LIVEKIT_JOIN_RESPONSE_ICE_SERVERS_TAG    5
 #define LIVEKIT_JOIN_RESPONSE_SUBSCRIBER_PRIMARY_TAG 6
 #define LIVEKIT_JOIN_RESPONSE_CLIENT_CONFIGURATION_TAG 8
@@ -753,7 +737,6 @@ extern "C" {
 #define LIVEKIT_SIGNAL_REQUEST_SUBSCRIPTION_TAG  6
 #define LIVEKIT_SIGNAL_REQUEST_TRACK_SETTING_TAG 7
 #define LIVEKIT_SIGNAL_REQUEST_LEAVE_TAG         8
-#define LIVEKIT_SIGNAL_REQUEST_UPDATE_LAYERS_TAG 10
 #define LIVEKIT_SIGNAL_REQUEST_SUBSCRIPTION_PERMISSION_TAG 11
 #define LIVEKIT_SIGNAL_REQUEST_SYNC_STATE_TAG    12
 #define LIVEKIT_SIGNAL_REQUEST_SIMULATE_TAG      13
@@ -805,7 +788,6 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (message,mute,message.mute),   5) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (message,subscription,message.subscription),   6) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (message,track_setting,message.track_setting),   7) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (message,leave,message.leave),   8) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (message,update_layers,message.update_layers),  10) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (message,subscription_permission,message.subscription_permission),  11) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (message,sync_state,message.sync_state),  12) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (message,simulate,message.simulate),  13) \
@@ -824,7 +806,6 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (message,update_video_track,message.update_vi
 #define livekit_signal_request_t_message_subscription_MSGTYPE livekit_update_subscription_t
 #define livekit_signal_request_t_message_track_setting_MSGTYPE livekit_update_track_settings_t
 #define livekit_signal_request_t_message_leave_MSGTYPE livekit_leave_request_t
-#define livekit_signal_request_t_message_update_layers_MSGTYPE livekit_update_video_layers_t
 #define livekit_signal_request_t_message_subscription_permission_MSGTYPE livekit_subscription_permission_t
 #define livekit_signal_request_t_message_sync_state_MSGTYPE livekit_sync_state_t
 #define livekit_signal_request_t_message_simulate_MSGTYPE livekit_simulate_scenario_t
@@ -894,12 +875,10 @@ X(a, STATIC,   SINGULAR, UENUM,    type,              3) \
 X(a, STATIC,   SINGULAR, UINT32,   width,             4) \
 X(a, STATIC,   SINGULAR, UINT32,   height,            5) \
 X(a, STATIC,   SINGULAR, BOOL,     muted,             6) \
-X(a, STATIC,   SINGULAR, BOOL,     disable_dtx,       7) \
 X(a, STATIC,   SINGULAR, UENUM,    source,            8) \
 X(a, CALLBACK, REPEATED, MESSAGE,  layers,            9) \
 X(a, CALLBACK, REPEATED, MESSAGE,  simulcast_codecs,  10) \
 X(a, CALLBACK, SINGULAR, STRING,   sid,              11) \
-X(a, STATIC,   SINGULAR, BOOL,     stereo,           12) \
 X(a, STATIC,   SINGULAR, BOOL,     disable_red,      13) \
 X(a, STATIC,   SINGULAR, UENUM,    encryption,       14) \
 X(a, CALLBACK, SINGULAR, STRING,   stream,           15) \
@@ -924,6 +903,7 @@ X(a, STATIC,   SINGULAR, BOOL,     muted,             2)
 #define LIVEKIT_MUTE_TRACK_REQUEST_DEFAULT NULL
 
 #define LIVEKIT_JOIN_RESPONSE_FIELDLIST(X, a) \
+X(a, STATIC,   REQUIRED, MESSAGE,  participant,       2) \
 X(a, STATIC,   REPEATED, MESSAGE,  ice_servers,       5) \
 X(a, STATIC,   SINGULAR, BOOL,     subscriber_primary,   6) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  client_configuration,   8) \
@@ -931,6 +911,7 @@ X(a, STATIC,   SINGULAR, INT32,    ping_timeout,     10) \
 X(a, STATIC,   SINGULAR, INT32,    ping_interval,    11)
 #define LIVEKIT_JOIN_RESPONSE_CALLBACK NULL
 #define LIVEKIT_JOIN_RESPONSE_DEFAULT NULL
+#define livekit_join_response_t_participant_MSGTYPE livekit_participant_info_t
 #define livekit_join_response_t_ice_servers_MSGTYPE livekit_ice_server_t
 #define livekit_join_response_t_client_configuration_MSGTYPE livekit_client_configuration_t
 
@@ -1006,13 +987,6 @@ X(a, STATIC,   OPTIONAL, MESSAGE,  regions,           4)
 #define LIVEKIT_LEAVE_REQUEST_CALLBACK NULL
 #define LIVEKIT_LEAVE_REQUEST_DEFAULT NULL
 #define livekit_leave_request_t_regions_MSGTYPE livekit_region_settings_t
-
-#define LIVEKIT_UPDATE_VIDEO_LAYERS_FIELDLIST(X, a) \
-X(a, CALLBACK, SINGULAR, STRING,   track_sid,         1) \
-X(a, CALLBACK, REPEATED, MESSAGE,  layers,            2)
-#define LIVEKIT_UPDATE_VIDEO_LAYERS_CALLBACK pb_default_field_callback
-#define LIVEKIT_UPDATE_VIDEO_LAYERS_DEFAULT NULL
-#define livekit_update_video_layers_t_layers_MSGTYPE livekit_video_layer_t
 
 #define LIVEKIT_UPDATE_PARTICIPANT_METADATA_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   metadata,          1) \
@@ -1224,7 +1198,6 @@ extern const pb_msgdesc_t livekit_update_track_settings_t_msg;
 extern const pb_msgdesc_t livekit_update_local_audio_track_t_msg;
 extern const pb_msgdesc_t livekit_update_local_video_track_t_msg;
 extern const pb_msgdesc_t livekit_leave_request_t_msg;
-extern const pb_msgdesc_t livekit_update_video_layers_t_msg;
 extern const pb_msgdesc_t livekit_update_participant_metadata_t_msg;
 extern const pb_msgdesc_t livekit_update_participant_metadata_attributes_entry_t_msg;
 extern const pb_msgdesc_t livekit_ice_server_t_msg;
@@ -1270,7 +1243,6 @@ extern const pb_msgdesc_t livekit_track_subscribed_t_msg;
 #define LIVEKIT_UPDATE_LOCAL_AUDIO_TRACK_FIELDS &livekit_update_local_audio_track_t_msg
 #define LIVEKIT_UPDATE_LOCAL_VIDEO_TRACK_FIELDS &livekit_update_local_video_track_t_msg
 #define LIVEKIT_LEAVE_REQUEST_FIELDS &livekit_leave_request_t_msg
-#define LIVEKIT_UPDATE_VIDEO_LAYERS_FIELDS &livekit_update_video_layers_t_msg
 #define LIVEKIT_UPDATE_PARTICIPANT_METADATA_FIELDS &livekit_update_participant_metadata_t_msg
 #define LIVEKIT_UPDATE_PARTICIPANT_METADATA_ATTRIBUTES_ENTRY_FIELDS &livekit_update_participant_metadata_attributes_entry_t_msg
 #define LIVEKIT_ICE_SERVER_FIELDS &livekit_ice_server_t_msg
@@ -1316,7 +1288,6 @@ extern const pb_msgdesc_t livekit_track_subscribed_t_msg;
 /* livekit_UpdateLocalAudioTrack_size depends on runtime parameters */
 /* livekit_UpdateLocalVideoTrack_size depends on runtime parameters */
 /* livekit_LeaveRequest_size depends on runtime parameters */
-/* livekit_UpdateVideoLayers_size depends on runtime parameters */
 /* livekit_UpdateParticipantMetadata_size depends on runtime parameters */
 /* livekit_UpdateParticipantMetadata_AttributesEntry_size depends on runtime parameters */
 /* livekit_ICEServer_size depends on runtime parameters */

@@ -1,5 +1,5 @@
 livekit.JoinResponse.room type:FT_IGNORE
-livekit.JoinResponse.participant type:FT_IGNORE
+livekit.JoinResponse.participant label_override:LABEL_REQUIRED
 livekit.JoinResponse.other_participants type:FT_IGNORE
 livekit.JoinResponse.server_version type:FT_IGNORE
 livekit.JoinResponse.alternative_url type:FT_IGNORE

@@ -1,3 +1,26 @@
 livekit.ClientConfiguration.video type:FT_IGNORE
 livekit.ClientConfiguration.screen type:FT_IGNORE
 livekit.ClientConfiguration.disabled_codecs type:FT_IGNORE
+
+livekit.ParticipantInfo.sid type:FT_IGNORE
+livekit.ParticipantInfo.identity type:FT_IGNORE
+livekit.ParticipantInfo.state type:FT_IGNORE
+livekit.ParticipantInfo.tracks type:FT_IGNORE
+livekit.ParticipantInfo.metadata type:FT_IGNORE
+livekit.ParticipantInfo.joined_at type:FT_IGNORE
+livekit.ParticipantInfo.joined_at_ms type:FT_IGNORE
+livekit.ParticipantInfo.name type:FT_IGNORE
+livekit.ParticipantInfo.version type:FT_IGNORE
+livekit.ParticipantInfo.permission label_override:LABEL_REQUIRED
+livekit.ParticipantInfo.region type:FT_IGNORE
+livekit.ParticipantInfo.is_publisher type:FT_IGNORE
+livekit.ParticipantInfo.kind type:FT_IGNORE
+livekit.ParticipantInfo.attributes type:FT_IGNORE
+livekit.ParticipantInfo.disconnect_reason type:FT_IGNORE
+livekit.ParticipantInfo.kind_details type:FT_IGNORE
+
+livekit.ParticipantPermission.hidden type:FT_IGNORE
+livekit.ParticipantPermission.recorder type:FT_IGNORE
+livekit.ParticipantPermission.can_publish_sources type:FT_IGNORE
+livekit.ParticipantPermission.can_update_metadata type:FT_IGNORE
+livekit.ParticipantPermission.can_subscribe_metrics type:FT_IGNORE

@@ -27,9 +27,6 @@ PB_BIND(LIVEKIT_PARTICIPANT_PERMISSION, livekit_participant_permission_t, AUTO)
 PB_BIND(LIVEKIT_PARTICIPANT_INFO, livekit_participant_info_t, AUTO)
 
 
-PB_BIND(LIVEKIT_PARTICIPANT_INFO_ATTRIBUTES_ENTRY, livekit_participant_info_attributes_entry_t, AUTO)
-
-
 PB_BIND(LIVEKIT_ENCRYPTION, livekit_encryption_t, AUTO)
 
 
