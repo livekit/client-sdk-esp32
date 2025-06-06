@@ -31,38 +31,77 @@ static void sys_init(void)
     }
 }
 
+static void on_peer_pub_offer(const char *sdp, void *ctx)
+{
+    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    ESP_LOGI(TAG, "Pub peer generated offer: %s", sdp);
+    livekit_sig_send_offer(sdp, eng->sig);
+}
+
+static void on_peer_sub_answer(const char *sdp, void *ctx)
+{
+    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    ESP_LOGI(TAG, "Sub peer generated answer: %s", sdp);
+    livekit_sig_send_answer(sdp, eng->sig);
+}
+
+static void on_peer_ice_candidate(const char *candidate, void *ctx)
+{
+    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    ESP_LOGI(TAG, "Peer generated ice candidate: %s", candidate);
+}
+
 static void on_sig_connect(void *ctx)
 {
-    ESP_LOGI(TAG, "Received signaling client connected event");
+    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    ESP_LOGI(TAG, "Signaling connected");
     // TODO: Implement
 }
 
 static void on_sig_disconnect(void *ctx)
 {
-    ESP_LOGI(TAG, "Received signaling client disconnected event");
+    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    ESP_LOGI(TAG, "Signaling disconnected");
     // TODO: Implement
 }
 
 static void on_sig_error(void *ctx)
 {
-    ESP_LOGI(TAG, "Received signaling client error event");
+    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    ESP_LOGI(TAG, "Signaling error");
     // TODO: Implement
 }
 
-static void on_sig_message(livekit_signal_response_t *res, void *ctx)
+static void on_sig_join(livekit_join_response_t *join_res, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    switch (res->which_message) {
-        case LIVEKIT_SIGNAL_RESPONSE_JOIN_TAG:
-            livekit_join_response_t* join = &res->message.join;
-            livekit_peer_set_ice_servers(join->ice_servers, join->ice_servers_count, eng->pub_peer);
-            livekit_peer_set_ice_servers(join->ice_servers, join->ice_servers_count, eng->sub_peer);
+    livekit_peer_set_ice_servers(join_res->ice_servers, join_res->ice_servers_count, eng->pub_peer);
+    livekit_peer_set_ice_servers(join_res->ice_servers, join_res->ice_servers_count, eng->sub_peer);
 
-            // livekit_peer_connect(eng->sub_peer);
-            livekit_peer_connect(eng->pub_peer);
-            break;
-        default: break;
-    }
+    livekit_peer_connect(eng->pub_peer);
+    // livekit_peer_connect(eng->sub_peer);
+}
+
+static void on_sig_answer(const char *sdp, void *ctx)
+{
+    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    ESP_LOGI(TAG, "Received answer: %s", sdp);
+    livekit_peer_handle_sdp(sdp, eng->pub_peer);
+}
+
+static void on_sig_offer(const char *sdp, void *ctx)
+{
+    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    ESP_LOGI(TAG, "Received offer: %s", sdp);
+    livekit_peer_handle_sdp(sdp, eng->sub_peer);
+}
+
+static void on_sig_trickle(const char *ice_candidate, livekit_signal_target_t target, void *ctx)
+{
+    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    livekit_peer_handle_t target_peer = target == LIVEKIT_SIGNAL_TARGET_SUBSCRIBER ?
+        eng->sub_peer : eng->pub_peer;
+    livekit_peer_handle_ice_candidate(ice_candidate, target_peer);
 }
 
 int livekit_eng_create(livekit_eng_options_t *options, livekit_eng_handle_t *handle)
@@ -80,7 +119,10 @@ int livekit_eng_create(livekit_eng_options_t *options, livekit_eng_handle_t *han
         .on_connect = on_sig_connect,
         .on_disconnect = on_sig_disconnect,
         .on_error = on_sig_error,
-        .on_message = on_sig_message,
+        .on_join = on_sig_join,
+        .on_answer = on_sig_answer,
+        .on_offer = on_sig_offer,
+        .on_trickle = on_sig_trickle,
     };
     int ret = LIVEKIT_ENG_ERR_OTHER;
     do {
@@ -88,12 +130,25 @@ int livekit_eng_create(livekit_eng_options_t *options, livekit_eng_handle_t *han
             ESP_LOGE(TAG, "Failed to create signaling client");
             break;
         }
-        // TODO: Conditionally create publisher only if needed
-        if (livekit_peer_create(LIVEKIT_PEER_KIND_PUBLISHER, &eng->pub_peer) != LIVEKIT_PEER_ERR_NONE) {
+
+        livekit_peer_options_t pub_options = {
+            .target = LIVEKIT_SIGNAL_TARGET_PUBLISHER,
+            .on_sdp = on_peer_pub_offer,
+            .on_ice_candidate = on_peer_ice_candidate,
+            .ctx = eng
+        };
+        if (livekit_peer_create(pub_options, &eng->pub_peer) != LIVEKIT_PEER_ERR_NONE) {
             ESP_LOGE(TAG, "Failed to create publisher peer");
             break;
         }
-        if (livekit_peer_create(LIVEKIT_PEER_KIND_SUBSCRIBER, &eng->sub_peer) != LIVEKIT_PEER_ERR_NONE) {
+
+        livekit_peer_options_t sub_options = {
+            .target = LIVEKIT_SIGNAL_TARGET_SUBSCRIBER,
+            .on_sdp = on_peer_sub_answer,
+            .on_ice_candidate = on_peer_ice_candidate,
+            .ctx = eng
+        };
+        if (livekit_peer_create(sub_options, &eng->sub_peer) != LIVEKIT_PEER_ERR_NONE) {
             ESP_LOGE(TAG, "Failed to create subscriber peer");
             break;
         }
