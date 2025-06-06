@@ -24,10 +24,14 @@ typedef struct {
     void (*on_ice_candidate)(const char *candidate, void *ctx);
 } livekit_peer_options_t;
 
+typedef struct {
+    bool force_relay;
+} livekit_peer_connect_options_t;
+
 livekit_peer_err_t livekit_peer_create(livekit_peer_options_t options, livekit_peer_handle_t *handle);
 livekit_peer_err_t livekit_peer_destroy(livekit_peer_handle_t handle);
 
-livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle);
+livekit_peer_err_t livekit_peer_connect(livekit_peer_connect_options_t options, livekit_peer_handle_t handle);
 livekit_peer_err_t livekit_peer_disconnect(livekit_peer_handle_t handle);
 
 /// @brief Sets the ICE server to use for the connection

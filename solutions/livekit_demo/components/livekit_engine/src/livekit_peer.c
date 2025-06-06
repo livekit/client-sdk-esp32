@@ -173,7 +173,7 @@ livekit_peer_err_t livekit_peer_destroy(livekit_peer_handle_t handle)
     return LIVEKIT_PEER_ERR_NONE;
 }
 
-livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle)
+livekit_peer_err_t livekit_peer_connect(livekit_peer_connect_options_t connect_options, livekit_peer_handle_t handle)
 {
     if (handle == NULL) {
         return LIVEKIT_PEER_ERR_INVALID_ARG;
@@ -202,7 +202,8 @@ livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle)
     esp_peer_cfg_t peer_cfg = {
         .server_lists = peer->ice_servers,
         .server_num = peer->ice_server_count,
-        .ice_trans_policy = ESP_PEER_ICE_TRANS_POLICY_ALL, // Allow all candidate types
+        .ice_trans_policy = connect_options.force_relay ?
+            ESP_PEER_ICE_TRANS_POLICY_RELAY : ESP_PEER_ICE_TRANS_POLICY_ALL,
         .audio_dir = ESP_PEER_MEDIA_DIR_NONE,
         .video_dir = ESP_PEER_MEDIA_DIR_NONE,
         .enable_data_channel = peer->options.target == LIVEKIT_SIGNAL_TARGET_PUBLISHER,
