@@ -192,7 +192,6 @@ static livekit_sig_err_t livekit_sig_stop_ping_task(livekit_sig_t *sg)
 
 static void livekit_sig_handle_res(livekit_sig_t *sg, livekit_signal_response_t *res)
 {
-    bool should_forward = false;
     switch (res->which_message) {
         case LIVEKIT_SIGNAL_RESPONSE_PONG_RESP_TAG:
             livekit_pong_t *pong = &res->message.pong_resp;
@@ -202,26 +201,56 @@ static void livekit_sig_handle_res(livekit_sig_t *sg, livekit_signal_response_t 
         case LIVEKIT_SIGNAL_RESPONSE_REFRESH_TOKEN_TAG:
             // TODO: Handle refresh token
             break;
-
         case LIVEKIT_SIGNAL_RESPONSE_JOIN_TAG:
             livekit_join_response_t *join_res = &res->message.join;
             sg->ping_interval = join_res->ping_interval;
             sg->ping_timeout = join_res->ping_timeout;
             ESP_LOGI(TAG,
-                "Join res: ping_interval=%" PRId32 "ms, ping_timeout=%" PRId32 "ms",
+                "Join res: subscriber_primary=%d, ping_interval=%" PRId32 "ms, ping_timeout=%" PRId32 "ms",
+                join_res->subscriber_primary,
                 sg->ping_interval,
                 sg->ping_timeout
             );
             livekit_sig_start_ping_task(sg);
-            should_forward = true;
+            sg->options.on_join(join_res, sg->options.ctx);
             break;
-
+        case LIVEKIT_SIGNAL_RESPONSE_OFFER_TAG:
+            sg->options.on_offer(res->message.offer.sdp, sg->options.ctx);
+            break;
+        case LIVEKIT_SIGNAL_RESPONSE_ANSWER_TAG:
+            sg->options.on_answer(res->message.answer.sdp, sg->options.ctx);
+            break;
+        case LIVEKIT_SIGNAL_RESPONSE_TRICKLE_TAG:
+            livekit_trickle_request_t *trickle = &res->message.trickle;
+            if (trickle->candidate_init == NULL) {
+                ESP_LOGE(TAG, "Trickle candidate_init is NULL");
+                break;
+            }
+            cJSON *candidate_init = NULL;
+            do {
+                candidate_init = cJSON_Parse(trickle->candidate_init);
+                if (candidate_init == NULL) {
+                    const char *error_ptr = cJSON_GetErrorPtr();
+                    if (error_ptr != NULL) {
+                        ESP_LOGE(TAG, "Failed to parse trickle candidate_init: %s", error_ptr);
+                    }
+                    break;
+                }
+                cJSON *candidate = cJSON_GetObjectItemCaseSensitive(candidate_init, "candidate");
+                if (!cJSON_IsString(candidate) || (candidate->valuestring == NULL)) {
+                    ESP_LOGE(TAG, "Missing candidate in trickle candidate_init");
+                    break;
+                }
+                ESP_LOGI(TAG, "Received trickle: target=%d, candidate=%s",
+                    trickle->target,
+                    candidate->valuestring
+                );
+                sg->options.on_trickle(candidate->valuestring, trickle->target, sg->options.ctx);
+            } while (0);
+            cJSON_Delete(candidate_init);
+            break;
         default:
-            should_forward = true;
             break;
-    }
-    if (should_forward) {
-        sg->options.on_message(res, sg->options.ctx);
     }
     pb_release(LIVEKIT_SIGNAL_RESPONSE_FIELDS, res);
 }
@@ -287,6 +316,19 @@ livekit_sig_err_t livekit_sig_create(livekit_sig_options_t *options, livekit_sig
     if (options == NULL || handle == NULL) {
         return LIVEKIT_SIG_ERR_INVALID_ARG;
     }
+
+    if (options->on_connect    == NULL ||
+        options->on_disconnect == NULL ||
+        options->on_error      == NULL ||
+        options->on_join       == NULL ||
+        options->on_offer      == NULL ||
+        options->on_answer     == NULL ||
+        options->on_trickle    == NULL
+    ) {
+        ESP_LOGE(TAG, "Missing required event handlers");
+        return LIVEKIT_SIG_ERR_INVALID_ARG;
+    }
+
     livekit_sig_t *sg = calloc(1, sizeof(livekit_sig_t));
     if (sg == NULL) {
         return LIVEKIT_SIG_ERR_NO_MEM;
