@@ -413,7 +413,66 @@ livekit_sig_err_t livekit_sig_close(bool force, livekit_sig_handle_t handle)
     return LIVEKIT_SIG_ERR_NONE;
 }
 
-livekit_sig_err_t livekit_sig_send_message(livekit_signal_request_t *request, livekit_sig_handle_t handle)
+static livekit_sig_err_t send_request(livekit_signal_request_t *request, livekit_sig_t *sg)
 {
-    return LIVEKIT_SIG_ERR_NONE;
+    // TODO: Optimize (use static buffer for small messages)
+
+    size_t encoded_size = 0;
+    if (!pb_get_encoded_size(&encoded_size, LIVEKIT_SIGNAL_REQUEST_FIELDS, request)) {
+        return LIVEKIT_SIG_ERR_MESSAGE;
+    }
+    uint8_t *enc_buf = (uint8_t *)malloc(encoded_size);
+    if (enc_buf == NULL) {
+        return LIVEKIT_SIG_ERR_NO_MEM;
+    }
+    int ret = LIVEKIT_SIG_ERR_NONE;
+    do {
+        pb_ostream_t stream = pb_ostream_from_buffer(enc_buf, encoded_size);
+        if (!pb_encode(&stream, LIVEKIT_SIGNAL_REQUEST_FIELDS, request)) {
+            ESP_LOGE(TAG, "Failed to encode signal request");
+            ret = LIVEKIT_SIG_ERR_MESSAGE;
+            break;
+        }
+        if (esp_websocket_client_send_bin(sg->ws, (const char *)enc_buf, stream.bytes_written, 0) < 0) {
+            ESP_LOGE(TAG, "Failed to send signal request");
+            ret = LIVEKIT_SIG_ERR_MESSAGE;
+            break;
+        }
+    } while (0);
+    free(enc_buf);
+    return ret;
+}
+
+livekit_sig_err_t livekit_sig_send_answer(const char *sdp, livekit_sig_handle_t handle);
+{
+    if (sdp == NULL || handle == NULL) {
+        return LIVEKIT_SIG_ERR_INVALID_ARG;
+    }
+    livekit_sig_t *sg = (livekit_sig_t *)handle;
+    livekit_signal_request_t req = LIVEKIT_SIGNAL_REQUEST_INIT_ZERO;
+
+    livekit_session_description_t desc = {
+        .type = "answer",
+        .sdp = sdp
+    };
+    req.which_message = LIVEKIT_SIGNAL_REQUEST_ANSWER_TAG;
+    req.message.answer = desc;
+    return send_request(&req, sg);
+}
+
+livekit_sig_err_t livekit_sig_send_offer(const char *sdp, livekit_sig_handle_t handle)
+{
+    if (sdp == NULL || handle == NULL) {
+        return LIVEKIT_SIG_ERR_INVALID_ARG;
+    }
+    livekit_sig_t *sg = (livekit_sig_t *)handle;
+    livekit_signal_request_t req = LIVEKIT_SIGNAL_REQUEST_INIT_ZERO;
+
+    livekit_session_description_t desc = {
+        .type = "offer",
+        .sdp = sdp
+    };
+    req.which_message = LIVEKIT_SIGNAL_REQUEST_OFFER_TAG;
+    req.message.offer = desc;
+    return send_request(&req, sg);
 }

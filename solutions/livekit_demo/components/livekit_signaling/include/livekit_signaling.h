@@ -40,7 +40,8 @@ livekit_sig_err_t livekit_sig_connect(const char* server_url, const char* token,
 /// @param force If true, the connection will be closed immediately without sending a leave message.
 livekit_sig_err_t livekit_sig_close(bool force, livekit_sig_handle_t handle);
 
-livekit_sig_err_t livekit_sig_send_message(livekit_signal_request_t *request, livekit_sig_handle_t handle);
+livekit_sig_err_t livekit_sig_send_offer(const char *sdp, livekit_sig_handle_t handle);
+livekit_sig_err_t livekit_sig_send_answer(const char *sdp, livekit_sig_handle_t handle);
 
 #ifdef __cplusplus
 }
