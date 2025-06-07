@@ -38,5 +38,6 @@ int leave_room()
         ESP_LOGE(TAG, "Failed to destroy room");
         return -1;
     }
+    room_handle = NULL;
     return 0;
 }
