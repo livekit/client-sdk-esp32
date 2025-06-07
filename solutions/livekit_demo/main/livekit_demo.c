@@ -13,11 +13,11 @@ int join_room()
         ESP_LOGE(TAG, "Room already created");
         return -1;
     }
-    if (livekit_room_create(&room_options, &room_handle) != LIVEKIT_ERR_NONE) {
+    if (livekit_room_create(&room_handle, &room_options) != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to create room");
         return -1;
     }
-    if (livekit_room_connect(LK_SERVER_URL, LK_TOKEN, room_handle) != LIVEKIT_ERR_NONE) {
+    if (livekit_room_connect(room_handle, LK_SERVER_URL, LK_TOKEN) != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to connect to room");
         return -1;
     }

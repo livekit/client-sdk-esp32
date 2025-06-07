@@ -143,7 +143,7 @@ static int on_data(esp_peer_data_frame_t *frame, void *ctx)
     return 0;
 }
 
-livekit_peer_err_t livekit_peer_create(livekit_peer_options_t options, livekit_peer_handle_t *handle)
+livekit_peer_err_t livekit_peer_create(livekit_peer_handle_t *handle, livekit_peer_options_t options)
 {
     if (handle == NULL || options.on_ice_candidate == NULL || options.on_sdp == NULL) {
         return LIVEKIT_PEER_ERR_INVALID_ARG;
@@ -173,7 +173,7 @@ livekit_peer_err_t livekit_peer_destroy(livekit_peer_handle_t handle)
     return LIVEKIT_PEER_ERR_NONE;
 }
 
-livekit_peer_err_t livekit_peer_connect(livekit_peer_connect_options_t connect_options, livekit_peer_handle_t handle)
+livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle, livekit_peer_connect_options_t connect_options)
 {
     if (handle == NULL) {
         return LIVEKIT_PEER_ERR_INVALID_ARG;
@@ -280,7 +280,7 @@ livekit_peer_err_t livekit_peer_disconnect(livekit_peer_handle_t handle)
     return LIVEKIT_PEER_ERR_NONE;
 }
 
-livekit_peer_err_t livekit_peer_set_ice_servers(livekit_ice_server_t *servers, int count, livekit_peer_handle_t handle)
+livekit_peer_err_t livekit_peer_set_ice_servers(livekit_peer_handle_t handle, livekit_ice_server_t *servers, int count)
 {
     if (handle == NULL || servers == NULL || count <= 0) {
         return LIVEKIT_PEER_ERR_INVALID_ARG;
@@ -333,7 +333,7 @@ livekit_peer_err_t livekit_peer_set_ice_servers(livekit_ice_server_t *servers, i
     return LIVEKIT_PEER_ERR_NONE;
 }
 
-livekit_peer_err_t livekit_peer_handle_sdp(const char *sdp, livekit_peer_handle_t handle)
+livekit_peer_err_t livekit_peer_handle_sdp(livekit_peer_handle_t handle, const char *sdp)
 {
     if (handle == NULL || sdp == NULL) {
         return LIVEKIT_PEER_ERR_INVALID_ARG;
@@ -352,7 +352,7 @@ livekit_peer_err_t livekit_peer_handle_sdp(const char *sdp, livekit_peer_handle_
     return LIVEKIT_PEER_ERR_NONE;
 }
 
-livekit_peer_err_t livekit_peer_handle_ice_candidate(const char *candidate, livekit_peer_handle_t handle)
+livekit_peer_err_t livekit_peer_handle_ice_candidate(livekit_peer_handle_t handle, const char *candidate)
 {
     if (handle == NULL || candidate == NULL) {
         return LIVEKIT_PEER_ERR_INVALID_ARG;

@@ -111,27 +111,27 @@ typedef struct {
 
 /// @brief Creates a new instance.
 /// @param[out] handle The handle to the new instance.
-int livekit_eng_create(livekit_eng_options_t *options, livekit_eng_handle_t *handle);
+livekit_eng_err_t livekit_eng_create(livekit_eng_handle_t *handle, livekit_eng_options_t *options);
 
 /// @brief Destroys an instance.
 /// @param[in] handle The handle to the instance to destroy.
-int livekit_eng_destroy(livekit_eng_handle_t handle);
+livekit_eng_err_t livekit_eng_destroy(livekit_eng_handle_t handle);
 
 /// @brief Connect the engine.
-int livekit_eng_connect(const char* server_url, const char* token, livekit_eng_handle_t handle);
+livekit_eng_err_t livekit_eng_connect(livekit_eng_handle_t handle, const char* server_url, const char* token);
 
 /// @brief Close the engine.
 /// @param reason Reason for why the engine is being closed.
-int livekit_eng_close(livekit_disconnect_reason_t reason, livekit_eng_handle_t handle);
+livekit_eng_err_t livekit_eng_close(livekit_eng_handle_t handle, livekit_disconnect_reason_t reason);
 
 /// @brief Publishes a data packet over the data channel.
-int livekit_eng_publish_data(livekit_data_packet_t packet, livekit_data_packet_kind_t kind, livekit_eng_handle_t handle);
+livekit_eng_err_t livekit_eng_publish_data(livekit_eng_handle_t handle, livekit_data_packet_t packet, livekit_data_packet_kind_t kind);
 
 /// @brief Sends a signaling request.
-int livekit_eng_send_request(livekit_signal_request_t request, livekit_eng_handle_t handle);
+livekit_eng_err_t livekit_eng_send_request(livekit_eng_handle_t handle, livekit_signal_request_t request);
 
 /// @brief Sets the media provider.
-int livekit_eng_set_media_provider(livekit_eng_media_provider_t* provider, livekit_eng_handle_t handle);
+livekit_eng_err_t livekit_eng_set_media_provider(livekit_eng_handle_t handle, livekit_eng_media_provider_t* provider);
 
 #ifdef __cplusplus
 }

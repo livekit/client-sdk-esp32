@@ -75,14 +75,14 @@ static void on_sig_error(void *ctx)
 static void on_sig_join(livekit_join_response_t *join_res, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    livekit_peer_set_ice_servers(join_res->ice_servers, join_res->ice_servers_count, eng->pub_peer);
-    livekit_peer_set_ice_servers(join_res->ice_servers, join_res->ice_servers_count, eng->sub_peer);
+    livekit_peer_set_ice_servers(eng->pub_peer, join_res->ice_servers, join_res->ice_servers_count);
+    livekit_peer_set_ice_servers(eng->sub_peer, join_res->ice_servers, join_res->ice_servers_count);
 
     livekit_peer_connect_options_t connect_options = {
         .force_relay = join_res->has_client_configuration &&
                        join_res->client_configuration.force_relay == LIVEKIT_CLIENT_CONFIG_SETTING_ENABLED
     };
-    livekit_peer_connect(connect_options, eng->pub_peer);
+    livekit_peer_connect(eng->pub_peer, connect_options);
     // livekit_peer_connect(connection_options, eng->sub_peer);
 }
 
@@ -90,14 +90,14 @@ static void on_sig_answer(const char *sdp, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
     ESP_LOGI(TAG, "Received answer: %s", sdp);
-    livekit_peer_handle_sdp(sdp, eng->pub_peer);
+    livekit_peer_handle_sdp(eng->pub_peer, sdp);
 }
 
 static void on_sig_offer(const char *sdp, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
     ESP_LOGI(TAG, "Received offer: %s", sdp);
-    livekit_peer_handle_sdp(sdp, eng->sub_peer);
+    livekit_peer_handle_sdp(eng->sub_peer, sdp);
 }
 
 static void on_sig_trickle(const char *ice_candidate, livekit_signal_target_t target, void *ctx)
@@ -105,12 +105,12 @@ static void on_sig_trickle(const char *ice_candidate, livekit_signal_target_t ta
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
     livekit_peer_handle_t target_peer = target == LIVEKIT_SIGNAL_TARGET_SUBSCRIBER ?
         eng->sub_peer : eng->pub_peer;
-    livekit_peer_handle_ice_candidate(ice_candidate, target_peer);
+    livekit_peer_handle_ice_candidate(target_peer, ice_candidate);
 }
 
-int livekit_eng_create(livekit_eng_options_t *options, livekit_eng_handle_t *handle)
+livekit_eng_err_t livekit_eng_create(livekit_eng_handle_t *handle, livekit_eng_options_t *options)
 {
-    if (options == NULL || handle == NULL) {
+    if (handle == NULL || options == NULL) {
         return LIVEKIT_ENG_ERR_INVALID_ARG;
     }
     livekit_eng_t *eng = (livekit_eng_t *)calloc(1, sizeof(livekit_eng_t));
@@ -141,7 +141,7 @@ int livekit_eng_create(livekit_eng_options_t *options, livekit_eng_handle_t *han
             .on_ice_candidate = on_peer_ice_candidate,
             .ctx = eng
         };
-        if (livekit_peer_create(pub_options, &eng->pub_peer) != LIVEKIT_PEER_ERR_NONE) {
+        if (livekit_peer_create(&eng->pub_peer, pub_options) != LIVEKIT_PEER_ERR_NONE) {
             ESP_LOGE(TAG, "Failed to create publisher peer");
             break;
         }
@@ -152,7 +152,7 @@ int livekit_eng_create(livekit_eng_options_t *options, livekit_eng_handle_t *han
             .on_ice_candidate = on_peer_ice_candidate,
             .ctx = eng
         };
-        if (livekit_peer_create(sub_options, &eng->sub_peer) != LIVEKIT_PEER_ERR_NONE) {
+        if (livekit_peer_create(&eng->sub_peer, sub_options) != LIVEKIT_PEER_ERR_NONE) {
             ESP_LOGE(TAG, "Failed to create subscriber peer");
             break;
         }
@@ -167,20 +167,20 @@ int livekit_eng_create(livekit_eng_options_t *options, livekit_eng_handle_t *han
     return ret;
 }
 
-int livekit_eng_destroy(livekit_eng_handle_t handle)
+livekit_eng_err_t livekit_eng_destroy(livekit_eng_handle_t handle)
 {
     if (handle == NULL) {
         return LIVEKIT_ENG_ERR_INVALID_ARG;
     }
     livekit_eng_t *eng = (livekit_eng_t *)handle;
-    livekit_eng_close(LIVEKIT_DISCONNECT_REASON_UNKNOWN_REASON, handle);
+    livekit_eng_close(handle, LIVEKIT_DISCONNECT_REASON_UNKNOWN_REASON);
     free(eng);
     return LIVEKIT_ENG_ERR_NONE;
 }
 
-int livekit_eng_connect(const char* server_url, const char* token, livekit_eng_handle_t handle)
+livekit_eng_err_t livekit_eng_connect(livekit_eng_handle_t handle, const char* server_url, const char* token)
 {
-    if (server_url == NULL || token == NULL || handle == NULL) {
+    if (handle == NULL || server_url == NULL || token == NULL) {
         return LIVEKIT_ENG_ERR_INVALID_ARG;
     }
     livekit_eng_t *eng = (livekit_eng_t *)handle;
@@ -194,7 +194,7 @@ int livekit_eng_connect(const char* server_url, const char* token, livekit_eng_h
     return LIVEKIT_ENG_ERR_NONE;
 }
 
-int livekit_eng_close(livekit_disconnect_reason_t reason, livekit_eng_handle_t handle)
+livekit_eng_err_t livekit_eng_close(livekit_eng_handle_t handle, livekit_disconnect_reason_t reason)
 {
     if (handle == NULL) {
         return LIVEKIT_ENG_ERR_INVALID_ARG;
@@ -210,19 +210,19 @@ int livekit_eng_close(livekit_disconnect_reason_t reason, livekit_eng_handle_t h
     return LIVEKIT_ENG_ERR_NONE;
 }
 
-int livekit_eng_publish_data(livekit_data_packet_t packet, livekit_data_packet_kind_t kind, livekit_eng_handle_t handle)
+livekit_eng_err_t livekit_eng_publish_data(livekit_eng_handle_t handle, livekit_data_packet_t packet, livekit_data_packet_kind_t kind)
 {
     // TODO: Implement
     return 0;
 }
 
-int livekit_eng_send_request(livekit_signal_request_t request, livekit_eng_handle_t handle)
+livekit_eng_err_t livekit_eng_send_request(livekit_eng_handle_t handle, livekit_signal_request_t request)
 {
     // TODO: Implement
     return 0;
 }
 
-int livekit_eng_set_media_provider(livekit_eng_media_provider_t* provider, livekit_eng_handle_t handle)
+livekit_eng_err_t livekit_eng_set_media_provider(livekit_eng_handle_t handle, livekit_eng_media_provider_t* provider)
 {
     if (handle == NULL || provider == NULL) {
         return LIVEKIT_ENG_ERR_INVALID_ARG;
