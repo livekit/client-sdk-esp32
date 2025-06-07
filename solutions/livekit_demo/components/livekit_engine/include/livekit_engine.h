@@ -35,11 +35,11 @@ typedef struct {
 
 typedef struct {
     // This is an alternative to RtcEngine's async connect method
-    livekit_join_response_t join_response;
+    livekit_pb_join_response_t join_response;
 } livekit_eng_event_connected_t;
 
 typedef struct {
-    livekit_disconnect_reason_t reason;
+    livekit_pb_disconnect_reason_t reason;
 } livekit_eng_event_disconnected_t;
 
 typedef struct {
@@ -49,7 +49,7 @@ typedef struct {
 } livekit_eng_event_error_t;
 
 typedef struct {
-    livekit_room_t *updated_room;
+    livekit_pb_room_t *updated_room;
 } livekit_eng_event_room_update_t;
 
 typedef struct {
@@ -70,7 +70,7 @@ typedef struct {
 typedef struct {
     char* request_id;
     char* payload;
-    livekit_rpc_error_t* error;
+    livekit_pb_rpc_error_t* error;
 } livekit_eng_event_rpc_response_t;
 
 typedef struct {
@@ -78,17 +78,17 @@ typedef struct {
 } livekit_eng_event_rpc_ack_t;
 
 typedef struct {
-    livekit_data_stream_header_t header;
+    livekit_pb_data_stream_header_t header;
     char* participant_identity;
 } livekit_eng_event_stream_header_t;
 
 typedef struct {
-    livekit_data_stream_chunk_t chunk;
+    livekit_pb_data_stream_chunk_t chunk;
     char* participant_identity;
 } livekit_eng_event_stream_chunk_t;
 
 typedef struct {
-    livekit_data_stream_trailer_t trailer;
+    livekit_pb_data_stream_trailer_t trailer;
     char* participant_identity;
 } livekit_eng_event_stream_trailer_t;
 
@@ -124,13 +124,13 @@ livekit_eng_err_t livekit_eng_connect(livekit_eng_handle_t handle, const char* s
 
 /// @brief Close the engine.
 /// @param reason Reason for why the engine is being closed.
-livekit_eng_err_t livekit_eng_close(livekit_eng_handle_t handle, livekit_disconnect_reason_t reason);
+livekit_eng_err_t livekit_eng_close(livekit_eng_handle_t handle, livekit_pb_disconnect_reason_t reason);
 
 /// @brief Publishes a data packet over the data channel.
-livekit_eng_err_t livekit_eng_publish_data(livekit_eng_handle_t handle, livekit_data_packet_t packet, livekit_data_packet_kind_t kind);
+livekit_eng_err_t livekit_eng_publish_data(livekit_eng_handle_t handle, livekit_pb_data_packet_t packet, livekit_pb_data_packet_kind_t kind);
 
 /// @brief Sends a signaling request.
-livekit_eng_err_t livekit_eng_send_request(livekit_eng_handle_t handle, livekit_signal_request_t request);
+livekit_eng_err_t livekit_eng_send_request(livekit_eng_handle_t handle, livekit_pb_signal_request_t request);
 
 #ifdef __cplusplus
 }

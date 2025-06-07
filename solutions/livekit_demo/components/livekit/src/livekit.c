@@ -161,6 +161,6 @@ livekit_err_t livekit_room_close(livekit_room_handle_t handle)
         return LIVEKIT_ERR_INVALID_ARG;
     }
     livekit_room_state_t *room = (livekit_room_state_t *)handle;
-    livekit_eng_close(room->engine, LIVEKIT_DISCONNECT_REASON_CLIENT_INITIATED);
+    livekit_eng_close(room->engine, LIVEKIT_PB_DISCONNECT_REASON_CLIENT_INITIATED);
     return LIVEKIT_ERR_NONE;
 }

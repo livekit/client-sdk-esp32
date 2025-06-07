@@ -11,7 +11,7 @@
 
 static const char *SUB_TAG = "livekit_peer.sub";
 static const char *PUB_TAG = "livekit_peer.pub";
-#define TAG(peer) (peer->options.target == LIVEKIT_SIGNAL_TARGET_SUBSCRIBER ? SUB_TAG : PUB_TAG)
+#define TAG(peer) (peer->options.target == LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER ? SUB_TAG : PUB_TAG)
 
 #define PC_EXIT_BIT      (1 << 0)
 #define PC_PAUSED_BIT    (1 << 1)
@@ -39,11 +39,11 @@ typedef struct {
     esp_codec_dev_handle_t        play_handle;
 } livekit_peer_t;
 
-static esp_peer_media_dir_t get_media_direction(esp_peer_media_dir_t direction, livekit_signal_target_t target) {
+static esp_peer_media_dir_t get_media_direction(esp_peer_media_dir_t direction, livekit_pb_signal_target_t target) {
     switch (target) {
-        case LIVEKIT_SIGNAL_TARGET_PUBLISHER:
+        case LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER:
             return direction & ESP_PEER_MEDIA_DIR_SEND_ONLY;
-        case LIVEKIT_SIGNAL_TARGET_SUBSCRIBER:
+        case LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER:
             return direction & ESP_PEER_MEDIA_DIR_RECV_ONLY;
     }
     return ESP_PEER_MEDIA_DIR_NONE;
@@ -164,7 +164,7 @@ livekit_peer_err_t livekit_peer_create(livekit_peer_handle_t *handle, livekit_pe
         return LIVEKIT_PEER_ERR_NO_MEM;
     }
     peer->options = options;
-    peer->ice_role = options.target == LIVEKIT_SIGNAL_TARGET_SUBSCRIBER ?
+    peer->ice_role = options.target == LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER ?
             ESP_PEER_ROLE_CONTROLLED : ESP_PEER_ROLE_CONTROLLING;
 
     *handle = (livekit_peer_handle_t)peer;
@@ -196,7 +196,7 @@ livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle, livekit_pe
     }
 
     if (peer->connection != NULL) {
-        if (peer->options.target == LIVEKIT_SIGNAL_TARGET_PUBLISHER) {
+        if (peer->options.target == LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER) {
             esp_peer_new_connection(peer->connection);
         }
         return LIVEKIT_PEER_ERR_NONE;
@@ -229,7 +229,7 @@ livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle, livekit_pe
         .video_dir = video_dir,
         .audio_info = connect_options.media->audio_info,
         .video_info = connect_options.media->video_info,
-        .enable_data_channel = peer->options.target == LIVEKIT_SIGNAL_TARGET_PUBLISHER,
+        .enable_data_channel = peer->options.target == LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER,
         .manual_ch_create = true,
         .no_auto_reconnect = false,
         .extra_cfg = &default_peer_cfg,
@@ -260,7 +260,7 @@ livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle, livekit_pe
 
     peer->running = true;
     media_lib_thread_handle_t thread;
-    const char* thread_name = peer->options.target == LIVEKIT_SIGNAL_TARGET_SUBSCRIBER ?
+    const char* thread_name = peer->options.target == LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER ?
         "lk_sub_task" : "lk_pub_task";
     if (media_lib_thread_create_from_scheduler(&thread, thread_name, peer_task, peer) != ESP_PEER_ERR_NONE) {
         ESP_LOGE(TAG(peer), "Failed to create task");
@@ -268,7 +268,7 @@ livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle, livekit_pe
     }
     // TODO: Media configuration & capture setup
 
-    if (peer->options.target == LIVEKIT_SIGNAL_TARGET_PUBLISHER) {
+    if (peer->options.target == LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER) {
         esp_peer_new_connection(peer->connection);
     }
     return LIVEKIT_PEER_ERR_NONE;
@@ -303,7 +303,7 @@ livekit_peer_err_t livekit_peer_disconnect(livekit_peer_handle_t handle)
     return LIVEKIT_PEER_ERR_NONE;
 }
 
-livekit_peer_err_t livekit_peer_set_ice_servers(livekit_peer_handle_t handle, livekit_ice_server_t *servers, int count)
+livekit_peer_err_t livekit_peer_set_ice_servers(livekit_peer_handle_t handle, livekit_pb_ice_server_t *servers, int count)
 {
     if (handle == NULL || servers == NULL || count <= 0) {
         return LIVEKIT_PEER_ERR_INVALID_ARG;

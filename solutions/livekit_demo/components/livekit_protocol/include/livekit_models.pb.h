@@ -12,266 +12,266 @@
 #endif
 
 /* Enum definitions */
-typedef enum livekit_audio_codec {
-    LIVEKIT_AUDIO_CODEC_DEFAULT_AC = 0,
-    LIVEKIT_AUDIO_CODEC_OPUS = 1,
-    LIVEKIT_AUDIO_CODEC_AAC = 2
-} livekit_audio_codec_t;
+typedef enum livekit_pb_audio_codec {
+    LIVEKIT_PB_AUDIO_CODEC_DEFAULT_AC = 0,
+    LIVEKIT_PB_AUDIO_CODEC_OPUS = 1,
+    LIVEKIT_PB_AUDIO_CODEC_AAC = 2
+} livekit_pb_audio_codec_t;
 
-typedef enum livekit_video_codec {
-    LIVEKIT_VIDEO_CODEC_DEFAULT_VC = 0,
-    LIVEKIT_VIDEO_CODEC_H264_BASELINE = 1,
-    LIVEKIT_VIDEO_CODEC_H264_MAIN = 2,
-    LIVEKIT_VIDEO_CODEC_H264_HIGH = 3,
-    LIVEKIT_VIDEO_CODEC_VP8 = 4
-} livekit_video_codec_t;
+typedef enum livekit_pb_video_codec {
+    LIVEKIT_PB_VIDEO_CODEC_DEFAULT_VC = 0,
+    LIVEKIT_PB_VIDEO_CODEC_H264_BASELINE = 1,
+    LIVEKIT_PB_VIDEO_CODEC_H264_MAIN = 2,
+    LIVEKIT_PB_VIDEO_CODEC_H264_HIGH = 3,
+    LIVEKIT_PB_VIDEO_CODEC_VP8 = 4
+} livekit_pb_video_codec_t;
 
-typedef enum livekit_image_codec {
-    LIVEKIT_IMAGE_CODEC_IC_DEFAULT = 0,
-    LIVEKIT_IMAGE_CODEC_IC_JPEG = 1
-} livekit_image_codec_t;
+typedef enum livekit_pb_image_codec {
+    LIVEKIT_PB_IMAGE_CODEC_IC_DEFAULT = 0,
+    LIVEKIT_PB_IMAGE_CODEC_IC_JPEG = 1
+} livekit_pb_image_codec_t;
 
 /* Policy for publisher to handle subscribers that are unable to support the primary codec of a track */
-typedef enum livekit_backup_codec_policy {
+typedef enum livekit_pb_backup_codec_policy {
     /* default behavior, the track prefer to regress to backup codec and all subscribers will receive the backup codec,
  the sfu will try to regress codec if possible but not assured. */
-    LIVEKIT_BACKUP_CODEC_POLICY_PREFER_REGRESSION = 0,
+    LIVEKIT_PB_BACKUP_CODEC_POLICY_PREFER_REGRESSION = 0,
     /* encoding/send the primary and backup codec simultaneously */
-    LIVEKIT_BACKUP_CODEC_POLICY_SIMULCAST = 1,
+    LIVEKIT_PB_BACKUP_CODEC_POLICY_SIMULCAST = 1,
     /* force the track to regress to backup codec, this option can be used in video conference or the publisher has limited bandwidth/encoding power */
-    LIVEKIT_BACKUP_CODEC_POLICY_REGRESSION = 2
-} livekit_backup_codec_policy_t;
+    LIVEKIT_PB_BACKUP_CODEC_POLICY_REGRESSION = 2
+} livekit_pb_backup_codec_policy_t;
 
-typedef enum livekit_track_type {
-    LIVEKIT_TRACK_TYPE_AUDIO = 0,
-    LIVEKIT_TRACK_TYPE_VIDEO = 1,
-    LIVEKIT_TRACK_TYPE_DATA = 2
-} livekit_track_type_t;
+typedef enum livekit_pb_track_type {
+    LIVEKIT_PB_TRACK_TYPE_AUDIO = 0,
+    LIVEKIT_PB_TRACK_TYPE_VIDEO = 1,
+    LIVEKIT_PB_TRACK_TYPE_DATA = 2
+} livekit_pb_track_type_t;
 
-typedef enum livekit_track_source {
-    LIVEKIT_TRACK_SOURCE_UNKNOWN = 0,
-    LIVEKIT_TRACK_SOURCE_CAMERA = 1,
-    LIVEKIT_TRACK_SOURCE_MICROPHONE = 2,
-    LIVEKIT_TRACK_SOURCE_SCREEN_SHARE = 3,
-    LIVEKIT_TRACK_SOURCE_SCREEN_SHARE_AUDIO = 4
-} livekit_track_source_t;
+typedef enum livekit_pb_track_source {
+    LIVEKIT_PB_TRACK_SOURCE_UNKNOWN = 0,
+    LIVEKIT_PB_TRACK_SOURCE_CAMERA = 1,
+    LIVEKIT_PB_TRACK_SOURCE_MICROPHONE = 2,
+    LIVEKIT_PB_TRACK_SOURCE_SCREEN_SHARE = 3,
+    LIVEKIT_PB_TRACK_SOURCE_SCREEN_SHARE_AUDIO = 4
+} livekit_pb_track_source_t;
 
-typedef enum livekit_video_quality {
-    LIVEKIT_VIDEO_QUALITY_LOW = 0,
-    LIVEKIT_VIDEO_QUALITY_MEDIUM = 1,
-    LIVEKIT_VIDEO_QUALITY_HIGH = 2,
-    LIVEKIT_VIDEO_QUALITY_OFF = 3
-} livekit_video_quality_t;
+typedef enum livekit_pb_video_quality {
+    LIVEKIT_PB_VIDEO_QUALITY_LOW = 0,
+    LIVEKIT_PB_VIDEO_QUALITY_MEDIUM = 1,
+    LIVEKIT_PB_VIDEO_QUALITY_HIGH = 2,
+    LIVEKIT_PB_VIDEO_QUALITY_OFF = 3
+} livekit_pb_video_quality_t;
 
-typedef enum livekit_connection_quality {
-    LIVEKIT_CONNECTION_QUALITY_POOR = 0,
-    LIVEKIT_CONNECTION_QUALITY_GOOD = 1,
-    LIVEKIT_CONNECTION_QUALITY_EXCELLENT = 2,
-    LIVEKIT_CONNECTION_QUALITY_LOST = 3
-} livekit_connection_quality_t;
+typedef enum livekit_pb_connection_quality {
+    LIVEKIT_PB_CONNECTION_QUALITY_POOR = 0,
+    LIVEKIT_PB_CONNECTION_QUALITY_GOOD = 1,
+    LIVEKIT_PB_CONNECTION_QUALITY_EXCELLENT = 2,
+    LIVEKIT_PB_CONNECTION_QUALITY_LOST = 3
+} livekit_pb_connection_quality_t;
 
-typedef enum livekit_client_config_setting {
-    LIVEKIT_CLIENT_CONFIG_SETTING_UNSET = 0,
-    LIVEKIT_CLIENT_CONFIG_SETTING_DISABLED = 1,
-    LIVEKIT_CLIENT_CONFIG_SETTING_ENABLED = 2
-} livekit_client_config_setting_t;
+typedef enum livekit_pb_client_config_setting {
+    LIVEKIT_PB_CLIENT_CONFIG_SETTING_UNSET = 0,
+    LIVEKIT_PB_CLIENT_CONFIG_SETTING_DISABLED = 1,
+    LIVEKIT_PB_CLIENT_CONFIG_SETTING_ENABLED = 2
+} livekit_pb_client_config_setting_t;
 
-typedef enum livekit_disconnect_reason {
-    LIVEKIT_DISCONNECT_REASON_UNKNOWN_REASON = 0,
+typedef enum livekit_pb_disconnect_reason {
+    LIVEKIT_PB_DISCONNECT_REASON_UNKNOWN_REASON = 0,
     /* the client initiated the disconnect */
-    LIVEKIT_DISCONNECT_REASON_CLIENT_INITIATED = 1,
+    LIVEKIT_PB_DISCONNECT_REASON_CLIENT_INITIATED = 1,
     /* another participant with the same identity has joined the room */
-    LIVEKIT_DISCONNECT_REASON_DUPLICATE_IDENTITY = 2,
+    LIVEKIT_PB_DISCONNECT_REASON_DUPLICATE_IDENTITY = 2,
     /* the server instance is shutting down */
-    LIVEKIT_DISCONNECT_REASON_SERVER_SHUTDOWN = 3,
+    LIVEKIT_PB_DISCONNECT_REASON_SERVER_SHUTDOWN = 3,
     /* RoomService.RemoveParticipant was called */
-    LIVEKIT_DISCONNECT_REASON_PARTICIPANT_REMOVED = 4,
+    LIVEKIT_PB_DISCONNECT_REASON_PARTICIPANT_REMOVED = 4,
     /* RoomService.DeleteRoom was called */
-    LIVEKIT_DISCONNECT_REASON_ROOM_DELETED = 5,
+    LIVEKIT_PB_DISCONNECT_REASON_ROOM_DELETED = 5,
     /* the client is attempting to resume a session, but server is not aware of it */
-    LIVEKIT_DISCONNECT_REASON_STATE_MISMATCH = 6,
+    LIVEKIT_PB_DISCONNECT_REASON_STATE_MISMATCH = 6,
     /* client was unable to connect fully */
-    LIVEKIT_DISCONNECT_REASON_JOIN_FAILURE = 7,
+    LIVEKIT_PB_DISCONNECT_REASON_JOIN_FAILURE = 7,
     /* Cloud-only, the server requested Participant to migrate the connection elsewhere */
-    LIVEKIT_DISCONNECT_REASON_MIGRATION = 8,
+    LIVEKIT_PB_DISCONNECT_REASON_MIGRATION = 8,
     /* the signal websocket was closed unexpectedly */
-    LIVEKIT_DISCONNECT_REASON_SIGNAL_CLOSE = 9,
+    LIVEKIT_PB_DISCONNECT_REASON_SIGNAL_CLOSE = 9,
     /* the room was closed, due to all Standard and Ingress participants having left */
-    LIVEKIT_DISCONNECT_REASON_ROOM_CLOSED = 10,
+    LIVEKIT_PB_DISCONNECT_REASON_ROOM_CLOSED = 10,
     /* SIP callee did not respond in time */
-    LIVEKIT_DISCONNECT_REASON_USER_UNAVAILABLE = 11,
+    LIVEKIT_PB_DISCONNECT_REASON_USER_UNAVAILABLE = 11,
     /* SIP callee rejected the call (busy) */
-    LIVEKIT_DISCONNECT_REASON_USER_REJECTED = 12,
+    LIVEKIT_PB_DISCONNECT_REASON_USER_REJECTED = 12,
     /* SIP protocol failure or unexpected response */
-    LIVEKIT_DISCONNECT_REASON_SIP_TRUNK_FAILURE = 13,
+    LIVEKIT_PB_DISCONNECT_REASON_SIP_TRUNK_FAILURE = 13,
     /* server timed out a participant session */
-    LIVEKIT_DISCONNECT_REASON_CONNECTION_TIMEOUT = 14
-} livekit_disconnect_reason_t;
+    LIVEKIT_PB_DISCONNECT_REASON_CONNECTION_TIMEOUT = 14
+} livekit_pb_disconnect_reason_t;
 
-typedef enum livekit_reconnect_reason {
-    LIVEKIT_RECONNECT_REASON_RR_UNKNOWN = 0,
-    LIVEKIT_RECONNECT_REASON_RR_SIGNAL_DISCONNECTED = 1,
-    LIVEKIT_RECONNECT_REASON_RR_PUBLISHER_FAILED = 2,
-    LIVEKIT_RECONNECT_REASON_RR_SUBSCRIBER_FAILED = 3,
-    LIVEKIT_RECONNECT_REASON_RR_SWITCH_CANDIDATE = 4
-} livekit_reconnect_reason_t;
+typedef enum livekit_pb_reconnect_reason {
+    LIVEKIT_PB_RECONNECT_REASON_RR_UNKNOWN = 0,
+    LIVEKIT_PB_RECONNECT_REASON_RR_SIGNAL_DISCONNECTED = 1,
+    LIVEKIT_PB_RECONNECT_REASON_RR_PUBLISHER_FAILED = 2,
+    LIVEKIT_PB_RECONNECT_REASON_RR_SUBSCRIBER_FAILED = 3,
+    LIVEKIT_PB_RECONNECT_REASON_RR_SWITCH_CANDIDATE = 4
+} livekit_pb_reconnect_reason_t;
 
-typedef enum livekit_subscription_error {
-    LIVEKIT_SUBSCRIPTION_ERROR_SE_UNKNOWN = 0,
-    LIVEKIT_SUBSCRIPTION_ERROR_SE_CODEC_UNSUPPORTED = 1,
-    LIVEKIT_SUBSCRIPTION_ERROR_SE_TRACK_NOTFOUND = 2
-} livekit_subscription_error_t;
+typedef enum livekit_pb_subscription_error {
+    LIVEKIT_PB_SUBSCRIPTION_ERROR_SE_UNKNOWN = 0,
+    LIVEKIT_PB_SUBSCRIPTION_ERROR_SE_CODEC_UNSUPPORTED = 1,
+    LIVEKIT_PB_SUBSCRIPTION_ERROR_SE_TRACK_NOTFOUND = 2
+} livekit_pb_subscription_error_t;
 
-typedef enum livekit_audio_track_feature {
-    LIVEKIT_AUDIO_TRACK_FEATURE_TF_STEREO = 0,
-    LIVEKIT_AUDIO_TRACK_FEATURE_TF_NO_DTX = 1,
-    LIVEKIT_AUDIO_TRACK_FEATURE_TF_AUTO_GAIN_CONTROL = 2,
-    LIVEKIT_AUDIO_TRACK_FEATURE_TF_ECHO_CANCELLATION = 3,
-    LIVEKIT_AUDIO_TRACK_FEATURE_TF_NOISE_SUPPRESSION = 4,
-    LIVEKIT_AUDIO_TRACK_FEATURE_TF_ENHANCED_NOISE_CANCELLATION = 5,
-    LIVEKIT_AUDIO_TRACK_FEATURE_TF_PRECONNECT_BUFFER = 6 /* client will buffer audio once available and send it to the server via bytes stream once connected */
-} livekit_audio_track_feature_t;
+typedef enum livekit_pb_audio_track_feature {
+    LIVEKIT_PB_AUDIO_TRACK_FEATURE_TF_STEREO = 0,
+    LIVEKIT_PB_AUDIO_TRACK_FEATURE_TF_NO_DTX = 1,
+    LIVEKIT_PB_AUDIO_TRACK_FEATURE_TF_AUTO_GAIN_CONTROL = 2,
+    LIVEKIT_PB_AUDIO_TRACK_FEATURE_TF_ECHO_CANCELLATION = 3,
+    LIVEKIT_PB_AUDIO_TRACK_FEATURE_TF_NOISE_SUPPRESSION = 4,
+    LIVEKIT_PB_AUDIO_TRACK_FEATURE_TF_ENHANCED_NOISE_CANCELLATION = 5,
+    LIVEKIT_PB_AUDIO_TRACK_FEATURE_TF_PRECONNECT_BUFFER = 6 /* client will buffer audio once available and send it to the server via bytes stream once connected */
+} livekit_pb_audio_track_feature_t;
 
-typedef enum livekit_participant_info_state {
+typedef enum livekit_pb_participant_info_state {
     /* websocket' connected, but not offered yet */
-    LIVEKIT_PARTICIPANT_INFO_STATE_JOINING = 0,
+    LIVEKIT_PB_PARTICIPANT_INFO_STATE_JOINING = 0,
     /* server received client offer */
-    LIVEKIT_PARTICIPANT_INFO_STATE_JOINED = 1,
+    LIVEKIT_PB_PARTICIPANT_INFO_STATE_JOINED = 1,
     /* ICE connectivity established */
-    LIVEKIT_PARTICIPANT_INFO_STATE_ACTIVE = 2,
+    LIVEKIT_PB_PARTICIPANT_INFO_STATE_ACTIVE = 2,
     /* WS disconnected */
-    LIVEKIT_PARTICIPANT_INFO_STATE_DISCONNECTED = 3
-} livekit_participant_info_state_t;
+    LIVEKIT_PB_PARTICIPANT_INFO_STATE_DISCONNECTED = 3
+} livekit_pb_participant_info_state_t;
 
-typedef enum livekit_participant_info_kind {
+typedef enum livekit_pb_participant_info_kind {
     /* standard participants, e.g. web clients */
-    LIVEKIT_PARTICIPANT_INFO_KIND_STANDARD = 0,
+    LIVEKIT_PB_PARTICIPANT_INFO_KIND_STANDARD = 0,
     /* only ingests streams */
-    LIVEKIT_PARTICIPANT_INFO_KIND_INGRESS = 1,
+    LIVEKIT_PB_PARTICIPANT_INFO_KIND_INGRESS = 1,
     /* only consumes streams */
-    LIVEKIT_PARTICIPANT_INFO_KIND_EGRESS = 2,
+    LIVEKIT_PB_PARTICIPANT_INFO_KIND_EGRESS = 2,
     /* SIP participants */
-    LIVEKIT_PARTICIPANT_INFO_KIND_SIP = 3,
+    LIVEKIT_PB_PARTICIPANT_INFO_KIND_SIP = 3,
     /* LiveKit agents */
-    LIVEKIT_PARTICIPANT_INFO_KIND_AGENT = 4
-} livekit_participant_info_kind_t;
+    LIVEKIT_PB_PARTICIPANT_INFO_KIND_AGENT = 4
+} livekit_pb_participant_info_kind_t;
 
-typedef enum livekit_participant_info_kind_detail {
-    LIVEKIT_PARTICIPANT_INFO_KIND_DETAIL_CLOUD_AGENT = 0,
-    LIVEKIT_PARTICIPANT_INFO_KIND_DETAIL_FORWARDED = 1
-} livekit_participant_info_kind_detail_t;
+typedef enum livekit_pb_participant_info_kind_detail {
+    LIVEKIT_PB_PARTICIPANT_INFO_KIND_DETAIL_CLOUD_AGENT = 0,
+    LIVEKIT_PB_PARTICIPANT_INFO_KIND_DETAIL_FORWARDED = 1
+} livekit_pb_participant_info_kind_detail_t;
 
-typedef enum livekit_encryption_type {
-    LIVEKIT_ENCRYPTION_TYPE_NONE = 0,
-    LIVEKIT_ENCRYPTION_TYPE_GCM = 1,
-    LIVEKIT_ENCRYPTION_TYPE_CUSTOM = 2
-} livekit_encryption_type_t;
+typedef enum livekit_pb_encryption_type {
+    LIVEKIT_PB_ENCRYPTION_TYPE_NONE = 0,
+    LIVEKIT_PB_ENCRYPTION_TYPE_GCM = 1,
+    LIVEKIT_PB_ENCRYPTION_TYPE_CUSTOM = 2
+} livekit_pb_encryption_type_t;
 
-typedef enum livekit_data_packet_kind {
-    LIVEKIT_DATA_PACKET_KIND_RELIABLE = 0,
-    LIVEKIT_DATA_PACKET_KIND_LOSSY = 1
-} livekit_data_packet_kind_t;
+typedef enum livekit_pb_data_packet_kind {
+    LIVEKIT_PB_DATA_PACKET_KIND_RELIABLE = 0,
+    LIVEKIT_PB_DATA_PACKET_KIND_LOSSY = 1
+} livekit_pb_data_packet_kind_t;
 
-typedef enum livekit_server_info_edition {
-    LIVEKIT_SERVER_INFO_EDITION_STANDARD = 0,
-    LIVEKIT_SERVER_INFO_EDITION_CLOUD = 1
-} livekit_server_info_edition_t;
+typedef enum livekit_pb_server_info_edition {
+    LIVEKIT_PB_SERVER_INFO_EDITION_STANDARD = 0,
+    LIVEKIT_PB_SERVER_INFO_EDITION_CLOUD = 1
+} livekit_pb_server_info_edition_t;
 
-typedef enum livekit_client_info_sdk {
-    LIVEKIT_CLIENT_INFO_SDK_UNKNOWN = 0,
-    LIVEKIT_CLIENT_INFO_SDK_JS = 1,
-    LIVEKIT_CLIENT_INFO_SDK_SWIFT = 2,
-    LIVEKIT_CLIENT_INFO_SDK_ANDROID = 3,
-    LIVEKIT_CLIENT_INFO_SDK_FLUTTER = 4,
-    LIVEKIT_CLIENT_INFO_SDK_GO = 5,
-    LIVEKIT_CLIENT_INFO_SDK_UNITY = 6,
-    LIVEKIT_CLIENT_INFO_SDK_REACT_NATIVE = 7,
-    LIVEKIT_CLIENT_INFO_SDK_RUST = 8,
-    LIVEKIT_CLIENT_INFO_SDK_PYTHON = 9,
-    LIVEKIT_CLIENT_INFO_SDK_CPP = 10,
-    LIVEKIT_CLIENT_INFO_SDK_UNITY_WEB = 11,
-    LIVEKIT_CLIENT_INFO_SDK_NODE = 12,
-    LIVEKIT_CLIENT_INFO_SDK_UNREAL = 13
-} livekit_client_info_sdk_t;
+typedef enum livekit_pb_client_info_sdk {
+    LIVEKIT_PB_CLIENT_INFO_SDK_UNKNOWN = 0,
+    LIVEKIT_PB_CLIENT_INFO_SDK_JS = 1,
+    LIVEKIT_PB_CLIENT_INFO_SDK_SWIFT = 2,
+    LIVEKIT_PB_CLIENT_INFO_SDK_ANDROID = 3,
+    LIVEKIT_PB_CLIENT_INFO_SDK_FLUTTER = 4,
+    LIVEKIT_PB_CLIENT_INFO_SDK_GO = 5,
+    LIVEKIT_PB_CLIENT_INFO_SDK_UNITY = 6,
+    LIVEKIT_PB_CLIENT_INFO_SDK_REACT_NATIVE = 7,
+    LIVEKIT_PB_CLIENT_INFO_SDK_RUST = 8,
+    LIVEKIT_PB_CLIENT_INFO_SDK_PYTHON = 9,
+    LIVEKIT_PB_CLIENT_INFO_SDK_CPP = 10,
+    LIVEKIT_PB_CLIENT_INFO_SDK_UNITY_WEB = 11,
+    LIVEKIT_PB_CLIENT_INFO_SDK_NODE = 12,
+    LIVEKIT_PB_CLIENT_INFO_SDK_UNREAL = 13
+} livekit_pb_client_info_sdk_t;
 
 /* enum for operation types (specific to TextHeader) */
-typedef enum livekit_data_stream_operation_type {
-    LIVEKIT_DATA_STREAM_OPERATION_TYPE_CREATE = 0,
-    LIVEKIT_DATA_STREAM_OPERATION_TYPE_UPDATE = 1,
-    LIVEKIT_DATA_STREAM_OPERATION_TYPE_DELETE = 2,
-    LIVEKIT_DATA_STREAM_OPERATION_TYPE_REACTION = 3
-} livekit_data_stream_operation_type_t;
+typedef enum livekit_pb_data_stream_operation_type {
+    LIVEKIT_PB_DATA_STREAM_OPERATION_TYPE_CREATE = 0,
+    LIVEKIT_PB_DATA_STREAM_OPERATION_TYPE_UPDATE = 1,
+    LIVEKIT_PB_DATA_STREAM_OPERATION_TYPE_DELETE = 2,
+    LIVEKIT_PB_DATA_STREAM_OPERATION_TYPE_REACTION = 3
+} livekit_pb_data_stream_operation_type_t;
 
 /* Struct definitions */
-typedef struct livekit_pagination {
+typedef struct livekit_pb_pagination {
     pb_callback_t after_id; /* list entities which IDs are greater */
     int32_t limit;
-} livekit_pagination_t;
+} livekit_pb_pagination_t;
 
 /* ListUpdate is used for updated APIs where 'repeated string' field is modified. */
-typedef struct livekit_list_update {
+typedef struct livekit_pb_list_update {
     pb_callback_t set; /* set the field to a new list */
-} livekit_list_update_t;
+} livekit_pb_list_update_t;
 
-typedef struct livekit_codec {
+typedef struct livekit_pb_codec {
     pb_callback_t mime;
     pb_callback_t fmtp_line;
-} livekit_codec_t;
+} livekit_pb_codec_t;
 
-typedef struct livekit_playout_delay {
+typedef struct livekit_pb_playout_delay {
     bool enabled;
     uint32_t min;
     uint32_t max;
-} livekit_playout_delay_t;
+} livekit_pb_playout_delay_t;
 
-typedef struct livekit_participant_permission {
+typedef struct livekit_pb_participant_permission {
     /* allow participant to subscribe to other tracks in the room */
     bool can_subscribe;
     /* allow participant to publish new tracks to room */
     bool can_publish;
     /* allow participant to publish data */
     bool can_publish_data;
-} livekit_participant_permission_t;
+} livekit_pb_participant_permission_t;
 
-typedef struct livekit_participant_info {
-    livekit_participant_permission_t permission;
-} livekit_participant_info_t;
+typedef struct livekit_pb_participant_info {
+    livekit_pb_participant_permission_t permission;
+} livekit_pb_participant_info_t;
 
-typedef struct livekit_encryption {
+typedef struct livekit_pb_encryption {
     char dummy_field;
-} livekit_encryption_t;
+} livekit_pb_encryption_t;
 
-typedef struct livekit_simulcast_codec_info {
+typedef struct livekit_pb_simulcast_codec_info {
     pb_callback_t mime_type;
     pb_callback_t mid;
     pb_callback_t cid;
     pb_callback_t layers;
-} livekit_simulcast_codec_info_t;
+} livekit_pb_simulcast_codec_info_t;
 
 /* provide information about available spatial layers */
-typedef struct livekit_video_layer {
+typedef struct livekit_pb_video_layer {
     /* for tracks with a single layer, this should be HIGH */
-    livekit_video_quality_t quality;
+    livekit_pb_video_quality_t quality;
     uint32_t width;
     uint32_t height;
     /* target bitrate in bit per second (bps), server will measure actual */
     uint32_t bitrate;
     uint32_t ssrc;
-} livekit_video_layer_t;
+} livekit_pb_video_layer_t;
 
-typedef struct livekit_active_speaker_update {
+typedef struct livekit_pb_active_speaker_update {
     pb_callback_t speakers;
-} livekit_active_speaker_update_t;
+} livekit_pb_active_speaker_update_t;
 
-typedef struct livekit_speaker_info {
+typedef struct livekit_pb_speaker_info {
     pb_callback_t sid;
     /* audio level, 0-1.0, 1 is loudest */
     float level;
     /* true if speaker is currently active */
     bool active;
-} livekit_speaker_info_t;
+} livekit_pb_speaker_info_t;
 
-typedef struct livekit_user_packet {
+typedef struct livekit_pb_user_packet {
     /* user defined payload */
     pb_callback_t payload;
     /* topic under which the message was published */
@@ -285,30 +285,30 @@ typedef struct livekit_user_packet {
     uint64_t end_time;
     /* added by SDK to enable de-duping of messages, for INTERNAL USE ONLY */
     pb_callback_t nonce;
-} livekit_user_packet_t;
+} livekit_pb_user_packet_t;
 
-typedef struct livekit_sip_dtmf {
+typedef struct livekit_pb_sip_dtmf {
     uint32_t code;
     pb_callback_t digit;
-} livekit_sip_dtmf_t;
+} livekit_pb_sip_dtmf_t;
 
-typedef struct livekit_transcription {
+typedef struct livekit_pb_transcription {
     /* Participant that got its speech transcribed */
     pb_callback_t transcribed_participant_identity;
     pb_callback_t track_id;
     pb_callback_t segments;
-} livekit_transcription_t;
+} livekit_pb_transcription_t;
 
-typedef struct livekit_transcription_segment {
+typedef struct livekit_pb_transcription_segment {
     pb_callback_t id;
     pb_callback_t text;
     uint64_t start_time;
     uint64_t end_time;
     bool final;
     pb_callback_t language;
-} livekit_transcription_segment_t;
+} livekit_pb_transcription_segment_t;
 
-typedef struct livekit_chat_message {
+typedef struct livekit_pb_chat_message {
     pb_callback_t id; /* uuid */
     int64_t timestamp;
     bool has_edit_timestamp;
@@ -316,44 +316,44 @@ typedef struct livekit_chat_message {
     pb_callback_t message;
     bool deleted; /* true to remove message */
     bool generated; /* true if the chat message has been generated by an agent from a participant's audio transcription */
-} livekit_chat_message_t;
+} livekit_pb_chat_message_t;
 
-typedef struct livekit_rpc_request {
+typedef struct livekit_pb_rpc_request {
     pb_callback_t id;
     pb_callback_t method;
     pb_callback_t payload;
     uint32_t response_timeout_ms;
     uint32_t version;
-} livekit_rpc_request_t;
+} livekit_pb_rpc_request_t;
 
-typedef struct livekit_rpc_ack {
+typedef struct livekit_pb_rpc_ack {
     pb_callback_t request_id;
-} livekit_rpc_ack_t;
+} livekit_pb_rpc_ack_t;
 
-typedef struct livekit_rpc_error {
+typedef struct livekit_pb_rpc_error {
     uint32_t code;
     pb_callback_t message;
     pb_callback_t data;
-} livekit_rpc_error_t;
+} livekit_pb_rpc_error_t;
 
-typedef struct livekit_rpc_response {
+typedef struct livekit_pb_rpc_response {
     pb_callback_t request_id;
     pb_size_t which_value;
     union {
         pb_callback_t payload;
-        livekit_rpc_error_t error;
+        livekit_pb_rpc_error_t error;
     } value;
-} livekit_rpc_response_t;
+} livekit_pb_rpc_response_t;
 
-typedef struct livekit_participant_tracks {
+typedef struct livekit_pb_participant_tracks {
     /* participant ID of participant to whom the tracks belong */
     pb_callback_t participant_sid;
     pb_callback_t track_sids;
-} livekit_participant_tracks_t;
+} livekit_pb_participant_tracks_t;
 
 /* details about the server */
-typedef struct livekit_server_info {
-    livekit_server_info_edition_t edition;
+typedef struct livekit_pb_server_info {
+    livekit_pb_server_info_edition_t edition;
     pb_callback_t version;
     int32_t protocol;
     pb_callback_t region;
@@ -361,11 +361,11 @@ typedef struct livekit_server_info {
     /* additional debugging information. sent only if server is in development mode */
     pb_callback_t debug_info;
     int32_t agent_protocol;
-} livekit_server_info_t;
+} livekit_pb_server_info_t;
 
 /* details about the client */
-typedef struct livekit_client_info {
-    livekit_client_info_sdk_t sdk;
+typedef struct livekit_pb_client_info {
+    livekit_pb_client_info_sdk_t sdk;
     pb_callback_t version;
     int32_t protocol;
     pb_callback_t os;
@@ -379,26 +379,26 @@ typedef struct livekit_client_info {
     /* comma separated list of additional LiveKit SDKs in use of this client, with versions
  e.g. "components-js:1.2.3,track-processors-js:1.2.3" */
     pb_callback_t other_sdks;
-} livekit_client_info_t;
+} livekit_pb_client_info_t;
 
 /* server provided client configuration */
-typedef struct livekit_client_configuration {
-    livekit_client_config_setting_t resume_connection;
-    livekit_client_config_setting_t force_relay;
-} livekit_client_configuration_t;
+typedef struct livekit_pb_client_configuration {
+    livekit_pb_client_config_setting_t resume_connection;
+    livekit_pb_client_config_setting_t force_relay;
+} livekit_pb_client_configuration_t;
 
-typedef struct livekit_video_configuration {
-    livekit_client_config_setting_t hardware_encoder;
-} livekit_video_configuration_t;
+typedef struct livekit_pb_video_configuration {
+    livekit_pb_client_config_setting_t hardware_encoder;
+} livekit_pb_video_configuration_t;
 
-typedef struct livekit_disabled_codecs {
+typedef struct livekit_pb_disabled_codecs {
     /* disabled for both publish and subscribe */
     pb_callback_t codecs;
     /* only disable for publish */
     pb_callback_t publish;
-} livekit_disabled_codecs_t;
+} livekit_pb_disabled_codecs_t;
 
-typedef struct livekit_rtp_drift {
+typedef struct livekit_pb_rtp_drift {
     bool has_start_time;
     google_protobuf_timestamp_t start_time;
     bool has_end_time;
@@ -410,9 +410,9 @@ typedef struct livekit_rtp_drift {
     int64_t drift_samples;
     double drift_ms;
     double clock_rate;
-} livekit_rtp_drift_t;
+} livekit_pb_rtp_drift_t;
 
-typedef struct livekit_rtp_stats {
+typedef struct livekit_pb_rtp_stats {
     bool has_start_time;
     google_protobuf_timestamp_t start_time;
     bool has_end_time;
@@ -461,21 +461,21 @@ typedef struct livekit_rtp_stats {
     uint64_t header_bytes_duplicate;
     uint64_t header_bytes_padding;
     bool has_packet_drift;
-    livekit_rtp_drift_t packet_drift;
+    livekit_pb_rtp_drift_t packet_drift;
     bool has_ntp_report_drift;
-    livekit_rtp_drift_t ntp_report_drift;
+    livekit_pb_rtp_drift_t ntp_report_drift;
     bool has_rebased_report_drift;
-    livekit_rtp_drift_t rebased_report_drift;
+    livekit_pb_rtp_drift_t rebased_report_drift;
     bool has_received_report_drift;
-    livekit_rtp_drift_t received_report_drift; /* NEXT_ID: 48 */
-} livekit_rtp_stats_t;
+    livekit_pb_rtp_drift_t received_report_drift; /* NEXT_ID: 48 */
+} livekit_pb_rtp_stats_t;
 
-typedef struct livekit_rtp_stats_gap_histogram_entry {
+typedef struct livekit_pb_rtp_stats_gap_histogram_entry {
     int32_t key;
     uint32_t value;
-} livekit_rtp_stats_gap_histogram_entry_t;
+} livekit_pb_rtp_stats_gap_histogram_entry_t;
 
-typedef struct livekit_rtcp_sender_report_state {
+typedef struct livekit_pb_rtcp_sender_report_state {
     uint32_t rtp_timestamp;
     uint64_t rtp_timestamp_ext;
     uint64_t ntp_timestamp;
@@ -483,18 +483,18 @@ typedef struct livekit_rtcp_sender_report_state {
     int64_t at_adjusted;
     uint32_t packets;
     uint64_t octets;
-} livekit_rtcp_sender_report_state_t;
+} livekit_pb_rtcp_sender_report_state_t;
 
-typedef struct livekit_rtp_munger_state {
+typedef struct livekit_pb_rtp_munger_state {
     uint64_t ext_last_sequence_number;
     uint64_t ext_second_last_sequence_number;
     uint64_t ext_last_timestamp;
     uint64_t ext_second_last_timestamp;
     bool last_marker;
     bool second_last_marker;
-} livekit_rtp_munger_state_t;
+} livekit_pb_rtp_munger_state_t;
 
-typedef struct livekit_vp8_munger_state {
+typedef struct livekit_pb_vp8_munger_state {
     int32_t ext_last_picture_id;
     bool picture_id_used;
     uint32_t last_tl0_pic_idx;
@@ -502,29 +502,29 @@ typedef struct livekit_vp8_munger_state {
     bool tid_used;
     uint32_t last_key_idx;
     bool key_idx_used;
-} livekit_vp8_munger_state_t;
+} livekit_pb_vp8_munger_state_t;
 
-typedef struct livekit_rtp_forwarder_state {
+typedef struct livekit_pb_rtp_forwarder_state {
     bool started;
     int32_t reference_layer_spatial;
     int64_t pre_start_time;
     uint64_t ext_first_timestamp;
     uint64_t dummy_start_timestamp_offset;
     bool has_rtp_munger;
-    livekit_rtp_munger_state_t rtp_munger;
+    livekit_pb_rtp_munger_state_t rtp_munger;
     pb_size_t which_codec_munger;
     union {
-        livekit_vp8_munger_state_t vp8_munger;
+        livekit_pb_vp8_munger_state_t vp8_munger;
     } codec_munger;
     pb_callback_t sender_report_state;
-} livekit_rtp_forwarder_state_t;
+} livekit_pb_rtp_forwarder_state_t;
 
-typedef struct livekit_timed_version {
+typedef struct livekit_pb_timed_version {
     int64_t unix_micro;
     int32_t ticks;
-} livekit_timed_version_t;
+} livekit_pb_timed_version_t;
 
-typedef struct livekit_room {
+typedef struct livekit_pb_room {
     pb_callback_t sid;
     pb_callback_t name;
     uint32_t empty_timeout;
@@ -537,14 +537,14 @@ typedef struct livekit_room {
     bool active_recording;
     uint32_t num_publishers;
     bool has_version;
-    livekit_timed_version_t version;
+    livekit_pb_timed_version_t version;
     uint32_t departure_timeout;
     int64_t creation_time_ms;
-} livekit_room_t;
+} livekit_pb_room_t;
 
-typedef struct livekit_track_info {
+typedef struct livekit_pb_track_info {
     pb_callback_t sid;
-    livekit_track_type_t type;
+    livekit_pb_track_type_t type;
     pb_callback_t name;
     bool muted;
     /* original width of video (unset for audio)
@@ -557,7 +557,7 @@ typedef struct livekit_track_info {
     /* true if DTX (Discontinuous Transmission) is disabled for audio */
     bool disable_dtx;
     /* source of media */
-    livekit_track_source_t source;
+    livekit_pb_track_source_t source;
     pb_callback_t layers;
     /* mime type of codec */
     pb_callback_t mime_type;
@@ -566,99 +566,99 @@ typedef struct livekit_track_info {
     bool stereo;
     /* true if RED (Redundant Encoding) is disabled for audio */
     bool disable_red;
-    livekit_encryption_type_t encryption;
+    livekit_pb_encryption_type_t encryption;
     pb_callback_t stream;
     bool has_version;
-    livekit_timed_version_t version;
+    livekit_pb_timed_version_t version;
     pb_callback_t audio_features;
-    livekit_backup_codec_policy_t backup_codec_policy;
-} livekit_track_info_t;
+    livekit_pb_backup_codec_policy_t backup_codec_policy;
+} livekit_pb_track_info_t;
 
-typedef struct livekit_data_stream {
+typedef struct livekit_pb_data_stream {
     char dummy_field;
-} livekit_data_stream_t;
+} livekit_pb_data_stream_t;
 
 /* header properties specific to text streams */
-typedef struct livekit_data_stream_text_header {
-    livekit_data_stream_operation_type_t operation_type;
+typedef struct livekit_pb_data_stream_text_header {
+    livekit_pb_data_stream_operation_type_t operation_type;
     int32_t version; /* Optional: Version for updates/edits */
     pb_callback_t reply_to_stream_id; /* Optional: Reply to specific message */
     pb_callback_t attached_stream_ids; /* file attachments for text streams */
     bool generated; /* true if the text has been generated by an agent from a participant's audio transcription */
-} livekit_data_stream_text_header_t;
+} livekit_pb_data_stream_text_header_t;
 
 /* header properties specific to byte or file streams */
-typedef struct livekit_data_stream_byte_header {
+typedef struct livekit_pb_data_stream_byte_header {
     pb_callback_t name;
-} livekit_data_stream_byte_header_t;
+} livekit_pb_data_stream_byte_header_t;
 
 /* main DataStream.Header that contains a oneof for specific headers */
-typedef struct livekit_data_stream_header {
+typedef struct livekit_pb_data_stream_header {
     pb_callback_t stream_id; /* unique identifier for this data stream */
     int64_t timestamp; /* using int64 for Unix timestamp */
     pb_callback_t topic;
     pb_callback_t mime_type;
     bool has_total_length;
     uint64_t total_length; /* only populated for finite streams, if it's a stream of unknown size this stays empty */
-    livekit_encryption_type_t encryption_type; /* defaults to NONE */
+    livekit_pb_encryption_type_t encryption_type; /* defaults to NONE */
     pb_callback_t attributes; /* user defined attributes map that can carry additional info */
     pb_size_t which_content_header;
     union {
-        livekit_data_stream_text_header_t text_header;
-        livekit_data_stream_byte_header_t byte_header;
+        livekit_pb_data_stream_text_header_t text_header;
+        livekit_pb_data_stream_byte_header_t byte_header;
     } content_header;
-} livekit_data_stream_header_t;
+} livekit_pb_data_stream_header_t;
 
-typedef struct livekit_data_stream_header_attributes_entry {
+typedef struct livekit_pb_data_stream_header_attributes_entry {
     pb_callback_t key;
     pb_callback_t value;
-} livekit_data_stream_header_attributes_entry_t;
+} livekit_pb_data_stream_header_attributes_entry_t;
 
-typedef struct livekit_data_stream_chunk {
+typedef struct livekit_pb_data_stream_chunk {
     pb_callback_t stream_id; /* unique identifier for this data stream to map it to the correct header */
     uint64_t chunk_index;
     pb_callback_t content; /* content as binary (bytes) */
     int32_t version; /* a version indicating that this chunk_index has been retroactively modified and the original one needs to be replaced */
     pb_callback_t iv; /* optional, initialization vector for AES-GCM encryption */
-} livekit_data_stream_chunk_t;
+} livekit_pb_data_stream_chunk_t;
 
-typedef struct livekit_data_stream_trailer {
+typedef struct livekit_pb_data_stream_trailer {
     pb_callback_t stream_id; /* unique identifier for this data stream */
     pb_callback_t reason; /* reason why the stream was closed (could contain "error" / "interrupted" / empty for expected end) */
     pb_callback_t attributes; /* finalizing updates for the stream, can also include additional insights for errors or endTime for transcription */
-} livekit_data_stream_trailer_t;
+} livekit_pb_data_stream_trailer_t;
 
 /* new DataPacket API */
-typedef struct livekit_data_packet {
+typedef struct livekit_pb_data_packet {
     pb_size_t which_value;
     union {
-        livekit_user_packet_t user;
-        livekit_sip_dtmf_t sip_dtmf;
-        livekit_transcription_t transcription;
-        livekit_metrics_batch_t metrics;
-        livekit_chat_message_t chat_message;
-        livekit_rpc_request_t rpc_request;
-        livekit_rpc_ack_t rpc_ack;
-        livekit_rpc_response_t rpc_response;
-        livekit_data_stream_header_t stream_header;
-        livekit_data_stream_chunk_t stream_chunk;
-        livekit_data_stream_trailer_t stream_trailer;
+        livekit_pb_user_packet_t user;
+        livekit_pb_sip_dtmf_t sip_dtmf;
+        livekit_pb_transcription_t transcription;
+        livekit_pb_metrics_batch_t metrics;
+        livekit_pb_chat_message_t chat_message;
+        livekit_pb_rpc_request_t rpc_request;
+        livekit_pb_rpc_ack_t rpc_ack;
+        livekit_pb_rpc_response_t rpc_response;
+        livekit_pb_data_stream_header_t stream_header;
+        livekit_pb_data_stream_chunk_t stream_chunk;
+        livekit_pb_data_stream_trailer_t stream_trailer;
     } value;
     /* participant identity of user that sent the message */
     pb_callback_t participant_identity;
     /* identities of participants who will receive the message (sent to all by default) */
     pb_callback_t destination_identities;
-} livekit_data_packet_t;
+} livekit_pb_data_packet_t;
 
-typedef struct livekit_data_stream_trailer_attributes_entry {
+typedef struct livekit_pb_data_stream_trailer_attributes_entry {
     pb_callback_t key;
     pb_callback_t value;
-} livekit_data_stream_trailer_attributes_entry_t;
+} livekit_pb_data_stream_trailer_attributes_entry_t;
 
-typedef struct livekit_webhook_config {
+typedef struct livekit_pb_webhook_config {
     pb_callback_t url;
     pb_callback_t signing_key;
-} livekit_webhook_config_t;
+} livekit_pb_webhook_config_t;
 
 
 #ifdef __cplusplus
@@ -666,91 +666,89 @@ extern "C" {
 #endif
 
 /* Helper constants for enums */
-#define _LIVEKIT_AUDIO_CODEC_MIN LIVEKIT_AUDIO_CODEC_DEFAULT_AC
-#define _LIVEKIT_AUDIO_CODEC_MAX LIVEKIT_AUDIO_CODEC_AAC
-#define _LIVEKIT_AUDIO_CODEC_ARRAYSIZE ((livekit_audio_codec_t)(LIVEKIT_AUDIO_CODEC_AAC+1))
+#define _LIVEKIT_PB_AUDIO_CODEC_MIN LIVEKIT_PB_AUDIO_CODEC_DEFAULT_AC
+#define _LIVEKIT_PB_AUDIO_CODEC_MAX LIVEKIT_PB_AUDIO_CODEC_AAC
+#define _LIVEKIT_PB_AUDIO_CODEC_ARRAYSIZE ((livekit_pb_audio_codec_t)(LIVEKIT_PB_AUDIO_CODEC_AAC+1))
 
-#define _LIVEKIT_VIDEO_CODEC_MIN LIVEKIT_VIDEO_CODEC_DEFAULT_VC
-#define _LIVEKIT_VIDEO_CODEC_MAX LIVEKIT_VIDEO_CODEC_VP8
-#define _LIVEKIT_VIDEO_CODEC_ARRAYSIZE ((livekit_video_codec_t)(LIVEKIT_VIDEO_CODEC_VP8+1))
+#define _LIVEKIT_PB_VIDEO_CODEC_MIN LIVEKIT_PB_VIDEO_CODEC_DEFAULT_VC
+#define _LIVEKIT_PB_VIDEO_CODEC_MAX LIVEKIT_PB_VIDEO_CODEC_VP8
+#define _LIVEKIT_PB_VIDEO_CODEC_ARRAYSIZE ((livekit_pb_video_codec_t)(LIVEKIT_PB_VIDEO_CODEC_VP8+1))
 
-#define _LIVEKIT_IMAGE_CODEC_MIN LIVEKIT_IMAGE_CODEC_IC_DEFAULT
-#define _LIVEKIT_IMAGE_CODEC_MAX LIVEKIT_IMAGE_CODEC_IC_JPEG
-#define _LIVEKIT_IMAGE_CODEC_ARRAYSIZE ((livekit_image_codec_t)(LIVEKIT_IMAGE_CODEC_IC_JPEG+1))
+#define _LIVEKIT_PB_IMAGE_CODEC_MIN LIVEKIT_PB_IMAGE_CODEC_IC_DEFAULT
+#define _LIVEKIT_PB_IMAGE_CODEC_MAX LIVEKIT_PB_IMAGE_CODEC_IC_JPEG
+#define _LIVEKIT_PB_IMAGE_CODEC_ARRAYSIZE ((livekit_pb_image_codec_t)(LIVEKIT_PB_IMAGE_CODEC_IC_JPEG+1))
 
-#define _LIVEKIT_BACKUP_CODEC_POLICY_MIN LIVEKIT_BACKUP_CODEC_POLICY_PREFER_REGRESSION
-#define _LIVEKIT_BACKUP_CODEC_POLICY_MAX LIVEKIT_BACKUP_CODEC_POLICY_REGRESSION
-#define _LIVEKIT_BACKUP_CODEC_POLICY_ARRAYSIZE ((livekit_backup_codec_policy_t)(LIVEKIT_BACKUP_CODEC_POLICY_REGRESSION+1))
+#define _LIVEKIT_PB_BACKUP_CODEC_POLICY_MIN LIVEKIT_PB_BACKUP_CODEC_POLICY_PREFER_REGRESSION
+#define _LIVEKIT_PB_BACKUP_CODEC_POLICY_MAX LIVEKIT_PB_BACKUP_CODEC_POLICY_REGRESSION
+#define _LIVEKIT_PB_BACKUP_CODEC_POLICY_ARRAYSIZE ((livekit_pb_backup_codec_policy_t)(LIVEKIT_PB_BACKUP_CODEC_POLICY_REGRESSION+1))
 
-#define _LIVEKIT_TRACK_TYPE_MIN LIVEKIT_TRACK_TYPE_AUDIO
-#define _LIVEKIT_TRACK_TYPE_MAX LIVEKIT_TRACK_TYPE_DATA
-#define _LIVEKIT_TRACK_TYPE_ARRAYSIZE ((livekit_track_type_t)(LIVEKIT_TRACK_TYPE_DATA+1))
+#define _LIVEKIT_PB_TRACK_TYPE_MIN LIVEKIT_PB_TRACK_TYPE_AUDIO
+#define _LIVEKIT_PB_TRACK_TYPE_MAX LIVEKIT_PB_TRACK_TYPE_DATA
+#define _LIVEKIT_PB_TRACK_TYPE_ARRAYSIZE ((livekit_pb_track_type_t)(LIVEKIT_PB_TRACK_TYPE_DATA+1))
 
-#define _LIVEKIT_TRACK_SOURCE_MIN LIVEKIT_TRACK_SOURCE_UNKNOWN
-#define _LIVEKIT_TRACK_SOURCE_MAX LIVEKIT_TRACK_SOURCE_SCREEN_SHARE_AUDIO
-#define _LIVEKIT_TRACK_SOURCE_ARRAYSIZE ((livekit_track_source_t)(LIVEKIT_TRACK_SOURCE_SCREEN_SHARE_AUDIO+1))
+#define _LIVEKIT_PB_TRACK_SOURCE_MIN LIVEKIT_PB_TRACK_SOURCE_UNKNOWN
+#define _LIVEKIT_PB_TRACK_SOURCE_MAX LIVEKIT_PB_TRACK_SOURCE_SCREEN_SHARE_AUDIO
+#define _LIVEKIT_PB_TRACK_SOURCE_ARRAYSIZE ((livekit_pb_track_source_t)(LIVEKIT_PB_TRACK_SOURCE_SCREEN_SHARE_AUDIO+1))
 
-#define _LIVEKIT_VIDEO_QUALITY_MIN LIVEKIT_VIDEO_QUALITY_LOW
-#define _LIVEKIT_VIDEO_QUALITY_MAX LIVEKIT_VIDEO_QUALITY_OFF
-#define _LIVEKIT_VIDEO_QUALITY_ARRAYSIZE ((livekit_video_quality_t)(LIVEKIT_VIDEO_QUALITY_OFF+1))
+#define _LIVEKIT_PB_VIDEO_QUALITY_MIN LIVEKIT_PB_VIDEO_QUALITY_LOW
+#define _LIVEKIT_PB_VIDEO_QUALITY_MAX LIVEKIT_PB_VIDEO_QUALITY_OFF
+#define _LIVEKIT_PB_VIDEO_QUALITY_ARRAYSIZE ((livekit_pb_video_quality_t)(LIVEKIT_PB_VIDEO_QUALITY_OFF+1))
 
-#define _LIVEKIT_CONNECTION_QUALITY_MIN LIVEKIT_CONNECTION_QUALITY_POOR
-#define _LIVEKIT_CONNECTION_QUALITY_MAX LIVEKIT_CONNECTION_QUALITY_LOST
-#define _LIVEKIT_CONNECTION_QUALITY_ARRAYSIZE ((livekit_connection_quality_t)(LIVEKIT_CONNECTION_QUALITY_LOST+1))
+#define _LIVEKIT_PB_CONNECTION_QUALITY_MIN LIVEKIT_PB_CONNECTION_QUALITY_POOR
+#define _LIVEKIT_PB_CONNECTION_QUALITY_MAX LIVEKIT_PB_CONNECTION_QUALITY_LOST
+#define _LIVEKIT_PB_CONNECTION_QUALITY_ARRAYSIZE ((livekit_pb_connection_quality_t)(LIVEKIT_PB_CONNECTION_QUALITY_LOST+1))
 
-#define _LIVEKIT_CLIENT_CONFIG_SETTING_MIN LIVEKIT_CLIENT_CONFIG_SETTING_UNSET
-#define _LIVEKIT_CLIENT_CONFIG_SETTING_MAX LIVEKIT_CLIENT_CONFIG_SETTING_ENABLED
-#define _LIVEKIT_CLIENT_CONFIG_SETTING_ARRAYSIZE ((livekit_client_config_setting_t)(LIVEKIT_CLIENT_CONFIG_SETTING_ENABLED+1))
+#define _LIVEKIT_PB_CLIENT_CONFIG_SETTING_MIN LIVEKIT_PB_CLIENT_CONFIG_SETTING_UNSET
+#define _LIVEKIT_PB_CLIENT_CONFIG_SETTING_MAX LIVEKIT_PB_CLIENT_CONFIG_SETTING_ENABLED
+#define _LIVEKIT_PB_CLIENT_CONFIG_SETTING_ARRAYSIZE ((livekit_pb_client_config_setting_t)(LIVEKIT_PB_CLIENT_CONFIG_SETTING_ENABLED+1))
 
-#define _LIVEKIT_DISCONNECT_REASON_MIN LIVEKIT_DISCONNECT_REASON_UNKNOWN_REASON
-#define _LIVEKIT_DISCONNECT_REASON_MAX LIVEKIT_DISCONNECT_REASON_CONNECTION_TIMEOUT
-#define _LIVEKIT_DISCONNECT_REASON_ARRAYSIZE ((livekit_disconnect_reason_t)(LIVEKIT_DISCONNECT_REASON_CONNECTION_TIMEOUT+1))
+#define _LIVEKIT_PB_DISCONNECT_REASON_MIN LIVEKIT_PB_DISCONNECT_REASON_UNKNOWN_REASON
+#define _LIVEKIT_PB_DISCONNECT_REASON_MAX LIVEKIT_PB_DISCONNECT_REASON_CONNECTION_TIMEOUT
+#define _LIVEKIT_PB_DISCONNECT_REASON_ARRAYSIZE ((livekit_pb_disconnect_reason_t)(LIVEKIT_PB_DISCONNECT_REASON_CONNECTION_TIMEOUT+1))
 
-#define _LIVEKIT_RECONNECT_REASON_MIN LIVEKIT_RECONNECT_REASON_RR_UNKNOWN
-#define _LIVEKIT_RECONNECT_REASON_MAX LIVEKIT_RECONNECT_REASON_RR_SWITCH_CANDIDATE
-#define _LIVEKIT_RECONNECT_REASON_ARRAYSIZE ((livekit_reconnect_reason_t)(LIVEKIT_RECONNECT_REASON_RR_SWITCH_CANDIDATE+1))
+#define _LIVEKIT_PB_RECONNECT_REASON_MIN LIVEKIT_PB_RECONNECT_REASON_RR_UNKNOWN
+#define _LIVEKIT_PB_RECONNECT_REASON_MAX LIVEKIT_PB_RECONNECT_REASON_RR_SWITCH_CANDIDATE
+#define _LIVEKIT_PB_RECONNECT_REASON_ARRAYSIZE ((livekit_pb_reconnect_reason_t)(LIVEKIT_PB_RECONNECT_REASON_RR_SWITCH_CANDIDATE+1))
 
-#define _LIVEKIT_SUBSCRIPTION_ERROR_MIN LIVEKIT_SUBSCRIPTION_ERROR_SE_UNKNOWN
-#define _LIVEKIT_SUBSCRIPTION_ERROR_MAX LIVEKIT_SUBSCRIPTION_ERROR_SE_TRACK_NOTFOUND
-#define _LIVEKIT_SUBSCRIPTION_ERROR_ARRAYSIZE ((livekit_subscription_error_t)(LIVEKIT_SUBSCRIPTION_ERROR_SE_TRACK_NOTFOUND+1))
+#define _LIVEKIT_PB_SUBSCRIPTION_ERROR_MIN LIVEKIT_PB_SUBSCRIPTION_ERROR_SE_UNKNOWN
+#define _LIVEKIT_PB_SUBSCRIPTION_ERROR_MAX LIVEKIT_PB_SUBSCRIPTION_ERROR_SE_TRACK_NOTFOUND
+#define _LIVEKIT_PB_SUBSCRIPTION_ERROR_ARRAYSIZE ((livekit_pb_subscription_error_t)(LIVEKIT_PB_SUBSCRIPTION_ERROR_SE_TRACK_NOTFOUND+1))
 
-#define _LIVEKIT_AUDIO_TRACK_FEATURE_MIN LIVEKIT_AUDIO_TRACK_FEATURE_TF_STEREO
-#define _LIVEKIT_AUDIO_TRACK_FEATURE_MAX LIVEKIT_AUDIO_TRACK_FEATURE_TF_PRECONNECT_BUFFER
-#define _LIVEKIT_AUDIO_TRACK_FEATURE_ARRAYSIZE ((livekit_audio_track_feature_t)(LIVEKIT_AUDIO_TRACK_FEATURE_TF_PRECONNECT_BUFFER+1))
+#define _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN LIVEKIT_PB_AUDIO_TRACK_FEATURE_TF_STEREO
+#define _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MAX LIVEKIT_PB_AUDIO_TRACK_FEATURE_TF_PRECONNECT_BUFFER
+#define _LIVEKIT_PB_AUDIO_TRACK_FEATURE_ARRAYSIZE ((livekit_pb_audio_track_feature_t)(LIVEKIT_PB_AUDIO_TRACK_FEATURE_TF_PRECONNECT_BUFFER+1))
 
-#define _LIVEKIT_PARTICIPANT_INFO_STATE_MIN LIVEKIT_PARTICIPANT_INFO_STATE_JOINING
-#define _LIVEKIT_PARTICIPANT_INFO_STATE_MAX LIVEKIT_PARTICIPANT_INFO_STATE_DISCONNECTED
-#define _LIVEKIT_PARTICIPANT_INFO_STATE_ARRAYSIZE ((livekit_participant_info_state_t)(LIVEKIT_PARTICIPANT_INFO_STATE_DISCONNECTED+1))
+#define _LIVEKIT_PB_PARTICIPANT_INFO_STATE_MIN LIVEKIT_PB_PARTICIPANT_INFO_STATE_JOINING
+#define _LIVEKIT_PB_PARTICIPANT_INFO_STATE_MAX LIVEKIT_PB_PARTICIPANT_INFO_STATE_DISCONNECTED
+#define _LIVEKIT_PB_PARTICIPANT_INFO_STATE_ARRAYSIZE ((livekit_pb_participant_info_state_t)(LIVEKIT_PB_PARTICIPANT_INFO_STATE_DISCONNECTED+1))
 
-#define _LIVEKIT_PARTICIPANT_INFO_KIND_MIN LIVEKIT_PARTICIPANT_INFO_KIND_STANDARD
-#define _LIVEKIT_PARTICIPANT_INFO_KIND_MAX LIVEKIT_PARTICIPANT_INFO_KIND_AGENT
-#define _LIVEKIT_PARTICIPANT_INFO_KIND_ARRAYSIZE ((livekit_participant_info_kind_t)(LIVEKIT_PARTICIPANT_INFO_KIND_AGENT+1))
+#define _LIVEKIT_PB_PARTICIPANT_INFO_KIND_MIN LIVEKIT_PB_PARTICIPANT_INFO_KIND_STANDARD
+#define _LIVEKIT_PB_PARTICIPANT_INFO_KIND_MAX LIVEKIT_PB_PARTICIPANT_INFO_KIND_AGENT
+#define _LIVEKIT_PB_PARTICIPANT_INFO_KIND_ARRAYSIZE ((livekit_pb_participant_info_kind_t)(LIVEKIT_PB_PARTICIPANT_INFO_KIND_AGENT+1))
 
-#define _LIVEKIT_PARTICIPANT_INFO_KIND_DETAIL_MIN LIVEKIT_PARTICIPANT_INFO_KIND_DETAIL_CLOUD_AGENT
-#define _LIVEKIT_PARTICIPANT_INFO_KIND_DETAIL_MAX LIVEKIT_PARTICIPANT_INFO_KIND_DETAIL_FORWARDED
-#define _LIVEKIT_PARTICIPANT_INFO_KIND_DETAIL_ARRAYSIZE ((livekit_participant_info_kind_detail_t)(LIVEKIT_PARTICIPANT_INFO_KIND_DETAIL_FORWARDED+1))
+#define _LIVEKIT_PB_PARTICIPANT_INFO_KIND_DETAIL_MIN LIVEKIT_PB_PARTICIPANT_INFO_KIND_DETAIL_CLOUD_AGENT
+#define _LIVEKIT_PB_PARTICIPANT_INFO_KIND_DETAIL_MAX LIVEKIT_PB_PARTICIPANT_INFO_KIND_DETAIL_FORWARDED
+#define _LIVEKIT_PB_PARTICIPANT_INFO_KIND_DETAIL_ARRAYSIZE ((livekit_pb_participant_info_kind_detail_t)(LIVEKIT_PB_PARTICIPANT_INFO_KIND_DETAIL_FORWARDED+1))
 
-#define _LIVEKIT_ENCRYPTION_TYPE_MIN LIVEKIT_ENCRYPTION_TYPE_NONE
-#define _LIVEKIT_ENCRYPTION_TYPE_MAX LIVEKIT_ENCRYPTION_TYPE_CUSTOM
-#define _LIVEKIT_ENCRYPTION_TYPE_ARRAYSIZE ((livekit_encryption_type_t)(LIVEKIT_ENCRYPTION_TYPE_CUSTOM+1))
+#define _LIVEKIT_PB_ENCRYPTION_TYPE_MIN LIVEKIT_PB_ENCRYPTION_TYPE_NONE
+#define _LIVEKIT_PB_ENCRYPTION_TYPE_MAX LIVEKIT_PB_ENCRYPTION_TYPE_CUSTOM
+#define _LIVEKIT_PB_ENCRYPTION_TYPE_ARRAYSIZE ((livekit_pb_encryption_type_t)(LIVEKIT_PB_ENCRYPTION_TYPE_CUSTOM+1))
 
-#define _LIVEKIT_DATA_PACKET_KIND_MIN LIVEKIT_DATA_PACKET_KIND_RELIABLE
-#define _LIVEKIT_DATA_PACKET_KIND_MAX LIVEKIT_DATA_PACKET_KIND_LOSSY
-#define _LIVEKIT_DATA_PACKET_KIND_ARRAYSIZE ((livekit_data_packet_kind_t)(LIVEKIT_DATA_PACKET_KIND_LOSSY+1))
+#define _LIVEKIT_PB_DATA_PACKET_KIND_MIN LIVEKIT_PB_DATA_PACKET_KIND_RELIABLE
+#define _LIVEKIT_PB_DATA_PACKET_KIND_MAX LIVEKIT_PB_DATA_PACKET_KIND_LOSSY
+#define _LIVEKIT_PB_DATA_PACKET_KIND_ARRAYSIZE ((livekit_pb_data_packet_kind_t)(LIVEKIT_PB_DATA_PACKET_KIND_LOSSY+1))
 
-#define _LIVEKIT_SERVER_INFO_EDITION_MIN LIVEKIT_SERVER_INFO_EDITION_STANDARD
-#define _LIVEKIT_SERVER_INFO_EDITION_MAX LIVEKIT_SERVER_INFO_EDITION_CLOUD
-#define _LIVEKIT_SERVER_INFO_EDITION_ARRAYSIZE ((livekit_server_info_edition_t)(LIVEKIT_SERVER_INFO_EDITION_CLOUD+1))
+#define _LIVEKIT_PB_SERVER_INFO_EDITION_MIN LIVEKIT_PB_SERVER_INFO_EDITION_STANDARD
+#define _LIVEKIT_PB_SERVER_INFO_EDITION_MAX LIVEKIT_PB_SERVER_INFO_EDITION_CLOUD
+#define _LIVEKIT_PB_SERVER_INFO_EDITION_ARRAYSIZE ((livekit_pb_server_info_edition_t)(LIVEKIT_PB_SERVER_INFO_EDITION_CLOUD+1))
 
-#define _LIVEKIT_CLIENT_INFO_SDK_MIN LIVEKIT_CLIENT_INFO_SDK_UNKNOWN
-#define _LIVEKIT_CLIENT_INFO_SDK_MAX LIVEKIT_CLIENT_INFO_SDK_UNREAL
-#define _LIVEKIT_CLIENT_INFO_SDK_ARRAYSIZE ((livekit_client_info_sdk_t)(LIVEKIT_CLIENT_INFO_SDK_UNREAL+1))
+#define _LIVEKIT_PB_CLIENT_INFO_SDK_MIN LIVEKIT_PB_CLIENT_INFO_SDK_UNKNOWN
+#define _LIVEKIT_PB_CLIENT_INFO_SDK_MAX LIVEKIT_PB_CLIENT_INFO_SDK_UNREAL
+#define _LIVEKIT_PB_CLIENT_INFO_SDK_ARRAYSIZE ((livekit_pb_client_info_sdk_t)(LIVEKIT_PB_CLIENT_INFO_SDK_UNREAL+1))
 
-#define _LIVEKIT_DATA_STREAM_OPERATION_TYPE_MIN LIVEKIT_DATA_STREAM_OPERATION_TYPE_CREATE
-#define _LIVEKIT_DATA_STREAM_OPERATION_TYPE_MAX LIVEKIT_DATA_STREAM_OPERATION_TYPE_REACTION
-#define _LIVEKIT_DATA_STREAM_OPERATION_TYPE_ARRAYSIZE ((livekit_data_stream_operation_type_t)(LIVEKIT_DATA_STREAM_OPERATION_TYPE_REACTION+1))
-
-
+#define _LIVEKIT_PB_DATA_STREAM_OPERATION_TYPE_MIN LIVEKIT_PB_DATA_STREAM_OPERATION_TYPE_CREATE
+#define _LIVEKIT_PB_DATA_STREAM_OPERATION_TYPE_MAX LIVEKIT_PB_DATA_STREAM_OPERATION_TYPE_REACTION
+#define _LIVEKIT_PB_DATA_STREAM_OPERATION_TYPE_ARRAYSIZE ((livekit_pb_data_stream_operation_type_t)(LIVEKIT_PB_DATA_STREAM_OPERATION_TYPE_REACTION+1))
 
 
 
@@ -759,15 +757,15 @@ extern "C" {
 
 
 
-#define livekit_track_info_t_type_ENUMTYPE livekit_track_type_t
-#define livekit_track_info_t_source_ENUMTYPE livekit_track_source_t
-#define livekit_track_info_t_encryption_ENUMTYPE livekit_encryption_type_t
-#define livekit_track_info_t_audio_features_ENUMTYPE livekit_audio_track_feature_t
-#define livekit_track_info_t_backup_codec_policy_ENUMTYPE livekit_backup_codec_policy_t
-
-#define livekit_video_layer_t_quality_ENUMTYPE livekit_video_quality_t
 
 
+#define livekit_pb_track_info_t_type_ENUMTYPE livekit_pb_track_type_t
+#define livekit_pb_track_info_t_source_ENUMTYPE livekit_pb_track_source_t
+#define livekit_pb_track_info_t_encryption_ENUMTYPE livekit_pb_encryption_type_t
+#define livekit_pb_track_info_t_audio_features_ENUMTYPE livekit_pb_audio_track_feature_t
+#define livekit_pb_track_info_t_backup_codec_policy_ENUMTYPE livekit_pb_backup_codec_policy_t
+
+#define livekit_pb_video_layer_t_quality_ENUMTYPE livekit_pb_video_quality_t
 
 
 
@@ -780,18 +778,16 @@ extern "C" {
 
 
 
-#define livekit_server_info_t_edition_ENUMTYPE livekit_server_info_edition_t
-
-#define livekit_client_info_t_sdk_ENUMTYPE livekit_client_info_sdk_t
-
-#define livekit_client_configuration_t_resume_connection_ENUMTYPE livekit_client_config_setting_t
-#define livekit_client_configuration_t_force_relay_ENUMTYPE livekit_client_config_setting_t
-
-#define livekit_video_configuration_t_hardware_encoder_ENUMTYPE livekit_client_config_setting_t
 
 
+#define livekit_pb_server_info_t_edition_ENUMTYPE livekit_pb_server_info_edition_t
 
+#define livekit_pb_client_info_t_sdk_ENUMTYPE livekit_pb_client_info_sdk_t
 
+#define livekit_pb_client_configuration_t_resume_connection_ENUMTYPE livekit_pb_client_config_setting_t
+#define livekit_pb_client_configuration_t_force_relay_ENUMTYPE livekit_pb_client_config_setting_t
+
+#define livekit_pb_video_configuration_t_hardware_encoder_ENUMTYPE livekit_pb_client_config_setting_t
 
 
 
@@ -799,10 +795,14 @@ extern "C" {
 
 
 
-#define livekit_data_stream_text_header_t_operation_type_ENUMTYPE livekit_data_stream_operation_type_t
 
 
-#define livekit_data_stream_header_t_encryption_type_ENUMTYPE livekit_encryption_type_t
+
+
+#define livekit_pb_data_stream_text_header_t_operation_type_ENUMTYPE livekit_pb_data_stream_operation_type_t
+
+
+#define livekit_pb_data_stream_header_t_encryption_type_ENUMTYPE livekit_pb_encryption_type_t
 
 
 
@@ -811,361 +811,361 @@ extern "C" {
 
 
 /* Initializer values for message structs */
-#define LIVEKIT_PAGINATION_INIT_DEFAULT          {{{NULL}, NULL}, 0}
-#define LIVEKIT_LIST_UPDATE_INIT_DEFAULT         {{{NULL}, NULL}}
-#define LIVEKIT_ROOM_INIT_DEFAULT                {{{NULL}, NULL}, {{NULL}, NULL}, 0, 0, 0, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0, 0, false, LIVEKIT_TIMED_VERSION_INIT_DEFAULT, 0, 0}
-#define LIVEKIT_CODEC_INIT_DEFAULT               {{{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_PLAYOUT_DELAY_INIT_DEFAULT       {0, 0, 0}
-#define LIVEKIT_PARTICIPANT_PERMISSION_INIT_DEFAULT {0, 0, 0}
-#define LIVEKIT_PARTICIPANT_INFO_INIT_DEFAULT    {LIVEKIT_PARTICIPANT_PERMISSION_INIT_DEFAULT}
-#define LIVEKIT_ENCRYPTION_INIT_DEFAULT          {0}
-#define LIVEKIT_SIMULCAST_CODEC_INFO_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_TRACK_INFO_INIT_DEFAULT          {{{NULL}, NULL}, _LIVEKIT_TRACK_TYPE_MIN, {{NULL}, NULL}, 0, 0, 0, 0, 0, _LIVEKIT_TRACK_SOURCE_MIN, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0, _LIVEKIT_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, false, LIVEKIT_TIMED_VERSION_INIT_DEFAULT, {{NULL}, NULL}, _LIVEKIT_BACKUP_CODEC_POLICY_MIN}
-#define LIVEKIT_VIDEO_LAYER_INIT_DEFAULT         {_LIVEKIT_VIDEO_QUALITY_MIN, 0, 0, 0, 0}
-#define LIVEKIT_DATA_PACKET_INIT_DEFAULT         {0, {LIVEKIT_USER_PACKET_INIT_DEFAULT}, {{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_ACTIVE_SPEAKER_UPDATE_INIT_DEFAULT {{{NULL}, NULL}}
-#define LIVEKIT_SPEAKER_INFO_INIT_DEFAULT        {{{NULL}, NULL}, 0, 0}
-#define LIVEKIT_USER_PACKET_INIT_DEFAULT         {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, false, 0, false, 0, {{NULL}, NULL}}
-#define LIVEKIT_SIP_DTMF_INIT_DEFAULT            {0, {{NULL}, NULL}}
-#define LIVEKIT_TRANSCRIPTION_INIT_DEFAULT       {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_TRANSCRIPTION_SEGMENT_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}, 0, 0, 0, {{NULL}, NULL}}
-#define LIVEKIT_CHAT_MESSAGE_INIT_DEFAULT        {{{NULL}, NULL}, 0, false, 0, {{NULL}, NULL}, 0, 0}
-#define LIVEKIT_RPC_REQUEST_INIT_DEFAULT         {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0}
-#define LIVEKIT_RPC_ACK_INIT_DEFAULT             {{{NULL}, NULL}}
-#define LIVEKIT_RPC_RESPONSE_INIT_DEFAULT        {{{NULL}, NULL}, 0, {{{NULL}, NULL}}}
-#define LIVEKIT_RPC_ERROR_INIT_DEFAULT           {0, {{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_PARTICIPANT_TRACKS_INIT_DEFAULT  {{{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_SERVER_INFO_INIT_DEFAULT         {_LIVEKIT_SERVER_INFO_EDITION_MIN, {{NULL}, NULL}, 0, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0}
-#define LIVEKIT_CLIENT_INFO_INIT_DEFAULT         {_LIVEKIT_CLIENT_INFO_SDK_MIN, {{NULL}, NULL}, 0, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_CLIENT_CONFIGURATION_INIT_DEFAULT {_LIVEKIT_CLIENT_CONFIG_SETTING_MIN, _LIVEKIT_CLIENT_CONFIG_SETTING_MIN}
-#define LIVEKIT_VIDEO_CONFIGURATION_INIT_DEFAULT {_LIVEKIT_CLIENT_CONFIG_SETTING_MIN}
-#define LIVEKIT_DISABLED_CODECS_INIT_DEFAULT     {{{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_RTP_DRIFT_INIT_DEFAULT           {false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, 0, 0, 0, 0, 0, 0, 0}
-#define LIVEKIT_RTP_STATS_INIT_DEFAULT           {false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, {{NULL}, NULL}, 0, 0, 0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, 0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, 0, 0, 0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, 0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, 0, 0, 0, 0, 0, false, LIVEKIT_RTP_DRIFT_INIT_DEFAULT, false, LIVEKIT_RTP_DRIFT_INIT_DEFAULT, false, LIVEKIT_RTP_DRIFT_INIT_DEFAULT, false, LIVEKIT_RTP_DRIFT_INIT_DEFAULT}
-#define LIVEKIT_RTP_STATS_GAP_HISTOGRAM_ENTRY_INIT_DEFAULT {0, 0}
-#define LIVEKIT_RTCP_SENDER_REPORT_STATE_INIT_DEFAULT {0, 0, 0, 0, 0, 0, 0}
-#define LIVEKIT_RTP_FORWARDER_STATE_INIT_DEFAULT {0, 0, 0, 0, 0, false, LIVEKIT_RTP_MUNGER_STATE_INIT_DEFAULT, 0, {LIVEKIT_VP8_MUNGER_STATE_INIT_DEFAULT}, {{NULL}, NULL}}
-#define LIVEKIT_RTP_MUNGER_STATE_INIT_DEFAULT    {0, 0, 0, 0, 0, 0}
-#define LIVEKIT_VP8_MUNGER_STATE_INIT_DEFAULT    {0, 0, 0, 0, 0, 0, 0}
-#define LIVEKIT_TIMED_VERSION_INIT_DEFAULT       {0, 0}
-#define LIVEKIT_DATA_STREAM_INIT_DEFAULT         {0}
-#define LIVEKIT_DATA_STREAM_TEXT_HEADER_INIT_DEFAULT {_LIVEKIT_DATA_STREAM_OPERATION_TYPE_MIN, 0, {{NULL}, NULL}, {{NULL}, NULL}, 0}
-#define LIVEKIT_DATA_STREAM_BYTE_HEADER_INIT_DEFAULT {{{NULL}, NULL}}
-#define LIVEKIT_DATA_STREAM_HEADER_INIT_DEFAULT  {{{NULL}, NULL}, 0, {{NULL}, NULL}, {{NULL}, NULL}, false, 0, _LIVEKIT_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, 0, {LIVEKIT_DATA_STREAM_TEXT_HEADER_INIT_DEFAULT}}
-#define LIVEKIT_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_DATA_STREAM_CHUNK_INIT_DEFAULT   {{{NULL}, NULL}, 0, {{NULL}, NULL}, 0, {{NULL}, NULL}}
-#define LIVEKIT_DATA_STREAM_TRAILER_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_WEBHOOK_CONFIG_INIT_DEFAULT      {{{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_PAGINATION_INIT_ZERO             {{{NULL}, NULL}, 0}
-#define LIVEKIT_LIST_UPDATE_INIT_ZERO            {{{NULL}, NULL}}
-#define LIVEKIT_ROOM_INIT_ZERO                   {{{NULL}, NULL}, {{NULL}, NULL}, 0, 0, 0, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0, 0, false, LIVEKIT_TIMED_VERSION_INIT_ZERO, 0, 0}
-#define LIVEKIT_CODEC_INIT_ZERO                  {{{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_PLAYOUT_DELAY_INIT_ZERO          {0, 0, 0}
-#define LIVEKIT_PARTICIPANT_PERMISSION_INIT_ZERO {0, 0, 0}
-#define LIVEKIT_PARTICIPANT_INFO_INIT_ZERO       {LIVEKIT_PARTICIPANT_PERMISSION_INIT_ZERO}
-#define LIVEKIT_ENCRYPTION_INIT_ZERO             {0}
-#define LIVEKIT_SIMULCAST_CODEC_INFO_INIT_ZERO   {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_TRACK_INFO_INIT_ZERO             {{{NULL}, NULL}, _LIVEKIT_TRACK_TYPE_MIN, {{NULL}, NULL}, 0, 0, 0, 0, 0, _LIVEKIT_TRACK_SOURCE_MIN, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0, _LIVEKIT_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, false, LIVEKIT_TIMED_VERSION_INIT_ZERO, {{NULL}, NULL}, _LIVEKIT_BACKUP_CODEC_POLICY_MIN}
-#define LIVEKIT_VIDEO_LAYER_INIT_ZERO            {_LIVEKIT_VIDEO_QUALITY_MIN, 0, 0, 0, 0}
-#define LIVEKIT_DATA_PACKET_INIT_ZERO            {0, {LIVEKIT_USER_PACKET_INIT_ZERO}, {{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_ACTIVE_SPEAKER_UPDATE_INIT_ZERO  {{{NULL}, NULL}}
-#define LIVEKIT_SPEAKER_INFO_INIT_ZERO           {{{NULL}, NULL}, 0, 0}
-#define LIVEKIT_USER_PACKET_INIT_ZERO            {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, false, 0, false, 0, {{NULL}, NULL}}
-#define LIVEKIT_SIP_DTMF_INIT_ZERO               {0, {{NULL}, NULL}}
-#define LIVEKIT_TRANSCRIPTION_INIT_ZERO          {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_TRANSCRIPTION_SEGMENT_INIT_ZERO  {{{NULL}, NULL}, {{NULL}, NULL}, 0, 0, 0, {{NULL}, NULL}}
-#define LIVEKIT_CHAT_MESSAGE_INIT_ZERO           {{{NULL}, NULL}, 0, false, 0, {{NULL}, NULL}, 0, 0}
-#define LIVEKIT_RPC_REQUEST_INIT_ZERO            {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0}
-#define LIVEKIT_RPC_ACK_INIT_ZERO                {{{NULL}, NULL}}
-#define LIVEKIT_RPC_RESPONSE_INIT_ZERO           {{{NULL}, NULL}, 0, {{{NULL}, NULL}}}
-#define LIVEKIT_RPC_ERROR_INIT_ZERO              {0, {{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_PARTICIPANT_TRACKS_INIT_ZERO     {{{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_SERVER_INFO_INIT_ZERO            {_LIVEKIT_SERVER_INFO_EDITION_MIN, {{NULL}, NULL}, 0, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0}
-#define LIVEKIT_CLIENT_INFO_INIT_ZERO            {_LIVEKIT_CLIENT_INFO_SDK_MIN, {{NULL}, NULL}, 0, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_CLIENT_CONFIGURATION_INIT_ZERO   {_LIVEKIT_CLIENT_CONFIG_SETTING_MIN, _LIVEKIT_CLIENT_CONFIG_SETTING_MIN}
-#define LIVEKIT_VIDEO_CONFIGURATION_INIT_ZERO    {_LIVEKIT_CLIENT_CONFIG_SETTING_MIN}
-#define LIVEKIT_DISABLED_CODECS_INIT_ZERO        {{{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_RTP_DRIFT_INIT_ZERO              {false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, 0, 0, 0, 0, 0, 0, 0}
-#define LIVEKIT_RTP_STATS_INIT_ZERO              {false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, {{NULL}, NULL}, 0, 0, 0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, 0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, 0, 0, 0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, 0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, 0, 0, 0, 0, 0, false, LIVEKIT_RTP_DRIFT_INIT_ZERO, false, LIVEKIT_RTP_DRIFT_INIT_ZERO, false, LIVEKIT_RTP_DRIFT_INIT_ZERO, false, LIVEKIT_RTP_DRIFT_INIT_ZERO}
-#define LIVEKIT_RTP_STATS_GAP_HISTOGRAM_ENTRY_INIT_ZERO {0, 0}
-#define LIVEKIT_RTCP_SENDER_REPORT_STATE_INIT_ZERO {0, 0, 0, 0, 0, 0, 0}
-#define LIVEKIT_RTP_FORWARDER_STATE_INIT_ZERO    {0, 0, 0, 0, 0, false, LIVEKIT_RTP_MUNGER_STATE_INIT_ZERO, 0, {LIVEKIT_VP8_MUNGER_STATE_INIT_ZERO}, {{NULL}, NULL}}
-#define LIVEKIT_RTP_MUNGER_STATE_INIT_ZERO       {0, 0, 0, 0, 0, 0}
-#define LIVEKIT_VP8_MUNGER_STATE_INIT_ZERO       {0, 0, 0, 0, 0, 0, 0}
-#define LIVEKIT_TIMED_VERSION_INIT_ZERO          {0, 0}
-#define LIVEKIT_DATA_STREAM_INIT_ZERO            {0}
-#define LIVEKIT_DATA_STREAM_TEXT_HEADER_INIT_ZERO {_LIVEKIT_DATA_STREAM_OPERATION_TYPE_MIN, 0, {{NULL}, NULL}, {{NULL}, NULL}, 0}
-#define LIVEKIT_DATA_STREAM_BYTE_HEADER_INIT_ZERO {{{NULL}, NULL}}
-#define LIVEKIT_DATA_STREAM_HEADER_INIT_ZERO     {{{NULL}, NULL}, 0, {{NULL}, NULL}, {{NULL}, NULL}, false, 0, _LIVEKIT_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, 0, {LIVEKIT_DATA_STREAM_TEXT_HEADER_INIT_ZERO}}
-#define LIVEKIT_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_DATA_STREAM_CHUNK_INIT_ZERO      {{{NULL}, NULL}, 0, {{NULL}, NULL}, 0, {{NULL}, NULL}}
-#define LIVEKIT_DATA_STREAM_TRAILER_INIT_ZERO    {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_WEBHOOK_CONFIG_INIT_ZERO         {{{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_PAGINATION_INIT_DEFAULT       {{{NULL}, NULL}, 0}
+#define LIVEKIT_PB_LIST_UPDATE_INIT_DEFAULT      {{{NULL}, NULL}}
+#define LIVEKIT_PB_ROOM_INIT_DEFAULT             {{{NULL}, NULL}, {{NULL}, NULL}, 0, 0, 0, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0, 0, false, LIVEKIT_PB_TIMED_VERSION_INIT_DEFAULT, 0, 0}
+#define LIVEKIT_PB_CODEC_INIT_DEFAULT            {{{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_PLAYOUT_DELAY_INIT_DEFAULT    {0, 0, 0}
+#define LIVEKIT_PB_PARTICIPANT_PERMISSION_INIT_DEFAULT {0, 0, 0}
+#define LIVEKIT_PB_PARTICIPANT_INFO_INIT_DEFAULT {LIVEKIT_PB_PARTICIPANT_PERMISSION_INIT_DEFAULT}
+#define LIVEKIT_PB_ENCRYPTION_INIT_DEFAULT       {0}
+#define LIVEKIT_PB_SIMULCAST_CODEC_INFO_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_TRACK_INFO_INIT_DEFAULT       {{{NULL}, NULL}, _LIVEKIT_PB_TRACK_TYPE_MIN, {{NULL}, NULL}, 0, 0, 0, 0, 0, _LIVEKIT_PB_TRACK_SOURCE_MIN, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0, _LIVEKIT_PB_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, false, LIVEKIT_PB_TIMED_VERSION_INIT_DEFAULT, {{NULL}, NULL}, _LIVEKIT_PB_BACKUP_CODEC_POLICY_MIN}
+#define LIVEKIT_PB_VIDEO_LAYER_INIT_DEFAULT      {_LIVEKIT_PB_VIDEO_QUALITY_MIN, 0, 0, 0, 0}
+#define LIVEKIT_PB_DATA_PACKET_INIT_DEFAULT      {0, {LIVEKIT_PB_USER_PACKET_INIT_DEFAULT}, {{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_INIT_DEFAULT {{{NULL}, NULL}}
+#define LIVEKIT_PB_SPEAKER_INFO_INIT_DEFAULT     {{{NULL}, NULL}, 0, 0}
+#define LIVEKIT_PB_USER_PACKET_INIT_DEFAULT      {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, false, 0, false, 0, {{NULL}, NULL}}
+#define LIVEKIT_PB_SIP_DTMF_INIT_DEFAULT         {0, {{NULL}, NULL}}
+#define LIVEKIT_PB_TRANSCRIPTION_INIT_DEFAULT    {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_TRANSCRIPTION_SEGMENT_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}, 0, 0, 0, {{NULL}, NULL}}
+#define LIVEKIT_PB_CHAT_MESSAGE_INIT_DEFAULT     {{{NULL}, NULL}, 0, false, 0, {{NULL}, NULL}, 0, 0}
+#define LIVEKIT_PB_RPC_REQUEST_INIT_DEFAULT      {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0}
+#define LIVEKIT_PB_RPC_ACK_INIT_DEFAULT          {{{NULL}, NULL}}
+#define LIVEKIT_PB_RPC_RESPONSE_INIT_DEFAULT     {{{NULL}, NULL}, 0, {{{NULL}, NULL}}}
+#define LIVEKIT_PB_RPC_ERROR_INIT_DEFAULT        {0, {{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_PARTICIPANT_TRACKS_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_SERVER_INFO_INIT_DEFAULT      {_LIVEKIT_PB_SERVER_INFO_EDITION_MIN, {{NULL}, NULL}, 0, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0}
+#define LIVEKIT_PB_CLIENT_INFO_INIT_DEFAULT      {_LIVEKIT_PB_CLIENT_INFO_SDK_MIN, {{NULL}, NULL}, 0, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_CLIENT_CONFIGURATION_INIT_DEFAULT {_LIVEKIT_PB_CLIENT_CONFIG_SETTING_MIN, _LIVEKIT_PB_CLIENT_CONFIG_SETTING_MIN}
+#define LIVEKIT_PB_VIDEO_CONFIGURATION_INIT_DEFAULT {_LIVEKIT_PB_CLIENT_CONFIG_SETTING_MIN}
+#define LIVEKIT_PB_DISABLED_CODECS_INIT_DEFAULT  {{{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_RTP_DRIFT_INIT_DEFAULT        {false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, 0, 0, 0, 0, 0, 0, 0}
+#define LIVEKIT_PB_RTP_STATS_INIT_DEFAULT        {false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, {{NULL}, NULL}, 0, 0, 0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, 0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, 0, 0, 0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, 0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, 0, 0, 0, 0, 0, false, LIVEKIT_PB_RTP_DRIFT_INIT_DEFAULT, false, LIVEKIT_PB_RTP_DRIFT_INIT_DEFAULT, false, LIVEKIT_PB_RTP_DRIFT_INIT_DEFAULT, false, LIVEKIT_PB_RTP_DRIFT_INIT_DEFAULT}
+#define LIVEKIT_PB_RTP_STATS_GAP_HISTOGRAM_ENTRY_INIT_DEFAULT {0, 0}
+#define LIVEKIT_PB_RTCP_SENDER_REPORT_STATE_INIT_DEFAULT {0, 0, 0, 0, 0, 0, 0}
+#define LIVEKIT_PB_RTP_FORWARDER_STATE_INIT_DEFAULT {0, 0, 0, 0, 0, false, LIVEKIT_PB_RTP_MUNGER_STATE_INIT_DEFAULT, 0, {LIVEKIT_PB_VP8_MUNGER_STATE_INIT_DEFAULT}, {{NULL}, NULL}}
+#define LIVEKIT_PB_RTP_MUNGER_STATE_INIT_DEFAULT {0, 0, 0, 0, 0, 0}
+#define LIVEKIT_PB_VP8_MUNGER_STATE_INIT_DEFAULT {0, 0, 0, 0, 0, 0, 0}
+#define LIVEKIT_PB_TIMED_VERSION_INIT_DEFAULT    {0, 0}
+#define LIVEKIT_PB_DATA_STREAM_INIT_DEFAULT      {0}
+#define LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_INIT_DEFAULT {_LIVEKIT_PB_DATA_STREAM_OPERATION_TYPE_MIN, 0, {{NULL}, NULL}, {{NULL}, NULL}, 0}
+#define LIVEKIT_PB_DATA_STREAM_BYTE_HEADER_INIT_DEFAULT {{{NULL}, NULL}}
+#define LIVEKIT_PB_DATA_STREAM_HEADER_INIT_DEFAULT {{{NULL}, NULL}, 0, {{NULL}, NULL}, {{NULL}, NULL}, false, 0, _LIVEKIT_PB_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, 0, {LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_INIT_DEFAULT}}
+#define LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_DATA_STREAM_CHUNK_INIT_DEFAULT {{{NULL}, NULL}, 0, {{NULL}, NULL}, 0, {{NULL}, NULL}}
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_WEBHOOK_CONFIG_INIT_DEFAULT   {{{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_PAGINATION_INIT_ZERO          {{{NULL}, NULL}, 0}
+#define LIVEKIT_PB_LIST_UPDATE_INIT_ZERO         {{{NULL}, NULL}}
+#define LIVEKIT_PB_ROOM_INIT_ZERO                {{{NULL}, NULL}, {{NULL}, NULL}, 0, 0, 0, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0, 0, false, LIVEKIT_PB_TIMED_VERSION_INIT_ZERO, 0, 0}
+#define LIVEKIT_PB_CODEC_INIT_ZERO               {{{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_PLAYOUT_DELAY_INIT_ZERO       {0, 0, 0}
+#define LIVEKIT_PB_PARTICIPANT_PERMISSION_INIT_ZERO {0, 0, 0}
+#define LIVEKIT_PB_PARTICIPANT_INFO_INIT_ZERO    {LIVEKIT_PB_PARTICIPANT_PERMISSION_INIT_ZERO}
+#define LIVEKIT_PB_ENCRYPTION_INIT_ZERO          {0}
+#define LIVEKIT_PB_SIMULCAST_CODEC_INFO_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_TRACK_INFO_INIT_ZERO          {{{NULL}, NULL}, _LIVEKIT_PB_TRACK_TYPE_MIN, {{NULL}, NULL}, 0, 0, 0, 0, 0, _LIVEKIT_PB_TRACK_SOURCE_MIN, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0, _LIVEKIT_PB_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, false, LIVEKIT_PB_TIMED_VERSION_INIT_ZERO, {{NULL}, NULL}, _LIVEKIT_PB_BACKUP_CODEC_POLICY_MIN}
+#define LIVEKIT_PB_VIDEO_LAYER_INIT_ZERO         {_LIVEKIT_PB_VIDEO_QUALITY_MIN, 0, 0, 0, 0}
+#define LIVEKIT_PB_DATA_PACKET_INIT_ZERO         {0, {LIVEKIT_PB_USER_PACKET_INIT_ZERO}, {{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_INIT_ZERO {{{NULL}, NULL}}
+#define LIVEKIT_PB_SPEAKER_INFO_INIT_ZERO        {{{NULL}, NULL}, 0, 0}
+#define LIVEKIT_PB_USER_PACKET_INIT_ZERO         {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, false, 0, false, 0, {{NULL}, NULL}}
+#define LIVEKIT_PB_SIP_DTMF_INIT_ZERO            {0, {{NULL}, NULL}}
+#define LIVEKIT_PB_TRANSCRIPTION_INIT_ZERO       {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_TRANSCRIPTION_SEGMENT_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}, 0, 0, 0, {{NULL}, NULL}}
+#define LIVEKIT_PB_CHAT_MESSAGE_INIT_ZERO        {{{NULL}, NULL}, 0, false, 0, {{NULL}, NULL}, 0, 0}
+#define LIVEKIT_PB_RPC_REQUEST_INIT_ZERO         {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0}
+#define LIVEKIT_PB_RPC_ACK_INIT_ZERO             {{{NULL}, NULL}}
+#define LIVEKIT_PB_RPC_RESPONSE_INIT_ZERO        {{{NULL}, NULL}, 0, {{{NULL}, NULL}}}
+#define LIVEKIT_PB_RPC_ERROR_INIT_ZERO           {0, {{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_PARTICIPANT_TRACKS_INIT_ZERO  {{{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_SERVER_INFO_INIT_ZERO         {_LIVEKIT_PB_SERVER_INFO_EDITION_MIN, {{NULL}, NULL}, 0, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0}
+#define LIVEKIT_PB_CLIENT_INFO_INIT_ZERO         {_LIVEKIT_PB_CLIENT_INFO_SDK_MIN, {{NULL}, NULL}, 0, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_CLIENT_CONFIGURATION_INIT_ZERO {_LIVEKIT_PB_CLIENT_CONFIG_SETTING_MIN, _LIVEKIT_PB_CLIENT_CONFIG_SETTING_MIN}
+#define LIVEKIT_PB_VIDEO_CONFIGURATION_INIT_ZERO {_LIVEKIT_PB_CLIENT_CONFIG_SETTING_MIN}
+#define LIVEKIT_PB_DISABLED_CODECS_INIT_ZERO     {{{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_RTP_DRIFT_INIT_ZERO           {false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, 0, 0, 0, 0, 0, 0, 0}
+#define LIVEKIT_PB_RTP_STATS_INIT_ZERO           {false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, {{NULL}, NULL}, 0, 0, 0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, 0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, 0, 0, 0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, 0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, 0, 0, 0, 0, 0, false, LIVEKIT_PB_RTP_DRIFT_INIT_ZERO, false, LIVEKIT_PB_RTP_DRIFT_INIT_ZERO, false, LIVEKIT_PB_RTP_DRIFT_INIT_ZERO, false, LIVEKIT_PB_RTP_DRIFT_INIT_ZERO}
+#define LIVEKIT_PB_RTP_STATS_GAP_HISTOGRAM_ENTRY_INIT_ZERO {0, 0}
+#define LIVEKIT_PB_RTCP_SENDER_REPORT_STATE_INIT_ZERO {0, 0, 0, 0, 0, 0, 0}
+#define LIVEKIT_PB_RTP_FORWARDER_STATE_INIT_ZERO {0, 0, 0, 0, 0, false, LIVEKIT_PB_RTP_MUNGER_STATE_INIT_ZERO, 0, {LIVEKIT_PB_VP8_MUNGER_STATE_INIT_ZERO}, {{NULL}, NULL}}
+#define LIVEKIT_PB_RTP_MUNGER_STATE_INIT_ZERO    {0, 0, 0, 0, 0, 0}
+#define LIVEKIT_PB_VP8_MUNGER_STATE_INIT_ZERO    {0, 0, 0, 0, 0, 0, 0}
+#define LIVEKIT_PB_TIMED_VERSION_INIT_ZERO       {0, 0}
+#define LIVEKIT_PB_DATA_STREAM_INIT_ZERO         {0}
+#define LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_INIT_ZERO {_LIVEKIT_PB_DATA_STREAM_OPERATION_TYPE_MIN, 0, {{NULL}, NULL}, {{NULL}, NULL}, 0}
+#define LIVEKIT_PB_DATA_STREAM_BYTE_HEADER_INIT_ZERO {{{NULL}, NULL}}
+#define LIVEKIT_PB_DATA_STREAM_HEADER_INIT_ZERO  {{{NULL}, NULL}, 0, {{NULL}, NULL}, {{NULL}, NULL}, false, 0, _LIVEKIT_PB_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, 0, {LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_INIT_ZERO}}
+#define LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_DATA_STREAM_CHUNK_INIT_ZERO   {{{NULL}, NULL}, 0, {{NULL}, NULL}, 0, {{NULL}, NULL}}
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_WEBHOOK_CONFIG_INIT_ZERO      {{{NULL}, NULL}, {{NULL}, NULL}}
 
 /* Field tags (for use in manual encoding/decoding) */
-#define LIVEKIT_PAGINATION_AFTER_ID_TAG          1
-#define LIVEKIT_PAGINATION_LIMIT_TAG             2
-#define LIVEKIT_LIST_UPDATE_SET_TAG              1
-#define LIVEKIT_CODEC_MIME_TAG                   1
-#define LIVEKIT_CODEC_FMTP_LINE_TAG              2
-#define LIVEKIT_PLAYOUT_DELAY_ENABLED_TAG        1
-#define LIVEKIT_PLAYOUT_DELAY_MIN_TAG            2
-#define LIVEKIT_PLAYOUT_DELAY_MAX_TAG            3
-#define LIVEKIT_PARTICIPANT_PERMISSION_CAN_SUBSCRIBE_TAG 1
-#define LIVEKIT_PARTICIPANT_PERMISSION_CAN_PUBLISH_TAG 2
-#define LIVEKIT_PARTICIPANT_PERMISSION_CAN_PUBLISH_DATA_TAG 3
-#define LIVEKIT_PARTICIPANT_INFO_PERMISSION_TAG  11
-#define LIVEKIT_SIMULCAST_CODEC_INFO_MIME_TYPE_TAG 1
-#define LIVEKIT_SIMULCAST_CODEC_INFO_MID_TAG     2
-#define LIVEKIT_SIMULCAST_CODEC_INFO_CID_TAG     3
-#define LIVEKIT_SIMULCAST_CODEC_INFO_LAYERS_TAG  4
-#define LIVEKIT_VIDEO_LAYER_QUALITY_TAG          1
-#define LIVEKIT_VIDEO_LAYER_WIDTH_TAG            2
-#define LIVEKIT_VIDEO_LAYER_HEIGHT_TAG           3
-#define LIVEKIT_VIDEO_LAYER_BITRATE_TAG          4
-#define LIVEKIT_VIDEO_LAYER_SSRC_TAG             5
-#define LIVEKIT_ACTIVE_SPEAKER_UPDATE_SPEAKERS_TAG 1
-#define LIVEKIT_SPEAKER_INFO_SID_TAG             1
-#define LIVEKIT_SPEAKER_INFO_LEVEL_TAG           2
-#define LIVEKIT_SPEAKER_INFO_ACTIVE_TAG          3
-#define LIVEKIT_USER_PACKET_PAYLOAD_TAG          2
-#define LIVEKIT_USER_PACKET_TOPIC_TAG            4
-#define LIVEKIT_USER_PACKET_ID_TAG               8
-#define LIVEKIT_USER_PACKET_START_TIME_TAG       9
-#define LIVEKIT_USER_PACKET_END_TIME_TAG         10
-#define LIVEKIT_USER_PACKET_NONCE_TAG            11
-#define LIVEKIT_SIP_DTMF_CODE_TAG                3
-#define LIVEKIT_SIP_DTMF_DIGIT_TAG               4
-#define LIVEKIT_TRANSCRIPTION_TRANSCRIBED_PARTICIPANT_IDENTITY_TAG 2
-#define LIVEKIT_TRANSCRIPTION_TRACK_ID_TAG       3
-#define LIVEKIT_TRANSCRIPTION_SEGMENTS_TAG       4
-#define LIVEKIT_TRANSCRIPTION_SEGMENT_ID_TAG     1
-#define LIVEKIT_TRANSCRIPTION_SEGMENT_TEXT_TAG   2
-#define LIVEKIT_TRANSCRIPTION_SEGMENT_START_TIME_TAG 3
-#define LIVEKIT_TRANSCRIPTION_SEGMENT_END_TIME_TAG 4
-#define LIVEKIT_TRANSCRIPTION_SEGMENT_FINAL_TAG  5
-#define LIVEKIT_TRANSCRIPTION_SEGMENT_LANGUAGE_TAG 6
-#define LIVEKIT_CHAT_MESSAGE_ID_TAG              1
-#define LIVEKIT_CHAT_MESSAGE_TIMESTAMP_TAG       2
-#define LIVEKIT_CHAT_MESSAGE_EDIT_TIMESTAMP_TAG  3
-#define LIVEKIT_CHAT_MESSAGE_MESSAGE_TAG         4
-#define LIVEKIT_CHAT_MESSAGE_DELETED_TAG         5
-#define LIVEKIT_CHAT_MESSAGE_GENERATED_TAG       6
-#define LIVEKIT_RPC_REQUEST_ID_TAG               1
-#define LIVEKIT_RPC_REQUEST_METHOD_TAG           2
-#define LIVEKIT_RPC_REQUEST_PAYLOAD_TAG          3
-#define LIVEKIT_RPC_REQUEST_RESPONSE_TIMEOUT_MS_TAG 4
-#define LIVEKIT_RPC_REQUEST_VERSION_TAG          5
-#define LIVEKIT_RPC_ACK_REQUEST_ID_TAG           1
-#define LIVEKIT_RPC_ERROR_CODE_TAG               1
-#define LIVEKIT_RPC_ERROR_MESSAGE_TAG            2
-#define LIVEKIT_RPC_ERROR_DATA_TAG               3
-#define LIVEKIT_RPC_RESPONSE_REQUEST_ID_TAG      1
-#define LIVEKIT_RPC_RESPONSE_PAYLOAD_TAG         2
-#define LIVEKIT_RPC_RESPONSE_ERROR_TAG           3
-#define LIVEKIT_PARTICIPANT_TRACKS_PARTICIPANT_SID_TAG 1
-#define LIVEKIT_PARTICIPANT_TRACKS_TRACK_SIDS_TAG 2
-#define LIVEKIT_SERVER_INFO_EDITION_TAG          1
-#define LIVEKIT_SERVER_INFO_VERSION_TAG          2
-#define LIVEKIT_SERVER_INFO_PROTOCOL_TAG         3
-#define LIVEKIT_SERVER_INFO_REGION_TAG           4
-#define LIVEKIT_SERVER_INFO_NODE_ID_TAG          5
-#define LIVEKIT_SERVER_INFO_DEBUG_INFO_TAG       6
-#define LIVEKIT_SERVER_INFO_AGENT_PROTOCOL_TAG   7
-#define LIVEKIT_CLIENT_INFO_SDK_TAG              1
-#define LIVEKIT_CLIENT_INFO_VERSION_TAG          2
-#define LIVEKIT_CLIENT_INFO_PROTOCOL_TAG         3
-#define LIVEKIT_CLIENT_INFO_OS_TAG               4
-#define LIVEKIT_CLIENT_INFO_OS_VERSION_TAG       5
-#define LIVEKIT_CLIENT_INFO_DEVICE_MODEL_TAG     6
-#define LIVEKIT_CLIENT_INFO_BROWSER_TAG          7
-#define LIVEKIT_CLIENT_INFO_BROWSER_VERSION_TAG  8
-#define LIVEKIT_CLIENT_INFO_ADDRESS_TAG          9
-#define LIVEKIT_CLIENT_INFO_NETWORK_TAG          10
-#define LIVEKIT_CLIENT_INFO_OTHER_SDKS_TAG       11
-#define LIVEKIT_CLIENT_CONFIGURATION_RESUME_CONNECTION_TAG 3
-#define LIVEKIT_CLIENT_CONFIGURATION_FORCE_RELAY_TAG 5
-#define LIVEKIT_VIDEO_CONFIGURATION_HARDWARE_ENCODER_TAG 1
-#define LIVEKIT_DISABLED_CODECS_CODECS_TAG       1
-#define LIVEKIT_DISABLED_CODECS_PUBLISH_TAG      2
-#define LIVEKIT_RTP_DRIFT_START_TIME_TAG         1
-#define LIVEKIT_RTP_DRIFT_END_TIME_TAG           2
-#define LIVEKIT_RTP_DRIFT_DURATION_TAG           3
-#define LIVEKIT_RTP_DRIFT_START_TIMESTAMP_TAG    4
-#define LIVEKIT_RTP_DRIFT_END_TIMESTAMP_TAG      5
-#define LIVEKIT_RTP_DRIFT_RTP_CLOCK_TICKS_TAG    6
-#define LIVEKIT_RTP_DRIFT_DRIFT_SAMPLES_TAG      7
-#define LIVEKIT_RTP_DRIFT_DRIFT_MS_TAG           8
-#define LIVEKIT_RTP_DRIFT_CLOCK_RATE_TAG         9
-#define LIVEKIT_RTP_STATS_START_TIME_TAG         1
-#define LIVEKIT_RTP_STATS_END_TIME_TAG           2
-#define LIVEKIT_RTP_STATS_DURATION_TAG           3
-#define LIVEKIT_RTP_STATS_PACKETS_TAG            4
-#define LIVEKIT_RTP_STATS_PACKET_RATE_TAG        5
-#define LIVEKIT_RTP_STATS_BYTES_TAG              6
-#define LIVEKIT_RTP_STATS_BITRATE_TAG            7
-#define LIVEKIT_RTP_STATS_PACKETS_LOST_TAG       8
-#define LIVEKIT_RTP_STATS_PACKET_LOSS_RATE_TAG   9
-#define LIVEKIT_RTP_STATS_PACKET_LOSS_PERCENTAGE_TAG 10
-#define LIVEKIT_RTP_STATS_PACKETS_DUPLICATE_TAG  11
-#define LIVEKIT_RTP_STATS_PACKET_DUPLICATE_RATE_TAG 12
-#define LIVEKIT_RTP_STATS_BYTES_DUPLICATE_TAG    13
-#define LIVEKIT_RTP_STATS_BITRATE_DUPLICATE_TAG  14
-#define LIVEKIT_RTP_STATS_PACKETS_PADDING_TAG    15
-#define LIVEKIT_RTP_STATS_PACKET_PADDING_RATE_TAG 16
-#define LIVEKIT_RTP_STATS_BYTES_PADDING_TAG      17
-#define LIVEKIT_RTP_STATS_BITRATE_PADDING_TAG    18
-#define LIVEKIT_RTP_STATS_PACKETS_OUT_OF_ORDER_TAG 19
-#define LIVEKIT_RTP_STATS_FRAMES_TAG             20
-#define LIVEKIT_RTP_STATS_FRAME_RATE_TAG         21
-#define LIVEKIT_RTP_STATS_JITTER_CURRENT_TAG     22
-#define LIVEKIT_RTP_STATS_JITTER_MAX_TAG         23
-#define LIVEKIT_RTP_STATS_GAP_HISTOGRAM_TAG      24
-#define LIVEKIT_RTP_STATS_NACKS_TAG              25
-#define LIVEKIT_RTP_STATS_NACK_MISSES_TAG        26
-#define LIVEKIT_RTP_STATS_PLIS_TAG               27
-#define LIVEKIT_RTP_STATS_LAST_PLI_TAG           28
-#define LIVEKIT_RTP_STATS_FIRS_TAG               29
-#define LIVEKIT_RTP_STATS_LAST_FIR_TAG           30
-#define LIVEKIT_RTP_STATS_RTT_CURRENT_TAG        31
-#define LIVEKIT_RTP_STATS_RTT_MAX_TAG            32
-#define LIVEKIT_RTP_STATS_KEY_FRAMES_TAG         33
-#define LIVEKIT_RTP_STATS_LAST_KEY_FRAME_TAG     34
-#define LIVEKIT_RTP_STATS_LAYER_LOCK_PLIS_TAG    35
-#define LIVEKIT_RTP_STATS_LAST_LAYER_LOCK_PLI_TAG 36
-#define LIVEKIT_RTP_STATS_NACK_ACKS_TAG          37
-#define LIVEKIT_RTP_STATS_NACK_REPEATED_TAG      38
-#define LIVEKIT_RTP_STATS_HEADER_BYTES_TAG       39
-#define LIVEKIT_RTP_STATS_HEADER_BYTES_DUPLICATE_TAG 40
-#define LIVEKIT_RTP_STATS_HEADER_BYTES_PADDING_TAG 41
-#define LIVEKIT_RTP_STATS_PACKET_DRIFT_TAG       44
-#define LIVEKIT_RTP_STATS_NTP_REPORT_DRIFT_TAG   45
-#define LIVEKIT_RTP_STATS_REBASED_REPORT_DRIFT_TAG 46
-#define LIVEKIT_RTP_STATS_RECEIVED_REPORT_DRIFT_TAG 47
-#define LIVEKIT_RTP_STATS_GAP_HISTOGRAM_ENTRY_KEY_TAG 1
-#define LIVEKIT_RTP_STATS_GAP_HISTOGRAM_ENTRY_VALUE_TAG 2
-#define LIVEKIT_RTCP_SENDER_REPORT_STATE_RTP_TIMESTAMP_TAG 1
-#define LIVEKIT_RTCP_SENDER_REPORT_STATE_RTP_TIMESTAMP_EXT_TAG 2
-#define LIVEKIT_RTCP_SENDER_REPORT_STATE_NTP_TIMESTAMP_TAG 3
-#define LIVEKIT_RTCP_SENDER_REPORT_STATE_AT_TAG  4
-#define LIVEKIT_RTCP_SENDER_REPORT_STATE_AT_ADJUSTED_TAG 5
-#define LIVEKIT_RTCP_SENDER_REPORT_STATE_PACKETS_TAG 6
-#define LIVEKIT_RTCP_SENDER_REPORT_STATE_OCTETS_TAG 7
-#define LIVEKIT_RTP_MUNGER_STATE_EXT_LAST_SEQUENCE_NUMBER_TAG 1
-#define LIVEKIT_RTP_MUNGER_STATE_EXT_SECOND_LAST_SEQUENCE_NUMBER_TAG 2
-#define LIVEKIT_RTP_MUNGER_STATE_EXT_LAST_TIMESTAMP_TAG 3
-#define LIVEKIT_RTP_MUNGER_STATE_EXT_SECOND_LAST_TIMESTAMP_TAG 4
-#define LIVEKIT_RTP_MUNGER_STATE_LAST_MARKER_TAG 5
-#define LIVEKIT_RTP_MUNGER_STATE_SECOND_LAST_MARKER_TAG 6
-#define LIVEKIT_VP8_MUNGER_STATE_EXT_LAST_PICTURE_ID_TAG 1
-#define LIVEKIT_VP8_MUNGER_STATE_PICTURE_ID_USED_TAG 2
-#define LIVEKIT_VP8_MUNGER_STATE_LAST_TL0_PIC_IDX_TAG 3
-#define LIVEKIT_VP8_MUNGER_STATE_TL0_PIC_IDX_USED_TAG 4
-#define LIVEKIT_VP8_MUNGER_STATE_TID_USED_TAG    5
-#define LIVEKIT_VP8_MUNGER_STATE_LAST_KEY_IDX_TAG 6
-#define LIVEKIT_VP8_MUNGER_STATE_KEY_IDX_USED_TAG 7
-#define LIVEKIT_RTP_FORWARDER_STATE_STARTED_TAG  1
-#define LIVEKIT_RTP_FORWARDER_STATE_REFERENCE_LAYER_SPATIAL_TAG 2
-#define LIVEKIT_RTP_FORWARDER_STATE_PRE_START_TIME_TAG 3
-#define LIVEKIT_RTP_FORWARDER_STATE_EXT_FIRST_TIMESTAMP_TAG 4
-#define LIVEKIT_RTP_FORWARDER_STATE_DUMMY_START_TIMESTAMP_OFFSET_TAG 5
-#define LIVEKIT_RTP_FORWARDER_STATE_RTP_MUNGER_TAG 6
-#define LIVEKIT_RTP_FORWARDER_STATE_VP8_MUNGER_TAG 7
-#define LIVEKIT_RTP_FORWARDER_STATE_SENDER_REPORT_STATE_TAG 8
-#define LIVEKIT_TIMED_VERSION_UNIX_MICRO_TAG     1
-#define LIVEKIT_TIMED_VERSION_TICKS_TAG          2
-#define LIVEKIT_ROOM_SID_TAG                     1
-#define LIVEKIT_ROOM_NAME_TAG                    2
-#define LIVEKIT_ROOM_EMPTY_TIMEOUT_TAG           3
-#define LIVEKIT_ROOM_MAX_PARTICIPANTS_TAG        4
-#define LIVEKIT_ROOM_CREATION_TIME_TAG           5
-#define LIVEKIT_ROOM_TURN_PASSWORD_TAG           6
-#define LIVEKIT_ROOM_ENABLED_CODECS_TAG          7
-#define LIVEKIT_ROOM_METADATA_TAG                8
-#define LIVEKIT_ROOM_NUM_PARTICIPANTS_TAG        9
-#define LIVEKIT_ROOM_ACTIVE_RECORDING_TAG        10
-#define LIVEKIT_ROOM_NUM_PUBLISHERS_TAG          11
-#define LIVEKIT_ROOM_VERSION_TAG                 13
-#define LIVEKIT_ROOM_DEPARTURE_TIMEOUT_TAG       14
-#define LIVEKIT_ROOM_CREATION_TIME_MS_TAG        15
-#define LIVEKIT_TRACK_INFO_SID_TAG               1
-#define LIVEKIT_TRACK_INFO_TYPE_TAG              2
-#define LIVEKIT_TRACK_INFO_NAME_TAG              3
-#define LIVEKIT_TRACK_INFO_MUTED_TAG             4
-#define LIVEKIT_TRACK_INFO_WIDTH_TAG             5
-#define LIVEKIT_TRACK_INFO_HEIGHT_TAG            6
-#define LIVEKIT_TRACK_INFO_SIMULCAST_TAG         7
-#define LIVEKIT_TRACK_INFO_DISABLE_DTX_TAG       8
-#define LIVEKIT_TRACK_INFO_SOURCE_TAG            9
-#define LIVEKIT_TRACK_INFO_LAYERS_TAG            10
-#define LIVEKIT_TRACK_INFO_MIME_TYPE_TAG         11
-#define LIVEKIT_TRACK_INFO_MID_TAG               12
-#define LIVEKIT_TRACK_INFO_CODECS_TAG            13
-#define LIVEKIT_TRACK_INFO_STEREO_TAG            14
-#define LIVEKIT_TRACK_INFO_DISABLE_RED_TAG       15
-#define LIVEKIT_TRACK_INFO_ENCRYPTION_TAG        16
-#define LIVEKIT_TRACK_INFO_STREAM_TAG            17
-#define LIVEKIT_TRACK_INFO_VERSION_TAG           18
-#define LIVEKIT_TRACK_INFO_AUDIO_FEATURES_TAG    19
-#define LIVEKIT_TRACK_INFO_BACKUP_CODEC_POLICY_TAG 20
-#define LIVEKIT_DATA_STREAM_TEXT_HEADER_OPERATION_TYPE_TAG 1
-#define LIVEKIT_DATA_STREAM_TEXT_HEADER_VERSION_TAG 2
-#define LIVEKIT_DATA_STREAM_TEXT_HEADER_REPLY_TO_STREAM_ID_TAG 3
-#define LIVEKIT_DATA_STREAM_TEXT_HEADER_ATTACHED_STREAM_IDS_TAG 4
-#define LIVEKIT_DATA_STREAM_TEXT_HEADER_GENERATED_TAG 5
-#define LIVEKIT_DATA_STREAM_BYTE_HEADER_NAME_TAG 1
-#define LIVEKIT_DATA_STREAM_HEADER_STREAM_ID_TAG 1
-#define LIVEKIT_DATA_STREAM_HEADER_TIMESTAMP_TAG 2
-#define LIVEKIT_DATA_STREAM_HEADER_TOPIC_TAG     3
-#define LIVEKIT_DATA_STREAM_HEADER_MIME_TYPE_TAG 4
-#define LIVEKIT_DATA_STREAM_HEADER_TOTAL_LENGTH_TAG 5
-#define LIVEKIT_DATA_STREAM_HEADER_ENCRYPTION_TYPE_TAG 7
-#define LIVEKIT_DATA_STREAM_HEADER_ATTRIBUTES_TAG 8
-#define LIVEKIT_DATA_STREAM_HEADER_TEXT_HEADER_TAG 9
-#define LIVEKIT_DATA_STREAM_HEADER_BYTE_HEADER_TAG 10
-#define LIVEKIT_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_KEY_TAG 1
-#define LIVEKIT_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_VALUE_TAG 2
-#define LIVEKIT_DATA_STREAM_CHUNK_STREAM_ID_TAG  1
-#define LIVEKIT_DATA_STREAM_CHUNK_CHUNK_INDEX_TAG 2
-#define LIVEKIT_DATA_STREAM_CHUNK_CONTENT_TAG    3
-#define LIVEKIT_DATA_STREAM_CHUNK_VERSION_TAG    4
-#define LIVEKIT_DATA_STREAM_CHUNK_IV_TAG         5
-#define LIVEKIT_DATA_STREAM_TRAILER_STREAM_ID_TAG 1
-#define LIVEKIT_DATA_STREAM_TRAILER_REASON_TAG   2
-#define LIVEKIT_DATA_STREAM_TRAILER_ATTRIBUTES_TAG 3
-#define LIVEKIT_DATA_PACKET_USER_TAG             2
-#define LIVEKIT_DATA_PACKET_SIP_DTMF_TAG         6
-#define LIVEKIT_DATA_PACKET_TRANSCRIPTION_TAG    7
-#define LIVEKIT_DATA_PACKET_METRICS_TAG          8
-#define LIVEKIT_DATA_PACKET_CHAT_MESSAGE_TAG     9
-#define LIVEKIT_DATA_PACKET_RPC_REQUEST_TAG      10
-#define LIVEKIT_DATA_PACKET_RPC_ACK_TAG          11
-#define LIVEKIT_DATA_PACKET_RPC_RESPONSE_TAG     12
-#define LIVEKIT_DATA_PACKET_STREAM_HEADER_TAG    13
-#define LIVEKIT_DATA_PACKET_STREAM_CHUNK_TAG     14
-#define LIVEKIT_DATA_PACKET_STREAM_TRAILER_TAG   15
-#define LIVEKIT_DATA_PACKET_PARTICIPANT_IDENTITY_TAG 4
-#define LIVEKIT_DATA_PACKET_DESTINATION_IDENTITIES_TAG 5
-#define LIVEKIT_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_KEY_TAG 1
-#define LIVEKIT_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_VALUE_TAG 2
-#define LIVEKIT_WEBHOOK_CONFIG_URL_TAG           1
-#define LIVEKIT_WEBHOOK_CONFIG_SIGNING_KEY_TAG   2
+#define LIVEKIT_PB_PAGINATION_AFTER_ID_TAG       1
+#define LIVEKIT_PB_PAGINATION_LIMIT_TAG          2
+#define LIVEKIT_PB_LIST_UPDATE_SET_TAG           1
+#define LIVEKIT_PB_CODEC_MIME_TAG                1
+#define LIVEKIT_PB_CODEC_FMTP_LINE_TAG           2
+#define LIVEKIT_PB_PLAYOUT_DELAY_ENABLED_TAG     1
+#define LIVEKIT_PB_PLAYOUT_DELAY_MIN_TAG         2
+#define LIVEKIT_PB_PLAYOUT_DELAY_MAX_TAG         3
+#define LIVEKIT_PB_PARTICIPANT_PERMISSION_CAN_SUBSCRIBE_TAG 1
+#define LIVEKIT_PB_PARTICIPANT_PERMISSION_CAN_PUBLISH_TAG 2
+#define LIVEKIT_PB_PARTICIPANT_PERMISSION_CAN_PUBLISH_DATA_TAG 3
+#define LIVEKIT_PB_PARTICIPANT_INFO_PERMISSION_TAG 11
+#define LIVEKIT_PB_SIMULCAST_CODEC_INFO_MIME_TYPE_TAG 1
+#define LIVEKIT_PB_SIMULCAST_CODEC_INFO_MID_TAG  2
+#define LIVEKIT_PB_SIMULCAST_CODEC_INFO_CID_TAG  3
+#define LIVEKIT_PB_SIMULCAST_CODEC_INFO_LAYERS_TAG 4
+#define LIVEKIT_PB_VIDEO_LAYER_QUALITY_TAG       1
+#define LIVEKIT_PB_VIDEO_LAYER_WIDTH_TAG         2
+#define LIVEKIT_PB_VIDEO_LAYER_HEIGHT_TAG        3
+#define LIVEKIT_PB_VIDEO_LAYER_BITRATE_TAG       4
+#define LIVEKIT_PB_VIDEO_LAYER_SSRC_TAG          5
+#define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_SPEAKERS_TAG 1
+#define LIVEKIT_PB_SPEAKER_INFO_SID_TAG          1
+#define LIVEKIT_PB_SPEAKER_INFO_LEVEL_TAG        2
+#define LIVEKIT_PB_SPEAKER_INFO_ACTIVE_TAG       3
+#define LIVEKIT_PB_USER_PACKET_PAYLOAD_TAG       2
+#define LIVEKIT_PB_USER_PACKET_TOPIC_TAG         4
+#define LIVEKIT_PB_USER_PACKET_ID_TAG            8
+#define LIVEKIT_PB_USER_PACKET_START_TIME_TAG    9
+#define LIVEKIT_PB_USER_PACKET_END_TIME_TAG      10
+#define LIVEKIT_PB_USER_PACKET_NONCE_TAG         11
+#define LIVEKIT_PB_SIP_DTMF_CODE_TAG             3
+#define LIVEKIT_PB_SIP_DTMF_DIGIT_TAG            4
+#define LIVEKIT_PB_TRANSCRIPTION_TRANSCRIBED_PARTICIPANT_IDENTITY_TAG 2
+#define LIVEKIT_PB_TRANSCRIPTION_TRACK_ID_TAG    3
+#define LIVEKIT_PB_TRANSCRIPTION_SEGMENTS_TAG    4
+#define LIVEKIT_PB_TRANSCRIPTION_SEGMENT_ID_TAG  1
+#define LIVEKIT_PB_TRANSCRIPTION_SEGMENT_TEXT_TAG 2
+#define LIVEKIT_PB_TRANSCRIPTION_SEGMENT_START_TIME_TAG 3
+#define LIVEKIT_PB_TRANSCRIPTION_SEGMENT_END_TIME_TAG 4
+#define LIVEKIT_PB_TRANSCRIPTION_SEGMENT_FINAL_TAG 5
+#define LIVEKIT_PB_TRANSCRIPTION_SEGMENT_LANGUAGE_TAG 6
+#define LIVEKIT_PB_CHAT_MESSAGE_ID_TAG           1
+#define LIVEKIT_PB_CHAT_MESSAGE_TIMESTAMP_TAG    2
+#define LIVEKIT_PB_CHAT_MESSAGE_EDIT_TIMESTAMP_TAG 3
+#define LIVEKIT_PB_CHAT_MESSAGE_MESSAGE_TAG      4
+#define LIVEKIT_PB_CHAT_MESSAGE_DELETED_TAG      5
+#define LIVEKIT_PB_CHAT_MESSAGE_GENERATED_TAG    6
+#define LIVEKIT_PB_RPC_REQUEST_ID_TAG            1
+#define LIVEKIT_PB_RPC_REQUEST_METHOD_TAG        2
+#define LIVEKIT_PB_RPC_REQUEST_PAYLOAD_TAG       3
+#define LIVEKIT_PB_RPC_REQUEST_RESPONSE_TIMEOUT_MS_TAG 4
+#define LIVEKIT_PB_RPC_REQUEST_VERSION_TAG       5
+#define LIVEKIT_PB_RPC_ACK_REQUEST_ID_TAG        1
+#define LIVEKIT_PB_RPC_ERROR_CODE_TAG            1
+#define LIVEKIT_PB_RPC_ERROR_MESSAGE_TAG         2
+#define LIVEKIT_PB_RPC_ERROR_DATA_TAG            3
+#define LIVEKIT_PB_RPC_RESPONSE_REQUEST_ID_TAG   1
+#define LIVEKIT_PB_RPC_RESPONSE_PAYLOAD_TAG      2
+#define LIVEKIT_PB_RPC_RESPONSE_ERROR_TAG        3
+#define LIVEKIT_PB_PARTICIPANT_TRACKS_PARTICIPANT_SID_TAG 1
+#define LIVEKIT_PB_PARTICIPANT_TRACKS_TRACK_SIDS_TAG 2
+#define LIVEKIT_PB_SERVER_INFO_EDITION_TAG       1
+#define LIVEKIT_PB_SERVER_INFO_VERSION_TAG       2
+#define LIVEKIT_PB_SERVER_INFO_PROTOCOL_TAG      3
+#define LIVEKIT_PB_SERVER_INFO_REGION_TAG        4
+#define LIVEKIT_PB_SERVER_INFO_NODE_ID_TAG       5
+#define LIVEKIT_PB_SERVER_INFO_DEBUG_INFO_TAG    6
+#define LIVEKIT_PB_SERVER_INFO_AGENT_PROTOCOL_TAG 7
+#define LIVEKIT_PB_CLIENT_INFO_SDK_TAG           1
+#define LIVEKIT_PB_CLIENT_INFO_VERSION_TAG       2
+#define LIVEKIT_PB_CLIENT_INFO_PROTOCOL_TAG      3
+#define LIVEKIT_PB_CLIENT_INFO_OS_TAG            4
+#define LIVEKIT_PB_CLIENT_INFO_OS_VERSION_TAG    5
+#define LIVEKIT_PB_CLIENT_INFO_DEVICE_MODEL_TAG  6
+#define LIVEKIT_PB_CLIENT_INFO_BROWSER_TAG       7
+#define LIVEKIT_PB_CLIENT_INFO_BROWSER_VERSION_TAG 8
+#define LIVEKIT_PB_CLIENT_INFO_ADDRESS_TAG       9
+#define LIVEKIT_PB_CLIENT_INFO_NETWORK_TAG       10
+#define LIVEKIT_PB_CLIENT_INFO_OTHER_SDKS_TAG    11
+#define LIVEKIT_PB_CLIENT_CONFIGURATION_RESUME_CONNECTION_TAG 3
+#define LIVEKIT_PB_CLIENT_CONFIGURATION_FORCE_RELAY_TAG 5
+#define LIVEKIT_PB_VIDEO_CONFIGURATION_HARDWARE_ENCODER_TAG 1
+#define LIVEKIT_PB_DISABLED_CODECS_CODECS_TAG    1
+#define LIVEKIT_PB_DISABLED_CODECS_PUBLISH_TAG   2
+#define LIVEKIT_PB_RTP_DRIFT_START_TIME_TAG      1
+#define LIVEKIT_PB_RTP_DRIFT_END_TIME_TAG        2
+#define LIVEKIT_PB_RTP_DRIFT_DURATION_TAG        3
+#define LIVEKIT_PB_RTP_DRIFT_START_TIMESTAMP_TAG 4
+#define LIVEKIT_PB_RTP_DRIFT_END_TIMESTAMP_TAG   5
+#define LIVEKIT_PB_RTP_DRIFT_RTP_CLOCK_TICKS_TAG 6
+#define LIVEKIT_PB_RTP_DRIFT_DRIFT_SAMPLES_TAG   7
+#define LIVEKIT_PB_RTP_DRIFT_DRIFT_MS_TAG        8
+#define LIVEKIT_PB_RTP_DRIFT_CLOCK_RATE_TAG      9
+#define LIVEKIT_PB_RTP_STATS_START_TIME_TAG      1
+#define LIVEKIT_PB_RTP_STATS_END_TIME_TAG        2
+#define LIVEKIT_PB_RTP_STATS_DURATION_TAG        3
+#define LIVEKIT_PB_RTP_STATS_PACKETS_TAG         4
+#define LIVEKIT_PB_RTP_STATS_PACKET_RATE_TAG     5
+#define LIVEKIT_PB_RTP_STATS_BYTES_TAG           6
+#define LIVEKIT_PB_RTP_STATS_BITRATE_TAG         7
+#define LIVEKIT_PB_RTP_STATS_PACKETS_LOST_TAG    8
+#define LIVEKIT_PB_RTP_STATS_PACKET_LOSS_RATE_TAG 9
+#define LIVEKIT_PB_RTP_STATS_PACKET_LOSS_PERCENTAGE_TAG 10
+#define LIVEKIT_PB_RTP_STATS_PACKETS_DUPLICATE_TAG 11
+#define LIVEKIT_PB_RTP_STATS_PACKET_DUPLICATE_RATE_TAG 12
+#define LIVEKIT_PB_RTP_STATS_BYTES_DUPLICATE_TAG 13
+#define LIVEKIT_PB_RTP_STATS_BITRATE_DUPLICATE_TAG 14
+#define LIVEKIT_PB_RTP_STATS_PACKETS_PADDING_TAG 15
+#define LIVEKIT_PB_RTP_STATS_PACKET_PADDING_RATE_TAG 16
+#define LIVEKIT_PB_RTP_STATS_BYTES_PADDING_TAG   17
+#define LIVEKIT_PB_RTP_STATS_BITRATE_PADDING_TAG 18
+#define LIVEKIT_PB_RTP_STATS_PACKETS_OUT_OF_ORDER_TAG 19
+#define LIVEKIT_PB_RTP_STATS_FRAMES_TAG          20
+#define LIVEKIT_PB_RTP_STATS_FRAME_RATE_TAG      21
+#define LIVEKIT_PB_RTP_STATS_JITTER_CURRENT_TAG  22
+#define LIVEKIT_PB_RTP_STATS_JITTER_MAX_TAG      23
+#define LIVEKIT_PB_RTP_STATS_GAP_HISTOGRAM_TAG   24
+#define LIVEKIT_PB_RTP_STATS_NACKS_TAG           25
+#define LIVEKIT_PB_RTP_STATS_NACK_MISSES_TAG     26
+#define LIVEKIT_PB_RTP_STATS_PLIS_TAG            27
+#define LIVEKIT_PB_RTP_STATS_LAST_PLI_TAG        28
+#define LIVEKIT_PB_RTP_STATS_FIRS_TAG            29
+#define LIVEKIT_PB_RTP_STATS_LAST_FIR_TAG        30
+#define LIVEKIT_PB_RTP_STATS_RTT_CURRENT_TAG     31
+#define LIVEKIT_PB_RTP_STATS_RTT_MAX_TAG         32
+#define LIVEKIT_PB_RTP_STATS_KEY_FRAMES_TAG      33
+#define LIVEKIT_PB_RTP_STATS_LAST_KEY_FRAME_TAG  34
+#define LIVEKIT_PB_RTP_STATS_LAYER_LOCK_PLIS_TAG 35
+#define LIVEKIT_PB_RTP_STATS_LAST_LAYER_LOCK_PLI_TAG 36
+#define LIVEKIT_PB_RTP_STATS_NACK_ACKS_TAG       37
+#define LIVEKIT_PB_RTP_STATS_NACK_REPEATED_TAG   38
+#define LIVEKIT_PB_RTP_STATS_HEADER_BYTES_TAG    39
+#define LIVEKIT_PB_RTP_STATS_HEADER_BYTES_DUPLICATE_TAG 40
+#define LIVEKIT_PB_RTP_STATS_HEADER_BYTES_PADDING_TAG 41
+#define LIVEKIT_PB_RTP_STATS_PACKET_DRIFT_TAG    44
+#define LIVEKIT_PB_RTP_STATS_NTP_REPORT_DRIFT_TAG 45
+#define LIVEKIT_PB_RTP_STATS_REBASED_REPORT_DRIFT_TAG 46
+#define LIVEKIT_PB_RTP_STATS_RECEIVED_REPORT_DRIFT_TAG 47
+#define LIVEKIT_PB_RTP_STATS_GAP_HISTOGRAM_ENTRY_KEY_TAG 1
+#define LIVEKIT_PB_RTP_STATS_GAP_HISTOGRAM_ENTRY_VALUE_TAG 2
+#define LIVEKIT_PB_RTCP_SENDER_REPORT_STATE_RTP_TIMESTAMP_TAG 1
+#define LIVEKIT_PB_RTCP_SENDER_REPORT_STATE_RTP_TIMESTAMP_EXT_TAG 2
+#define LIVEKIT_PB_RTCP_SENDER_REPORT_STATE_NTP_TIMESTAMP_TAG 3
+#define LIVEKIT_PB_RTCP_SENDER_REPORT_STATE_AT_TAG 4
+#define LIVEKIT_PB_RTCP_SENDER_REPORT_STATE_AT_ADJUSTED_TAG 5
+#define LIVEKIT_PB_RTCP_SENDER_REPORT_STATE_PACKETS_TAG 6
+#define LIVEKIT_PB_RTCP_SENDER_REPORT_STATE_OCTETS_TAG 7
+#define LIVEKIT_PB_RTP_MUNGER_STATE_EXT_LAST_SEQUENCE_NUMBER_TAG 1
+#define LIVEKIT_PB_RTP_MUNGER_STATE_EXT_SECOND_LAST_SEQUENCE_NUMBER_TAG 2
+#define LIVEKIT_PB_RTP_MUNGER_STATE_EXT_LAST_TIMESTAMP_TAG 3
+#define LIVEKIT_PB_RTP_MUNGER_STATE_EXT_SECOND_LAST_TIMESTAMP_TAG 4
+#define LIVEKIT_PB_RTP_MUNGER_STATE_LAST_MARKER_TAG 5
+#define LIVEKIT_PB_RTP_MUNGER_STATE_SECOND_LAST_MARKER_TAG 6
+#define LIVEKIT_PB_VP8_MUNGER_STATE_EXT_LAST_PICTURE_ID_TAG 1
+#define LIVEKIT_PB_VP8_MUNGER_STATE_PICTURE_ID_USED_TAG 2
+#define LIVEKIT_PB_VP8_MUNGER_STATE_LAST_TL0_PIC_IDX_TAG 3
+#define LIVEKIT_PB_VP8_MUNGER_STATE_TL0_PIC_IDX_USED_TAG 4
+#define LIVEKIT_PB_VP8_MUNGER_STATE_TID_USED_TAG 5
+#define LIVEKIT_PB_VP8_MUNGER_STATE_LAST_KEY_IDX_TAG 6
+#define LIVEKIT_PB_VP8_MUNGER_STATE_KEY_IDX_USED_TAG 7
+#define LIVEKIT_PB_RTP_FORWARDER_STATE_STARTED_TAG 1
+#define LIVEKIT_PB_RTP_FORWARDER_STATE_REFERENCE_LAYER_SPATIAL_TAG 2
+#define LIVEKIT_PB_RTP_FORWARDER_STATE_PRE_START_TIME_TAG 3
+#define LIVEKIT_PB_RTP_FORWARDER_STATE_EXT_FIRST_TIMESTAMP_TAG 4
+#define LIVEKIT_PB_RTP_FORWARDER_STATE_DUMMY_START_TIMESTAMP_OFFSET_TAG 5
+#define LIVEKIT_PB_RTP_FORWARDER_STATE_RTP_MUNGER_TAG 6
+#define LIVEKIT_PB_RTP_FORWARDER_STATE_VP8_MUNGER_TAG 7
+#define LIVEKIT_PB_RTP_FORWARDER_STATE_SENDER_REPORT_STATE_TAG 8
+#define LIVEKIT_PB_TIMED_VERSION_UNIX_MICRO_TAG  1
+#define LIVEKIT_PB_TIMED_VERSION_TICKS_TAG       2
+#define LIVEKIT_PB_ROOM_SID_TAG                  1
+#define LIVEKIT_PB_ROOM_NAME_TAG                 2
+#define LIVEKIT_PB_ROOM_EMPTY_TIMEOUT_TAG        3
+#define LIVEKIT_PB_ROOM_MAX_PARTICIPANTS_TAG     4
+#define LIVEKIT_PB_ROOM_CREATION_TIME_TAG        5
+#define LIVEKIT_PB_ROOM_TURN_PASSWORD_TAG        6
+#define LIVEKIT_PB_ROOM_ENABLED_CODECS_TAG       7
+#define LIVEKIT_PB_ROOM_METADATA_TAG             8
+#define LIVEKIT_PB_ROOM_NUM_PARTICIPANTS_TAG     9
+#define LIVEKIT_PB_ROOM_ACTIVE_RECORDING_TAG     10
+#define LIVEKIT_PB_ROOM_NUM_PUBLISHERS_TAG       11
+#define LIVEKIT_PB_ROOM_VERSION_TAG              13
+#define LIVEKIT_PB_ROOM_DEPARTURE_TIMEOUT_TAG    14
+#define LIVEKIT_PB_ROOM_CREATION_TIME_MS_TAG     15
+#define LIVEKIT_PB_TRACK_INFO_SID_TAG            1
+#define LIVEKIT_PB_TRACK_INFO_TYPE_TAG           2
+#define LIVEKIT_PB_TRACK_INFO_NAME_TAG           3
+#define LIVEKIT_PB_TRACK_INFO_MUTED_TAG          4
+#define LIVEKIT_PB_TRACK_INFO_WIDTH_TAG          5
+#define LIVEKIT_PB_TRACK_INFO_HEIGHT_TAG         6
+#define LIVEKIT_PB_TRACK_INFO_SIMULCAST_TAG      7
+#define LIVEKIT_PB_TRACK_INFO_DISABLE_DTX_TAG    8
+#define LIVEKIT_PB_TRACK_INFO_SOURCE_TAG         9
+#define LIVEKIT_PB_TRACK_INFO_LAYERS_TAG         10
+#define LIVEKIT_PB_TRACK_INFO_MIME_TYPE_TAG      11
+#define LIVEKIT_PB_TRACK_INFO_MID_TAG            12
+#define LIVEKIT_PB_TRACK_INFO_CODECS_TAG         13
+#define LIVEKIT_PB_TRACK_INFO_STEREO_TAG         14
+#define LIVEKIT_PB_TRACK_INFO_DISABLE_RED_TAG    15
+#define LIVEKIT_PB_TRACK_INFO_ENCRYPTION_TAG     16
+#define LIVEKIT_PB_TRACK_INFO_STREAM_TAG         17
+#define LIVEKIT_PB_TRACK_INFO_VERSION_TAG        18
+#define LIVEKIT_PB_TRACK_INFO_AUDIO_FEATURES_TAG 19
+#define LIVEKIT_PB_TRACK_INFO_BACKUP_CODEC_POLICY_TAG 20
+#define LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_OPERATION_TYPE_TAG 1
+#define LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_VERSION_TAG 2
+#define LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_REPLY_TO_STREAM_ID_TAG 3
+#define LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_ATTACHED_STREAM_IDS_TAG 4
+#define LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_GENERATED_TAG 5
+#define LIVEKIT_PB_DATA_STREAM_BYTE_HEADER_NAME_TAG 1
+#define LIVEKIT_PB_DATA_STREAM_HEADER_STREAM_ID_TAG 1
+#define LIVEKIT_PB_DATA_STREAM_HEADER_TIMESTAMP_TAG 2
+#define LIVEKIT_PB_DATA_STREAM_HEADER_TOPIC_TAG  3
+#define LIVEKIT_PB_DATA_STREAM_HEADER_MIME_TYPE_TAG 4
+#define LIVEKIT_PB_DATA_STREAM_HEADER_TOTAL_LENGTH_TAG 5
+#define LIVEKIT_PB_DATA_STREAM_HEADER_ENCRYPTION_TYPE_TAG 7
+#define LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_TAG 8
+#define LIVEKIT_PB_DATA_STREAM_HEADER_TEXT_HEADER_TAG 9
+#define LIVEKIT_PB_DATA_STREAM_HEADER_BYTE_HEADER_TAG 10
+#define LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_KEY_TAG 1
+#define LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_VALUE_TAG 2
+#define LIVEKIT_PB_DATA_STREAM_CHUNK_STREAM_ID_TAG 1
+#define LIVEKIT_PB_DATA_STREAM_CHUNK_CHUNK_INDEX_TAG 2
+#define LIVEKIT_PB_DATA_STREAM_CHUNK_CONTENT_TAG 3
+#define LIVEKIT_PB_DATA_STREAM_CHUNK_VERSION_TAG 4
+#define LIVEKIT_PB_DATA_STREAM_CHUNK_IV_TAG      5
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_STREAM_ID_TAG 1
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_REASON_TAG 2
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_ATTRIBUTES_TAG 3
+#define LIVEKIT_PB_DATA_PACKET_USER_TAG          2
+#define LIVEKIT_PB_DATA_PACKET_SIP_DTMF_TAG      6
+#define LIVEKIT_PB_DATA_PACKET_TRANSCRIPTION_TAG 7
+#define LIVEKIT_PB_DATA_PACKET_METRICS_TAG       8
+#define LIVEKIT_PB_DATA_PACKET_CHAT_MESSAGE_TAG  9
+#define LIVEKIT_PB_DATA_PACKET_RPC_REQUEST_TAG   10
+#define LIVEKIT_PB_DATA_PACKET_RPC_ACK_TAG       11
+#define LIVEKIT_PB_DATA_PACKET_RPC_RESPONSE_TAG  12
+#define LIVEKIT_PB_DATA_PACKET_STREAM_HEADER_TAG 13
+#define LIVEKIT_PB_DATA_PACKET_STREAM_CHUNK_TAG  14
+#define LIVEKIT_PB_DATA_PACKET_STREAM_TRAILER_TAG 15
+#define LIVEKIT_PB_DATA_PACKET_PARTICIPANT_IDENTITY_TAG 4
+#define LIVEKIT_PB_DATA_PACKET_DESTINATION_IDENTITIES_TAG 5
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_KEY_TAG 1
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_VALUE_TAG 2
+#define LIVEKIT_PB_WEBHOOK_CONFIG_URL_TAG        1
+#define LIVEKIT_PB_WEBHOOK_CONFIG_SIGNING_KEY_TAG 2
 
 /* Struct field encoding specification for nanopb */
-#define LIVEKIT_PAGINATION_FIELDLIST(X, a) \
+#define LIVEKIT_PB_PAGINATION_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   after_id,          1) \
 X(a, STATIC,   SINGULAR, INT32,    limit,             2)
-#define LIVEKIT_PAGINATION_CALLBACK pb_default_field_callback
-#define LIVEKIT_PAGINATION_DEFAULT NULL
+#define LIVEKIT_PB_PAGINATION_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_PAGINATION_DEFAULT NULL
 
-#define LIVEKIT_LIST_UPDATE_FIELDLIST(X, a) \
+#define LIVEKIT_PB_LIST_UPDATE_FIELDLIST(X, a) \
 X(a, CALLBACK, REPEATED, STRING,   set,               1)
-#define LIVEKIT_LIST_UPDATE_CALLBACK pb_default_field_callback
-#define LIVEKIT_LIST_UPDATE_DEFAULT NULL
+#define LIVEKIT_PB_LIST_UPDATE_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_LIST_UPDATE_DEFAULT NULL
 
-#define LIVEKIT_ROOM_FIELDLIST(X, a) \
+#define LIVEKIT_PB_ROOM_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   sid,               1) \
 X(a, CALLBACK, SINGULAR, STRING,   name,              2) \
 X(a, STATIC,   SINGULAR, UINT32,   empty_timeout,     3) \
@@ -1180,52 +1180,52 @@ X(a, STATIC,   SINGULAR, UINT32,   num_publishers,   11) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  version,          13) \
 X(a, STATIC,   SINGULAR, UINT32,   departure_timeout,  14) \
 X(a, STATIC,   SINGULAR, INT64,    creation_time_ms,  15)
-#define LIVEKIT_ROOM_CALLBACK pb_default_field_callback
-#define LIVEKIT_ROOM_DEFAULT NULL
-#define livekit_room_t_enabled_codecs_MSGTYPE livekit_codec_t
-#define livekit_room_t_version_MSGTYPE livekit_timed_version_t
+#define LIVEKIT_PB_ROOM_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_ROOM_DEFAULT NULL
+#define livekit_pb_room_t_enabled_codecs_MSGTYPE livekit_pb_codec_t
+#define livekit_pb_room_t_version_MSGTYPE livekit_pb_timed_version_t
 
-#define LIVEKIT_CODEC_FIELDLIST(X, a) \
+#define LIVEKIT_PB_CODEC_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   mime,              1) \
 X(a, CALLBACK, SINGULAR, STRING,   fmtp_line,         2)
-#define LIVEKIT_CODEC_CALLBACK pb_default_field_callback
-#define LIVEKIT_CODEC_DEFAULT NULL
+#define LIVEKIT_PB_CODEC_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_CODEC_DEFAULT NULL
 
-#define LIVEKIT_PLAYOUT_DELAY_FIELDLIST(X, a) \
+#define LIVEKIT_PB_PLAYOUT_DELAY_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, BOOL,     enabled,           1) \
 X(a, STATIC,   SINGULAR, UINT32,   min,               2) \
 X(a, STATIC,   SINGULAR, UINT32,   max,               3)
-#define LIVEKIT_PLAYOUT_DELAY_CALLBACK NULL
-#define LIVEKIT_PLAYOUT_DELAY_DEFAULT NULL
+#define LIVEKIT_PB_PLAYOUT_DELAY_CALLBACK NULL
+#define LIVEKIT_PB_PLAYOUT_DELAY_DEFAULT NULL
 
-#define LIVEKIT_PARTICIPANT_PERMISSION_FIELDLIST(X, a) \
+#define LIVEKIT_PB_PARTICIPANT_PERMISSION_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, BOOL,     can_subscribe,     1) \
 X(a, STATIC,   SINGULAR, BOOL,     can_publish,       2) \
 X(a, STATIC,   SINGULAR, BOOL,     can_publish_data,   3)
-#define LIVEKIT_PARTICIPANT_PERMISSION_CALLBACK NULL
-#define LIVEKIT_PARTICIPANT_PERMISSION_DEFAULT NULL
+#define LIVEKIT_PB_PARTICIPANT_PERMISSION_CALLBACK NULL
+#define LIVEKIT_PB_PARTICIPANT_PERMISSION_DEFAULT NULL
 
-#define LIVEKIT_PARTICIPANT_INFO_FIELDLIST(X, a) \
+#define LIVEKIT_PB_PARTICIPANT_INFO_FIELDLIST(X, a) \
 X(a, STATIC,   REQUIRED, MESSAGE,  permission,       11)
-#define LIVEKIT_PARTICIPANT_INFO_CALLBACK NULL
-#define LIVEKIT_PARTICIPANT_INFO_DEFAULT NULL
-#define livekit_participant_info_t_permission_MSGTYPE livekit_participant_permission_t
+#define LIVEKIT_PB_PARTICIPANT_INFO_CALLBACK NULL
+#define LIVEKIT_PB_PARTICIPANT_INFO_DEFAULT NULL
+#define livekit_pb_participant_info_t_permission_MSGTYPE livekit_pb_participant_permission_t
 
-#define LIVEKIT_ENCRYPTION_FIELDLIST(X, a) \
+#define LIVEKIT_PB_ENCRYPTION_FIELDLIST(X, a) \
 
-#define LIVEKIT_ENCRYPTION_CALLBACK NULL
-#define LIVEKIT_ENCRYPTION_DEFAULT NULL
+#define LIVEKIT_PB_ENCRYPTION_CALLBACK NULL
+#define LIVEKIT_PB_ENCRYPTION_DEFAULT NULL
 
-#define LIVEKIT_SIMULCAST_CODEC_INFO_FIELDLIST(X, a) \
+#define LIVEKIT_PB_SIMULCAST_CODEC_INFO_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   mime_type,         1) \
 X(a, CALLBACK, SINGULAR, STRING,   mid,               2) \
 X(a, CALLBACK, SINGULAR, STRING,   cid,               3) \
 X(a, CALLBACK, REPEATED, MESSAGE,  layers,            4)
-#define LIVEKIT_SIMULCAST_CODEC_INFO_CALLBACK pb_default_field_callback
-#define LIVEKIT_SIMULCAST_CODEC_INFO_DEFAULT NULL
-#define livekit_simulcast_codec_info_t_layers_MSGTYPE livekit_video_layer_t
+#define LIVEKIT_PB_SIMULCAST_CODEC_INFO_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_SIMULCAST_CODEC_INFO_DEFAULT NULL
+#define livekit_pb_simulcast_codec_info_t_layers_MSGTYPE livekit_pb_video_layer_t
 
-#define LIVEKIT_TRACK_INFO_FIELDLIST(X, a) \
+#define LIVEKIT_PB_TRACK_INFO_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   sid,               1) \
 X(a, STATIC,   SINGULAR, UENUM,    type,              2) \
 X(a, CALLBACK, SINGULAR, STRING,   name,              3) \
@@ -1246,22 +1246,22 @@ X(a, CALLBACK, SINGULAR, STRING,   stream,           17) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  version,          18) \
 X(a, CALLBACK, REPEATED, UENUM,    audio_features,   19) \
 X(a, STATIC,   SINGULAR, UENUM,    backup_codec_policy,  20)
-#define LIVEKIT_TRACK_INFO_CALLBACK pb_default_field_callback
-#define LIVEKIT_TRACK_INFO_DEFAULT NULL
-#define livekit_track_info_t_layers_MSGTYPE livekit_video_layer_t
-#define livekit_track_info_t_codecs_MSGTYPE livekit_simulcast_codec_info_t
-#define livekit_track_info_t_version_MSGTYPE livekit_timed_version_t
+#define LIVEKIT_PB_TRACK_INFO_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_TRACK_INFO_DEFAULT NULL
+#define livekit_pb_track_info_t_layers_MSGTYPE livekit_pb_video_layer_t
+#define livekit_pb_track_info_t_codecs_MSGTYPE livekit_pb_simulcast_codec_info_t
+#define livekit_pb_track_info_t_version_MSGTYPE livekit_pb_timed_version_t
 
-#define LIVEKIT_VIDEO_LAYER_FIELDLIST(X, a) \
+#define LIVEKIT_PB_VIDEO_LAYER_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UENUM,    quality,           1) \
 X(a, STATIC,   SINGULAR, UINT32,   width,             2) \
 X(a, STATIC,   SINGULAR, UINT32,   height,            3) \
 X(a, STATIC,   SINGULAR, UINT32,   bitrate,           4) \
 X(a, STATIC,   SINGULAR, UINT32,   ssrc,              5)
-#define LIVEKIT_VIDEO_LAYER_CALLBACK NULL
-#define LIVEKIT_VIDEO_LAYER_DEFAULT NULL
+#define LIVEKIT_PB_VIDEO_LAYER_CALLBACK NULL
+#define LIVEKIT_PB_VIDEO_LAYER_DEFAULT NULL
 
-#define LIVEKIT_DATA_PACKET_FIELDLIST(X, a) \
+#define LIVEKIT_PB_DATA_PACKET_FIELDLIST(X, a) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (value,user,value.user),   2) \
 X(a, CALLBACK, SINGULAR, STRING,   participant_identity,   4) \
 X(a, CALLBACK, REPEATED, STRING,   destination_identities,   5) \
@@ -1275,113 +1275,113 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (value,rpc_response,value.rpc_response),  12)
 X(a, STATIC,   ONEOF,    MESSAGE,  (value,stream_header,value.stream_header),  13) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (value,stream_chunk,value.stream_chunk),  14) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (value,stream_trailer,value.stream_trailer),  15)
-#define LIVEKIT_DATA_PACKET_CALLBACK pb_default_field_callback
-#define LIVEKIT_DATA_PACKET_DEFAULT NULL
-#define livekit_data_packet_t_value_user_MSGTYPE livekit_user_packet_t
-#define livekit_data_packet_t_value_sip_dtmf_MSGTYPE livekit_sip_dtmf_t
-#define livekit_data_packet_t_value_transcription_MSGTYPE livekit_transcription_t
-#define livekit_data_packet_t_value_metrics_MSGTYPE livekit_metrics_batch_t
-#define livekit_data_packet_t_value_chat_message_MSGTYPE livekit_chat_message_t
-#define livekit_data_packet_t_value_rpc_request_MSGTYPE livekit_rpc_request_t
-#define livekit_data_packet_t_value_rpc_ack_MSGTYPE livekit_rpc_ack_t
-#define livekit_data_packet_t_value_rpc_response_MSGTYPE livekit_rpc_response_t
-#define livekit_data_packet_t_value_stream_header_MSGTYPE livekit_data_stream_header_t
-#define livekit_data_packet_t_value_stream_chunk_MSGTYPE livekit_data_stream_chunk_t
-#define livekit_data_packet_t_value_stream_trailer_MSGTYPE livekit_data_stream_trailer_t
+#define LIVEKIT_PB_DATA_PACKET_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_DATA_PACKET_DEFAULT NULL
+#define livekit_pb_data_packet_t_value_user_MSGTYPE livekit_pb_user_packet_t
+#define livekit_pb_data_packet_t_value_sip_dtmf_MSGTYPE livekit_pb_sip_dtmf_t
+#define livekit_pb_data_packet_t_value_transcription_MSGTYPE livekit_pb_transcription_t
+#define livekit_pb_data_packet_t_value_metrics_MSGTYPE livekit_pb_metrics_batch_t
+#define livekit_pb_data_packet_t_value_chat_message_MSGTYPE livekit_pb_chat_message_t
+#define livekit_pb_data_packet_t_value_rpc_request_MSGTYPE livekit_pb_rpc_request_t
+#define livekit_pb_data_packet_t_value_rpc_ack_MSGTYPE livekit_pb_rpc_ack_t
+#define livekit_pb_data_packet_t_value_rpc_response_MSGTYPE livekit_pb_rpc_response_t
+#define livekit_pb_data_packet_t_value_stream_header_MSGTYPE livekit_pb_data_stream_header_t
+#define livekit_pb_data_packet_t_value_stream_chunk_MSGTYPE livekit_pb_data_stream_chunk_t
+#define livekit_pb_data_packet_t_value_stream_trailer_MSGTYPE livekit_pb_data_stream_trailer_t
 
-#define LIVEKIT_ACTIVE_SPEAKER_UPDATE_FIELDLIST(X, a) \
+#define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_FIELDLIST(X, a) \
 X(a, CALLBACK, REPEATED, MESSAGE,  speakers,          1)
-#define LIVEKIT_ACTIVE_SPEAKER_UPDATE_CALLBACK pb_default_field_callback
-#define LIVEKIT_ACTIVE_SPEAKER_UPDATE_DEFAULT NULL
-#define livekit_active_speaker_update_t_speakers_MSGTYPE livekit_speaker_info_t
+#define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_DEFAULT NULL
+#define livekit_pb_active_speaker_update_t_speakers_MSGTYPE livekit_pb_speaker_info_t
 
-#define LIVEKIT_SPEAKER_INFO_FIELDLIST(X, a) \
+#define LIVEKIT_PB_SPEAKER_INFO_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   sid,               1) \
 X(a, STATIC,   SINGULAR, FLOAT,    level,             2) \
 X(a, STATIC,   SINGULAR, BOOL,     active,            3)
-#define LIVEKIT_SPEAKER_INFO_CALLBACK pb_default_field_callback
-#define LIVEKIT_SPEAKER_INFO_DEFAULT NULL
+#define LIVEKIT_PB_SPEAKER_INFO_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_SPEAKER_INFO_DEFAULT NULL
 
-#define LIVEKIT_USER_PACKET_FIELDLIST(X, a) \
+#define LIVEKIT_PB_USER_PACKET_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, BYTES,    payload,           2) \
 X(a, CALLBACK, OPTIONAL, STRING,   topic,             4) \
 X(a, CALLBACK, OPTIONAL, STRING,   id,                8) \
 X(a, STATIC,   OPTIONAL, UINT64,   start_time,        9) \
 X(a, STATIC,   OPTIONAL, UINT64,   end_time,         10) \
 X(a, CALLBACK, SINGULAR, BYTES,    nonce,            11)
-#define LIVEKIT_USER_PACKET_CALLBACK pb_default_field_callback
-#define LIVEKIT_USER_PACKET_DEFAULT NULL
+#define LIVEKIT_PB_USER_PACKET_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_USER_PACKET_DEFAULT NULL
 
-#define LIVEKIT_SIP_DTMF_FIELDLIST(X, a) \
+#define LIVEKIT_PB_SIP_DTMF_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   code,              3) \
 X(a, CALLBACK, SINGULAR, STRING,   digit,             4)
-#define LIVEKIT_SIP_DTMF_CALLBACK pb_default_field_callback
-#define LIVEKIT_SIP_DTMF_DEFAULT NULL
+#define LIVEKIT_PB_SIP_DTMF_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_SIP_DTMF_DEFAULT NULL
 
-#define LIVEKIT_TRANSCRIPTION_FIELDLIST(X, a) \
+#define LIVEKIT_PB_TRANSCRIPTION_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   transcribed_participant_identity,   2) \
 X(a, CALLBACK, SINGULAR, STRING,   track_id,          3) \
 X(a, CALLBACK, REPEATED, MESSAGE,  segments,          4)
-#define LIVEKIT_TRANSCRIPTION_CALLBACK pb_default_field_callback
-#define LIVEKIT_TRANSCRIPTION_DEFAULT NULL
-#define livekit_transcription_t_segments_MSGTYPE livekit_transcription_segment_t
+#define LIVEKIT_PB_TRANSCRIPTION_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_TRANSCRIPTION_DEFAULT NULL
+#define livekit_pb_transcription_t_segments_MSGTYPE livekit_pb_transcription_segment_t
 
-#define LIVEKIT_TRANSCRIPTION_SEGMENT_FIELDLIST(X, a) \
+#define LIVEKIT_PB_TRANSCRIPTION_SEGMENT_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   id,                1) \
 X(a, CALLBACK, SINGULAR, STRING,   text,              2) \
 X(a, STATIC,   SINGULAR, UINT64,   start_time,        3) \
 X(a, STATIC,   SINGULAR, UINT64,   end_time,          4) \
 X(a, STATIC,   SINGULAR, BOOL,     final,             5) \
 X(a, CALLBACK, SINGULAR, STRING,   language,          6)
-#define LIVEKIT_TRANSCRIPTION_SEGMENT_CALLBACK pb_default_field_callback
-#define LIVEKIT_TRANSCRIPTION_SEGMENT_DEFAULT NULL
+#define LIVEKIT_PB_TRANSCRIPTION_SEGMENT_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_TRANSCRIPTION_SEGMENT_DEFAULT NULL
 
-#define LIVEKIT_CHAT_MESSAGE_FIELDLIST(X, a) \
+#define LIVEKIT_PB_CHAT_MESSAGE_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   id,                1) \
 X(a, STATIC,   SINGULAR, INT64,    timestamp,         2) \
 X(a, STATIC,   OPTIONAL, INT64,    edit_timestamp,    3) \
 X(a, CALLBACK, SINGULAR, STRING,   message,           4) \
 X(a, STATIC,   SINGULAR, BOOL,     deleted,           5) \
 X(a, STATIC,   SINGULAR, BOOL,     generated,         6)
-#define LIVEKIT_CHAT_MESSAGE_CALLBACK pb_default_field_callback
-#define LIVEKIT_CHAT_MESSAGE_DEFAULT NULL
+#define LIVEKIT_PB_CHAT_MESSAGE_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_CHAT_MESSAGE_DEFAULT NULL
 
-#define LIVEKIT_RPC_REQUEST_FIELDLIST(X, a) \
+#define LIVEKIT_PB_RPC_REQUEST_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   id,                1) \
 X(a, CALLBACK, SINGULAR, STRING,   method,            2) \
 X(a, CALLBACK, SINGULAR, STRING,   payload,           3) \
 X(a, STATIC,   SINGULAR, UINT32,   response_timeout_ms,   4) \
 X(a, STATIC,   SINGULAR, UINT32,   version,           5)
-#define LIVEKIT_RPC_REQUEST_CALLBACK pb_default_field_callback
-#define LIVEKIT_RPC_REQUEST_DEFAULT NULL
+#define LIVEKIT_PB_RPC_REQUEST_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_RPC_REQUEST_DEFAULT NULL
 
-#define LIVEKIT_RPC_ACK_FIELDLIST(X, a) \
+#define LIVEKIT_PB_RPC_ACK_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   request_id,        1)
-#define LIVEKIT_RPC_ACK_CALLBACK pb_default_field_callback
-#define LIVEKIT_RPC_ACK_DEFAULT NULL
+#define LIVEKIT_PB_RPC_ACK_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_RPC_ACK_DEFAULT NULL
 
-#define LIVEKIT_RPC_RESPONSE_FIELDLIST(X, a) \
+#define LIVEKIT_PB_RPC_RESPONSE_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   request_id,        1) \
 X(a, CALLBACK, ONEOF,    STRING,   (value,payload,value.payload),   2) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (value,error,value.error),   3)
-#define LIVEKIT_RPC_RESPONSE_CALLBACK pb_default_field_callback
-#define LIVEKIT_RPC_RESPONSE_DEFAULT NULL
-#define livekit_rpc_response_t_value_error_MSGTYPE livekit_rpc_error_t
+#define LIVEKIT_PB_RPC_RESPONSE_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_RPC_RESPONSE_DEFAULT NULL
+#define livekit_pb_rpc_response_t_value_error_MSGTYPE livekit_pb_rpc_error_t
 
-#define LIVEKIT_RPC_ERROR_FIELDLIST(X, a) \
+#define LIVEKIT_PB_RPC_ERROR_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   code,              1) \
 X(a, CALLBACK, SINGULAR, STRING,   message,           2) \
 X(a, CALLBACK, SINGULAR, STRING,   data,              3)
-#define LIVEKIT_RPC_ERROR_CALLBACK pb_default_field_callback
-#define LIVEKIT_RPC_ERROR_DEFAULT NULL
+#define LIVEKIT_PB_RPC_ERROR_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_RPC_ERROR_DEFAULT NULL
 
-#define LIVEKIT_PARTICIPANT_TRACKS_FIELDLIST(X, a) \
+#define LIVEKIT_PB_PARTICIPANT_TRACKS_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   participant_sid,   1) \
 X(a, CALLBACK, REPEATED, STRING,   track_sids,        2)
-#define LIVEKIT_PARTICIPANT_TRACKS_CALLBACK pb_default_field_callback
-#define LIVEKIT_PARTICIPANT_TRACKS_DEFAULT NULL
+#define LIVEKIT_PB_PARTICIPANT_TRACKS_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_PARTICIPANT_TRACKS_DEFAULT NULL
 
-#define LIVEKIT_SERVER_INFO_FIELDLIST(X, a) \
+#define LIVEKIT_PB_SERVER_INFO_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UENUM,    edition,           1) \
 X(a, CALLBACK, SINGULAR, STRING,   version,           2) \
 X(a, STATIC,   SINGULAR, INT32,    protocol,          3) \
@@ -1389,10 +1389,10 @@ X(a, CALLBACK, SINGULAR, STRING,   region,            4) \
 X(a, CALLBACK, SINGULAR, STRING,   node_id,           5) \
 X(a, CALLBACK, SINGULAR, STRING,   debug_info,        6) \
 X(a, STATIC,   SINGULAR, INT32,    agent_protocol,    7)
-#define LIVEKIT_SERVER_INFO_CALLBACK pb_default_field_callback
-#define LIVEKIT_SERVER_INFO_DEFAULT NULL
+#define LIVEKIT_PB_SERVER_INFO_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_SERVER_INFO_DEFAULT NULL
 
-#define LIVEKIT_CLIENT_INFO_FIELDLIST(X, a) \
+#define LIVEKIT_PB_CLIENT_INFO_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UENUM,    sdk,               1) \
 X(a, CALLBACK, SINGULAR, STRING,   version,           2) \
 X(a, STATIC,   SINGULAR, INT32,    protocol,          3) \
@@ -1404,29 +1404,29 @@ X(a, CALLBACK, SINGULAR, STRING,   browser_version,   8) \
 X(a, CALLBACK, SINGULAR, STRING,   address,           9) \
 X(a, CALLBACK, SINGULAR, STRING,   network,          10) \
 X(a, CALLBACK, SINGULAR, STRING,   other_sdks,       11)
-#define LIVEKIT_CLIENT_INFO_CALLBACK pb_default_field_callback
-#define LIVEKIT_CLIENT_INFO_DEFAULT NULL
+#define LIVEKIT_PB_CLIENT_INFO_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_CLIENT_INFO_DEFAULT NULL
 
-#define LIVEKIT_CLIENT_CONFIGURATION_FIELDLIST(X, a) \
+#define LIVEKIT_PB_CLIENT_CONFIGURATION_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UENUM,    resume_connection,   3) \
 X(a, STATIC,   SINGULAR, UENUM,    force_relay,       5)
-#define LIVEKIT_CLIENT_CONFIGURATION_CALLBACK NULL
-#define LIVEKIT_CLIENT_CONFIGURATION_DEFAULT NULL
+#define LIVEKIT_PB_CLIENT_CONFIGURATION_CALLBACK NULL
+#define LIVEKIT_PB_CLIENT_CONFIGURATION_DEFAULT NULL
 
-#define LIVEKIT_VIDEO_CONFIGURATION_FIELDLIST(X, a) \
+#define LIVEKIT_PB_VIDEO_CONFIGURATION_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UENUM,    hardware_encoder,   1)
-#define LIVEKIT_VIDEO_CONFIGURATION_CALLBACK NULL
-#define LIVEKIT_VIDEO_CONFIGURATION_DEFAULT NULL
+#define LIVEKIT_PB_VIDEO_CONFIGURATION_CALLBACK NULL
+#define LIVEKIT_PB_VIDEO_CONFIGURATION_DEFAULT NULL
 
-#define LIVEKIT_DISABLED_CODECS_FIELDLIST(X, a) \
+#define LIVEKIT_PB_DISABLED_CODECS_FIELDLIST(X, a) \
 X(a, CALLBACK, REPEATED, MESSAGE,  codecs,            1) \
 X(a, CALLBACK, REPEATED, MESSAGE,  publish,           2)
-#define LIVEKIT_DISABLED_CODECS_CALLBACK pb_default_field_callback
-#define LIVEKIT_DISABLED_CODECS_DEFAULT NULL
-#define livekit_disabled_codecs_t_codecs_MSGTYPE livekit_codec_t
-#define livekit_disabled_codecs_t_publish_MSGTYPE livekit_codec_t
+#define LIVEKIT_PB_DISABLED_CODECS_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_DISABLED_CODECS_DEFAULT NULL
+#define livekit_pb_disabled_codecs_t_codecs_MSGTYPE livekit_pb_codec_t
+#define livekit_pb_disabled_codecs_t_publish_MSGTYPE livekit_pb_codec_t
 
-#define LIVEKIT_RTP_DRIFT_FIELDLIST(X, a) \
+#define LIVEKIT_PB_RTP_DRIFT_FIELDLIST(X, a) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  start_time,        1) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  end_time,          2) \
 X(a, STATIC,   SINGULAR, DOUBLE,   duration,          3) \
@@ -1436,12 +1436,12 @@ X(a, STATIC,   SINGULAR, UINT64,   rtp_clock_ticks,   6) \
 X(a, STATIC,   SINGULAR, INT64,    drift_samples,     7) \
 X(a, STATIC,   SINGULAR, DOUBLE,   drift_ms,          8) \
 X(a, STATIC,   SINGULAR, DOUBLE,   clock_rate,        9)
-#define LIVEKIT_RTP_DRIFT_CALLBACK NULL
-#define LIVEKIT_RTP_DRIFT_DEFAULT NULL
-#define livekit_rtp_drift_t_start_time_MSGTYPE google_protobuf_timestamp_t
-#define livekit_rtp_drift_t_end_time_MSGTYPE google_protobuf_timestamp_t
+#define LIVEKIT_PB_RTP_DRIFT_CALLBACK NULL
+#define LIVEKIT_PB_RTP_DRIFT_DEFAULT NULL
+#define livekit_pb_rtp_drift_t_start_time_MSGTYPE google_protobuf_timestamp_t
+#define livekit_pb_rtp_drift_t_end_time_MSGTYPE google_protobuf_timestamp_t
 
-#define LIVEKIT_RTP_STATS_FIELDLIST(X, a) \
+#define LIVEKIT_PB_RTP_STATS_FIELDLIST(X, a) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  start_time,        1) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  end_time,          2) \
 X(a, STATIC,   SINGULAR, DOUBLE,   duration,          3) \
@@ -1487,27 +1487,27 @@ X(a, STATIC,   OPTIONAL, MESSAGE,  packet_drift,     44) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  ntp_report_drift,  45) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  rebased_report_drift,  46) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  received_report_drift,  47)
-#define LIVEKIT_RTP_STATS_CALLBACK pb_default_field_callback
-#define LIVEKIT_RTP_STATS_DEFAULT NULL
-#define livekit_rtp_stats_t_start_time_MSGTYPE google_protobuf_timestamp_t
-#define livekit_rtp_stats_t_end_time_MSGTYPE google_protobuf_timestamp_t
-#define livekit_rtp_stats_t_gap_histogram_MSGTYPE livekit_rtp_stats_gap_histogram_entry_t
-#define livekit_rtp_stats_t_last_pli_MSGTYPE google_protobuf_timestamp_t
-#define livekit_rtp_stats_t_last_fir_MSGTYPE google_protobuf_timestamp_t
-#define livekit_rtp_stats_t_last_key_frame_MSGTYPE google_protobuf_timestamp_t
-#define livekit_rtp_stats_t_last_layer_lock_pli_MSGTYPE google_protobuf_timestamp_t
-#define livekit_rtp_stats_t_packet_drift_MSGTYPE livekit_rtp_drift_t
-#define livekit_rtp_stats_t_ntp_report_drift_MSGTYPE livekit_rtp_drift_t
-#define livekit_rtp_stats_t_rebased_report_drift_MSGTYPE livekit_rtp_drift_t
-#define livekit_rtp_stats_t_received_report_drift_MSGTYPE livekit_rtp_drift_t
+#define LIVEKIT_PB_RTP_STATS_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_RTP_STATS_DEFAULT NULL
+#define livekit_pb_rtp_stats_t_start_time_MSGTYPE google_protobuf_timestamp_t
+#define livekit_pb_rtp_stats_t_end_time_MSGTYPE google_protobuf_timestamp_t
+#define livekit_pb_rtp_stats_t_gap_histogram_MSGTYPE livekit_pb_rtp_stats_gap_histogram_entry_t
+#define livekit_pb_rtp_stats_t_last_pli_MSGTYPE google_protobuf_timestamp_t
+#define livekit_pb_rtp_stats_t_last_fir_MSGTYPE google_protobuf_timestamp_t
+#define livekit_pb_rtp_stats_t_last_key_frame_MSGTYPE google_protobuf_timestamp_t
+#define livekit_pb_rtp_stats_t_last_layer_lock_pli_MSGTYPE google_protobuf_timestamp_t
+#define livekit_pb_rtp_stats_t_packet_drift_MSGTYPE livekit_pb_rtp_drift_t
+#define livekit_pb_rtp_stats_t_ntp_report_drift_MSGTYPE livekit_pb_rtp_drift_t
+#define livekit_pb_rtp_stats_t_rebased_report_drift_MSGTYPE livekit_pb_rtp_drift_t
+#define livekit_pb_rtp_stats_t_received_report_drift_MSGTYPE livekit_pb_rtp_drift_t
 
-#define LIVEKIT_RTP_STATS_GAP_HISTOGRAM_ENTRY_FIELDLIST(X, a) \
+#define LIVEKIT_PB_RTP_STATS_GAP_HISTOGRAM_ENTRY_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, INT32,    key,               1) \
 X(a, STATIC,   SINGULAR, UINT32,   value,             2)
-#define LIVEKIT_RTP_STATS_GAP_HISTOGRAM_ENTRY_CALLBACK NULL
-#define LIVEKIT_RTP_STATS_GAP_HISTOGRAM_ENTRY_DEFAULT NULL
+#define LIVEKIT_PB_RTP_STATS_GAP_HISTOGRAM_ENTRY_CALLBACK NULL
+#define LIVEKIT_PB_RTP_STATS_GAP_HISTOGRAM_ENTRY_DEFAULT NULL
 
-#define LIVEKIT_RTCP_SENDER_REPORT_STATE_FIELDLIST(X, a) \
+#define LIVEKIT_PB_RTCP_SENDER_REPORT_STATE_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   rtp_timestamp,     1) \
 X(a, STATIC,   SINGULAR, UINT64,   rtp_timestamp_ext,   2) \
 X(a, STATIC,   SINGULAR, UINT64,   ntp_timestamp,     3) \
@@ -1515,10 +1515,10 @@ X(a, STATIC,   SINGULAR, INT64,    at,                4) \
 X(a, STATIC,   SINGULAR, INT64,    at_adjusted,       5) \
 X(a, STATIC,   SINGULAR, UINT32,   packets,           6) \
 X(a, STATIC,   SINGULAR, UINT64,   octets,            7)
-#define LIVEKIT_RTCP_SENDER_REPORT_STATE_CALLBACK NULL
-#define LIVEKIT_RTCP_SENDER_REPORT_STATE_DEFAULT NULL
+#define LIVEKIT_PB_RTCP_SENDER_REPORT_STATE_CALLBACK NULL
+#define LIVEKIT_PB_RTCP_SENDER_REPORT_STATE_DEFAULT NULL
 
-#define LIVEKIT_RTP_FORWARDER_STATE_FIELDLIST(X, a) \
+#define LIVEKIT_PB_RTP_FORWARDER_STATE_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, BOOL,     started,           1) \
 X(a, STATIC,   SINGULAR, INT32,    reference_layer_spatial,   2) \
 X(a, STATIC,   SINGULAR, INT64,    pre_start_time,    3) \
@@ -1527,23 +1527,23 @@ X(a, STATIC,   SINGULAR, UINT64,   dummy_start_timestamp_offset,   5) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  rtp_munger,        6) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (codec_munger,vp8_munger,codec_munger.vp8_munger),   7) \
 X(a, CALLBACK, REPEATED, MESSAGE,  sender_report_state,   8)
-#define LIVEKIT_RTP_FORWARDER_STATE_CALLBACK pb_default_field_callback
-#define LIVEKIT_RTP_FORWARDER_STATE_DEFAULT NULL
-#define livekit_rtp_forwarder_state_t_rtp_munger_MSGTYPE livekit_rtp_munger_state_t
-#define livekit_rtp_forwarder_state_t_codec_munger_vp8_munger_MSGTYPE livekit_vp8_munger_state_t
-#define livekit_rtp_forwarder_state_t_sender_report_state_MSGTYPE livekit_rtcp_sender_report_state_t
+#define LIVEKIT_PB_RTP_FORWARDER_STATE_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_RTP_FORWARDER_STATE_DEFAULT NULL
+#define livekit_pb_rtp_forwarder_state_t_rtp_munger_MSGTYPE livekit_pb_rtp_munger_state_t
+#define livekit_pb_rtp_forwarder_state_t_codec_munger_vp8_munger_MSGTYPE livekit_pb_vp8_munger_state_t
+#define livekit_pb_rtp_forwarder_state_t_sender_report_state_MSGTYPE livekit_pb_rtcp_sender_report_state_t
 
-#define LIVEKIT_RTP_MUNGER_STATE_FIELDLIST(X, a) \
+#define LIVEKIT_PB_RTP_MUNGER_STATE_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT64,   ext_last_sequence_number,   1) \
 X(a, STATIC,   SINGULAR, UINT64,   ext_second_last_sequence_number,   2) \
 X(a, STATIC,   SINGULAR, UINT64,   ext_last_timestamp,   3) \
 X(a, STATIC,   SINGULAR, UINT64,   ext_second_last_timestamp,   4) \
 X(a, STATIC,   SINGULAR, BOOL,     last_marker,       5) \
 X(a, STATIC,   SINGULAR, BOOL,     second_last_marker,   6)
-#define LIVEKIT_RTP_MUNGER_STATE_CALLBACK NULL
-#define LIVEKIT_RTP_MUNGER_STATE_DEFAULT NULL
+#define LIVEKIT_PB_RTP_MUNGER_STATE_CALLBACK NULL
+#define LIVEKIT_PB_RTP_MUNGER_STATE_DEFAULT NULL
 
-#define LIVEKIT_VP8_MUNGER_STATE_FIELDLIST(X, a) \
+#define LIVEKIT_PB_VP8_MUNGER_STATE_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, INT32,    ext_last_picture_id,   1) \
 X(a, STATIC,   SINGULAR, BOOL,     picture_id_used,   2) \
 X(a, STATIC,   SINGULAR, UINT32,   last_tl0_pic_idx,   3) \
@@ -1551,35 +1551,35 @@ X(a, STATIC,   SINGULAR, BOOL,     tl0_pic_idx_used,   4) \
 X(a, STATIC,   SINGULAR, BOOL,     tid_used,          5) \
 X(a, STATIC,   SINGULAR, UINT32,   last_key_idx,      6) \
 X(a, STATIC,   SINGULAR, BOOL,     key_idx_used,      7)
-#define LIVEKIT_VP8_MUNGER_STATE_CALLBACK NULL
-#define LIVEKIT_VP8_MUNGER_STATE_DEFAULT NULL
+#define LIVEKIT_PB_VP8_MUNGER_STATE_CALLBACK NULL
+#define LIVEKIT_PB_VP8_MUNGER_STATE_DEFAULT NULL
 
-#define LIVEKIT_TIMED_VERSION_FIELDLIST(X, a) \
+#define LIVEKIT_PB_TIMED_VERSION_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, INT64,    unix_micro,        1) \
 X(a, STATIC,   SINGULAR, INT32,    ticks,             2)
-#define LIVEKIT_TIMED_VERSION_CALLBACK NULL
-#define LIVEKIT_TIMED_VERSION_DEFAULT NULL
+#define LIVEKIT_PB_TIMED_VERSION_CALLBACK NULL
+#define LIVEKIT_PB_TIMED_VERSION_DEFAULT NULL
 
-#define LIVEKIT_DATA_STREAM_FIELDLIST(X, a) \
+#define LIVEKIT_PB_DATA_STREAM_FIELDLIST(X, a) \
 
-#define LIVEKIT_DATA_STREAM_CALLBACK NULL
-#define LIVEKIT_DATA_STREAM_DEFAULT NULL
+#define LIVEKIT_PB_DATA_STREAM_CALLBACK NULL
+#define LIVEKIT_PB_DATA_STREAM_DEFAULT NULL
 
-#define LIVEKIT_DATA_STREAM_TEXT_HEADER_FIELDLIST(X, a) \
+#define LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UENUM,    operation_type,    1) \
 X(a, STATIC,   SINGULAR, INT32,    version,           2) \
 X(a, CALLBACK, SINGULAR, STRING,   reply_to_stream_id,   3) \
 X(a, CALLBACK, REPEATED, STRING,   attached_stream_ids,   4) \
 X(a, STATIC,   SINGULAR, BOOL,     generated,         5)
-#define LIVEKIT_DATA_STREAM_TEXT_HEADER_CALLBACK pb_default_field_callback
-#define LIVEKIT_DATA_STREAM_TEXT_HEADER_DEFAULT NULL
+#define LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_DEFAULT NULL
 
-#define LIVEKIT_DATA_STREAM_BYTE_HEADER_FIELDLIST(X, a) \
+#define LIVEKIT_PB_DATA_STREAM_BYTE_HEADER_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   name,              1)
-#define LIVEKIT_DATA_STREAM_BYTE_HEADER_CALLBACK pb_default_field_callback
-#define LIVEKIT_DATA_STREAM_BYTE_HEADER_DEFAULT NULL
+#define LIVEKIT_PB_DATA_STREAM_BYTE_HEADER_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_DATA_STREAM_BYTE_HEADER_DEFAULT NULL
 
-#define LIVEKIT_DATA_STREAM_HEADER_FIELDLIST(X, a) \
+#define LIVEKIT_PB_DATA_STREAM_HEADER_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   stream_id,         1) \
 X(a, STATIC,   SINGULAR, INT64,    timestamp,         2) \
 X(a, CALLBACK, SINGULAR, STRING,   topic,             3) \
@@ -1589,190 +1589,415 @@ X(a, STATIC,   SINGULAR, UENUM,    encryption_type,   7) \
 X(a, CALLBACK, REPEATED, MESSAGE,  attributes,        8) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (content_header,text_header,content_header.text_header),   9) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (content_header,byte_header,content_header.byte_header),  10)
-#define LIVEKIT_DATA_STREAM_HEADER_CALLBACK pb_default_field_callback
-#define LIVEKIT_DATA_STREAM_HEADER_DEFAULT NULL
-#define livekit_data_stream_header_t_attributes_MSGTYPE livekit_data_stream_header_attributes_entry_t
-#define livekit_data_stream_header_t_content_header_text_header_MSGTYPE livekit_data_stream_text_header_t
-#define livekit_data_stream_header_t_content_header_byte_header_MSGTYPE livekit_data_stream_byte_header_t
+#define LIVEKIT_PB_DATA_STREAM_HEADER_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_DATA_STREAM_HEADER_DEFAULT NULL
+#define livekit_pb_data_stream_header_t_attributes_MSGTYPE livekit_pb_data_stream_header_attributes_entry_t
+#define livekit_pb_data_stream_header_t_content_header_text_header_MSGTYPE livekit_pb_data_stream_text_header_t
+#define livekit_pb_data_stream_header_t_content_header_byte_header_MSGTYPE livekit_pb_data_stream_byte_header_t
 
-#define LIVEKIT_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_FIELDLIST(X, a) \
+#define LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   key,               1) \
 X(a, CALLBACK, SINGULAR, STRING,   value,             2)
-#define LIVEKIT_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_CALLBACK pb_default_field_callback
-#define LIVEKIT_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_DEFAULT NULL
+#define LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_DEFAULT NULL
 
-#define LIVEKIT_DATA_STREAM_CHUNK_FIELDLIST(X, a) \
+#define LIVEKIT_PB_DATA_STREAM_CHUNK_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   stream_id,         1) \
 X(a, STATIC,   SINGULAR, UINT64,   chunk_index,       2) \
 X(a, CALLBACK, SINGULAR, BYTES,    content,           3) \
 X(a, STATIC,   SINGULAR, INT32,    version,           4) \
 X(a, CALLBACK, OPTIONAL, BYTES,    iv,                5)
-#define LIVEKIT_DATA_STREAM_CHUNK_CALLBACK pb_default_field_callback
-#define LIVEKIT_DATA_STREAM_CHUNK_DEFAULT NULL
+#define LIVEKIT_PB_DATA_STREAM_CHUNK_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_DATA_STREAM_CHUNK_DEFAULT NULL
 
-#define LIVEKIT_DATA_STREAM_TRAILER_FIELDLIST(X, a) \
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   stream_id,         1) \
 X(a, CALLBACK, SINGULAR, STRING,   reason,            2) \
 X(a, CALLBACK, REPEATED, MESSAGE,  attributes,        3)
-#define LIVEKIT_DATA_STREAM_TRAILER_CALLBACK pb_default_field_callback
-#define LIVEKIT_DATA_STREAM_TRAILER_DEFAULT NULL
-#define livekit_data_stream_trailer_t_attributes_MSGTYPE livekit_data_stream_trailer_attributes_entry_t
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_DEFAULT NULL
+#define livekit_pb_data_stream_trailer_t_attributes_MSGTYPE livekit_pb_data_stream_trailer_attributes_entry_t
 
-#define LIVEKIT_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_FIELDLIST(X, a) \
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   key,               1) \
 X(a, CALLBACK, SINGULAR, STRING,   value,             2)
-#define LIVEKIT_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_CALLBACK pb_default_field_callback
-#define LIVEKIT_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_DEFAULT NULL
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_DEFAULT NULL
 
-#define LIVEKIT_WEBHOOK_CONFIG_FIELDLIST(X, a) \
+#define LIVEKIT_PB_WEBHOOK_CONFIG_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   url,               1) \
 X(a, CALLBACK, SINGULAR, STRING,   signing_key,       2)
-#define LIVEKIT_WEBHOOK_CONFIG_CALLBACK pb_default_field_callback
-#define LIVEKIT_WEBHOOK_CONFIG_DEFAULT NULL
+#define LIVEKIT_PB_WEBHOOK_CONFIG_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_WEBHOOK_CONFIG_DEFAULT NULL
 
-extern const pb_msgdesc_t livekit_pagination_t_msg;
-extern const pb_msgdesc_t livekit_list_update_t_msg;
-extern const pb_msgdesc_t livekit_room_t_msg;
-extern const pb_msgdesc_t livekit_codec_t_msg;
-extern const pb_msgdesc_t livekit_playout_delay_t_msg;
-extern const pb_msgdesc_t livekit_participant_permission_t_msg;
-extern const pb_msgdesc_t livekit_participant_info_t_msg;
-extern const pb_msgdesc_t livekit_encryption_t_msg;
-extern const pb_msgdesc_t livekit_simulcast_codec_info_t_msg;
-extern const pb_msgdesc_t livekit_track_info_t_msg;
-extern const pb_msgdesc_t livekit_video_layer_t_msg;
-extern const pb_msgdesc_t livekit_data_packet_t_msg;
-extern const pb_msgdesc_t livekit_active_speaker_update_t_msg;
-extern const pb_msgdesc_t livekit_speaker_info_t_msg;
-extern const pb_msgdesc_t livekit_user_packet_t_msg;
-extern const pb_msgdesc_t livekit_sip_dtmf_t_msg;
-extern const pb_msgdesc_t livekit_transcription_t_msg;
-extern const pb_msgdesc_t livekit_transcription_segment_t_msg;
-extern const pb_msgdesc_t livekit_chat_message_t_msg;
-extern const pb_msgdesc_t livekit_rpc_request_t_msg;
-extern const pb_msgdesc_t livekit_rpc_ack_t_msg;
-extern const pb_msgdesc_t livekit_rpc_response_t_msg;
-extern const pb_msgdesc_t livekit_rpc_error_t_msg;
-extern const pb_msgdesc_t livekit_participant_tracks_t_msg;
-extern const pb_msgdesc_t livekit_server_info_t_msg;
-extern const pb_msgdesc_t livekit_client_info_t_msg;
-extern const pb_msgdesc_t livekit_client_configuration_t_msg;
-extern const pb_msgdesc_t livekit_video_configuration_t_msg;
-extern const pb_msgdesc_t livekit_disabled_codecs_t_msg;
-extern const pb_msgdesc_t livekit_rtp_drift_t_msg;
-extern const pb_msgdesc_t livekit_rtp_stats_t_msg;
-extern const pb_msgdesc_t livekit_rtp_stats_gap_histogram_entry_t_msg;
-extern const pb_msgdesc_t livekit_rtcp_sender_report_state_t_msg;
-extern const pb_msgdesc_t livekit_rtp_forwarder_state_t_msg;
-extern const pb_msgdesc_t livekit_rtp_munger_state_t_msg;
-extern const pb_msgdesc_t livekit_vp8_munger_state_t_msg;
-extern const pb_msgdesc_t livekit_timed_version_t_msg;
-extern const pb_msgdesc_t livekit_data_stream_t_msg;
-extern const pb_msgdesc_t livekit_data_stream_text_header_t_msg;
-extern const pb_msgdesc_t livekit_data_stream_byte_header_t_msg;
-extern const pb_msgdesc_t livekit_data_stream_header_t_msg;
-extern const pb_msgdesc_t livekit_data_stream_header_attributes_entry_t_msg;
-extern const pb_msgdesc_t livekit_data_stream_chunk_t_msg;
-extern const pb_msgdesc_t livekit_data_stream_trailer_t_msg;
-extern const pb_msgdesc_t livekit_data_stream_trailer_attributes_entry_t_msg;
-extern const pb_msgdesc_t livekit_webhook_config_t_msg;
+extern const pb_msgdesc_t livekit_pb_pagination_t_msg;
+extern const pb_msgdesc_t livekit_pb_list_update_t_msg;
+extern const pb_msgdesc_t livekit_pb_room_t_msg;
+extern const pb_msgdesc_t livekit_pb_codec_t_msg;
+extern const pb_msgdesc_t livekit_pb_playout_delay_t_msg;
+extern const pb_msgdesc_t livekit_pb_participant_permission_t_msg;
+extern const pb_msgdesc_t livekit_pb_participant_info_t_msg;
+extern const pb_msgdesc_t livekit_pb_encryption_t_msg;
+extern const pb_msgdesc_t livekit_pb_simulcast_codec_info_t_msg;
+extern const pb_msgdesc_t livekit_pb_track_info_t_msg;
+extern const pb_msgdesc_t livekit_pb_video_layer_t_msg;
+extern const pb_msgdesc_t livekit_pb_data_packet_t_msg;
+extern const pb_msgdesc_t livekit_pb_active_speaker_update_t_msg;
+extern const pb_msgdesc_t livekit_pb_speaker_info_t_msg;
+extern const pb_msgdesc_t livekit_pb_user_packet_t_msg;
+extern const pb_msgdesc_t livekit_pb_sip_dtmf_t_msg;
+extern const pb_msgdesc_t livekit_pb_transcription_t_msg;
+extern const pb_msgdesc_t livekit_pb_transcription_segment_t_msg;
+extern const pb_msgdesc_t livekit_pb_chat_message_t_msg;
+extern const pb_msgdesc_t livekit_pb_rpc_request_t_msg;
+extern const pb_msgdesc_t livekit_pb_rpc_ack_t_msg;
+extern const pb_msgdesc_t livekit_pb_rpc_response_t_msg;
+extern const pb_msgdesc_t livekit_pb_rpc_error_t_msg;
+extern const pb_msgdesc_t livekit_pb_participant_tracks_t_msg;
+extern const pb_msgdesc_t livekit_pb_server_info_t_msg;
+extern const pb_msgdesc_t livekit_pb_client_info_t_msg;
+extern const pb_msgdesc_t livekit_pb_client_configuration_t_msg;
+extern const pb_msgdesc_t livekit_pb_video_configuration_t_msg;
+extern const pb_msgdesc_t livekit_pb_disabled_codecs_t_msg;
+extern const pb_msgdesc_t livekit_pb_rtp_drift_t_msg;
+extern const pb_msgdesc_t livekit_pb_rtp_stats_t_msg;
+extern const pb_msgdesc_t livekit_pb_rtp_stats_gap_histogram_entry_t_msg;
+extern const pb_msgdesc_t livekit_pb_rtcp_sender_report_state_t_msg;
+extern const pb_msgdesc_t livekit_pb_rtp_forwarder_state_t_msg;
+extern const pb_msgdesc_t livekit_pb_rtp_munger_state_t_msg;
+extern const pb_msgdesc_t livekit_pb_vp8_munger_state_t_msg;
+extern const pb_msgdesc_t livekit_pb_timed_version_t_msg;
+extern const pb_msgdesc_t livekit_pb_data_stream_t_msg;
+extern const pb_msgdesc_t livekit_pb_data_stream_text_header_t_msg;
+extern const pb_msgdesc_t livekit_pb_data_stream_byte_header_t_msg;
+extern const pb_msgdesc_t livekit_pb_data_stream_header_t_msg;
+extern const pb_msgdesc_t livekit_pb_data_stream_header_attributes_entry_t_msg;
+extern const pb_msgdesc_t livekit_pb_data_stream_chunk_t_msg;
+extern const pb_msgdesc_t livekit_pb_data_stream_trailer_t_msg;
+extern const pb_msgdesc_t livekit_pb_data_stream_trailer_attributes_entry_t_msg;
+extern const pb_msgdesc_t livekit_pb_webhook_config_t_msg;
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
-#define LIVEKIT_PAGINATION_FIELDS &livekit_pagination_t_msg
-#define LIVEKIT_LIST_UPDATE_FIELDS &livekit_list_update_t_msg
-#define LIVEKIT_ROOM_FIELDS &livekit_room_t_msg
-#define LIVEKIT_CODEC_FIELDS &livekit_codec_t_msg
-#define LIVEKIT_PLAYOUT_DELAY_FIELDS &livekit_playout_delay_t_msg
-#define LIVEKIT_PARTICIPANT_PERMISSION_FIELDS &livekit_participant_permission_t_msg
-#define LIVEKIT_PARTICIPANT_INFO_FIELDS &livekit_participant_info_t_msg
-#define LIVEKIT_ENCRYPTION_FIELDS &livekit_encryption_t_msg
-#define LIVEKIT_SIMULCAST_CODEC_INFO_FIELDS &livekit_simulcast_codec_info_t_msg
-#define LIVEKIT_TRACK_INFO_FIELDS &livekit_track_info_t_msg
-#define LIVEKIT_VIDEO_LAYER_FIELDS &livekit_video_layer_t_msg
-#define LIVEKIT_DATA_PACKET_FIELDS &livekit_data_packet_t_msg
-#define LIVEKIT_ACTIVE_SPEAKER_UPDATE_FIELDS &livekit_active_speaker_update_t_msg
-#define LIVEKIT_SPEAKER_INFO_FIELDS &livekit_speaker_info_t_msg
-#define LIVEKIT_USER_PACKET_FIELDS &livekit_user_packet_t_msg
-#define LIVEKIT_SIP_DTMF_FIELDS &livekit_sip_dtmf_t_msg
-#define LIVEKIT_TRANSCRIPTION_FIELDS &livekit_transcription_t_msg
-#define LIVEKIT_TRANSCRIPTION_SEGMENT_FIELDS &livekit_transcription_segment_t_msg
-#define LIVEKIT_CHAT_MESSAGE_FIELDS &livekit_chat_message_t_msg
-#define LIVEKIT_RPC_REQUEST_FIELDS &livekit_rpc_request_t_msg
-#define LIVEKIT_RPC_ACK_FIELDS &livekit_rpc_ack_t_msg
-#define LIVEKIT_RPC_RESPONSE_FIELDS &livekit_rpc_response_t_msg
-#define LIVEKIT_RPC_ERROR_FIELDS &livekit_rpc_error_t_msg
-#define LIVEKIT_PARTICIPANT_TRACKS_FIELDS &livekit_participant_tracks_t_msg
-#define LIVEKIT_SERVER_INFO_FIELDS &livekit_server_info_t_msg
-#define LIVEKIT_CLIENT_INFO_FIELDS &livekit_client_info_t_msg
-#define LIVEKIT_CLIENT_CONFIGURATION_FIELDS &livekit_client_configuration_t_msg
-#define LIVEKIT_VIDEO_CONFIGURATION_FIELDS &livekit_video_configuration_t_msg
-#define LIVEKIT_DISABLED_CODECS_FIELDS &livekit_disabled_codecs_t_msg
-#define LIVEKIT_RTP_DRIFT_FIELDS &livekit_rtp_drift_t_msg
-#define LIVEKIT_RTP_STATS_FIELDS &livekit_rtp_stats_t_msg
-#define LIVEKIT_RTP_STATS_GAP_HISTOGRAM_ENTRY_FIELDS &livekit_rtp_stats_gap_histogram_entry_t_msg
-#define LIVEKIT_RTCP_SENDER_REPORT_STATE_FIELDS &livekit_rtcp_sender_report_state_t_msg
-#define LIVEKIT_RTP_FORWARDER_STATE_FIELDS &livekit_rtp_forwarder_state_t_msg
-#define LIVEKIT_RTP_MUNGER_STATE_FIELDS &livekit_rtp_munger_state_t_msg
-#define LIVEKIT_VP8_MUNGER_STATE_FIELDS &livekit_vp8_munger_state_t_msg
-#define LIVEKIT_TIMED_VERSION_FIELDS &livekit_timed_version_t_msg
-#define LIVEKIT_DATA_STREAM_FIELDS &livekit_data_stream_t_msg
-#define LIVEKIT_DATA_STREAM_TEXT_HEADER_FIELDS &livekit_data_stream_text_header_t_msg
-#define LIVEKIT_DATA_STREAM_BYTE_HEADER_FIELDS &livekit_data_stream_byte_header_t_msg
-#define LIVEKIT_DATA_STREAM_HEADER_FIELDS &livekit_data_stream_header_t_msg
-#define LIVEKIT_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_FIELDS &livekit_data_stream_header_attributes_entry_t_msg
-#define LIVEKIT_DATA_STREAM_CHUNK_FIELDS &livekit_data_stream_chunk_t_msg
-#define LIVEKIT_DATA_STREAM_TRAILER_FIELDS &livekit_data_stream_trailer_t_msg
-#define LIVEKIT_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_FIELDS &livekit_data_stream_trailer_attributes_entry_t_msg
-#define LIVEKIT_WEBHOOK_CONFIG_FIELDS &livekit_webhook_config_t_msg
+#define LIVEKIT_PB_PAGINATION_FIELDS &livekit_pb_pagination_t_msg
+#define LIVEKIT_PB_LIST_UPDATE_FIELDS &livekit_pb_list_update_t_msg
+#define LIVEKIT_PB_ROOM_FIELDS &livekit_pb_room_t_msg
+#define LIVEKIT_PB_CODEC_FIELDS &livekit_pb_codec_t_msg
+#define LIVEKIT_PB_PLAYOUT_DELAY_FIELDS &livekit_pb_playout_delay_t_msg
+#define LIVEKIT_PB_PARTICIPANT_PERMISSION_FIELDS &livekit_pb_participant_permission_t_msg
+#define LIVEKIT_PB_PARTICIPANT_INFO_FIELDS &livekit_pb_participant_info_t_msg
+#define LIVEKIT_PB_ENCRYPTION_FIELDS &livekit_pb_encryption_t_msg
+#define LIVEKIT_PB_SIMULCAST_CODEC_INFO_FIELDS &livekit_pb_simulcast_codec_info_t_msg
+#define LIVEKIT_PB_TRACK_INFO_FIELDS &livekit_pb_track_info_t_msg
+#define LIVEKIT_PB_VIDEO_LAYER_FIELDS &livekit_pb_video_layer_t_msg
+#define LIVEKIT_PB_DATA_PACKET_FIELDS &livekit_pb_data_packet_t_msg
+#define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_FIELDS &livekit_pb_active_speaker_update_t_msg
+#define LIVEKIT_PB_SPEAKER_INFO_FIELDS &livekit_pb_speaker_info_t_msg
+#define LIVEKIT_PB_USER_PACKET_FIELDS &livekit_pb_user_packet_t_msg
+#define LIVEKIT_PB_SIP_DTMF_FIELDS &livekit_pb_sip_dtmf_t_msg
+#define LIVEKIT_PB_TRANSCRIPTION_FIELDS &livekit_pb_transcription_t_msg
+#define LIVEKIT_PB_TRANSCRIPTION_SEGMENT_FIELDS &livekit_pb_transcription_segment_t_msg
+#define LIVEKIT_PB_CHAT_MESSAGE_FIELDS &livekit_pb_chat_message_t_msg
+#define LIVEKIT_PB_RPC_REQUEST_FIELDS &livekit_pb_rpc_request_t_msg
+#define LIVEKIT_PB_RPC_ACK_FIELDS &livekit_pb_rpc_ack_t_msg
+#define LIVEKIT_PB_RPC_RESPONSE_FIELDS &livekit_pb_rpc_response_t_msg
+#define LIVEKIT_PB_RPC_ERROR_FIELDS &livekit_pb_rpc_error_t_msg
+#define LIVEKIT_PB_PARTICIPANT_TRACKS_FIELDS &livekit_pb_participant_tracks_t_msg
+#define LIVEKIT_PB_SERVER_INFO_FIELDS &livekit_pb_server_info_t_msg
+#define LIVEKIT_PB_CLIENT_INFO_FIELDS &livekit_pb_client_info_t_msg
+#define LIVEKIT_PB_CLIENT_CONFIGURATION_FIELDS &livekit_pb_client_configuration_t_msg
+#define LIVEKIT_PB_VIDEO_CONFIGURATION_FIELDS &livekit_pb_video_configuration_t_msg
+#define LIVEKIT_PB_DISABLED_CODECS_FIELDS &livekit_pb_disabled_codecs_t_msg
+#define LIVEKIT_PB_RTP_DRIFT_FIELDS &livekit_pb_rtp_drift_t_msg
+#define LIVEKIT_PB_RTP_STATS_FIELDS &livekit_pb_rtp_stats_t_msg
+#define LIVEKIT_PB_RTP_STATS_GAP_HISTOGRAM_ENTRY_FIELDS &livekit_pb_rtp_stats_gap_histogram_entry_t_msg
+#define LIVEKIT_PB_RTCP_SENDER_REPORT_STATE_FIELDS &livekit_pb_rtcp_sender_report_state_t_msg
+#define LIVEKIT_PB_RTP_FORWARDER_STATE_FIELDS &livekit_pb_rtp_forwarder_state_t_msg
+#define LIVEKIT_PB_RTP_MUNGER_STATE_FIELDS &livekit_pb_rtp_munger_state_t_msg
+#define LIVEKIT_PB_VP8_MUNGER_STATE_FIELDS &livekit_pb_vp8_munger_state_t_msg
+#define LIVEKIT_PB_TIMED_VERSION_FIELDS &livekit_pb_timed_version_t_msg
+#define LIVEKIT_PB_DATA_STREAM_FIELDS &livekit_pb_data_stream_t_msg
+#define LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_FIELDS &livekit_pb_data_stream_text_header_t_msg
+#define LIVEKIT_PB_DATA_STREAM_BYTE_HEADER_FIELDS &livekit_pb_data_stream_byte_header_t_msg
+#define LIVEKIT_PB_DATA_STREAM_HEADER_FIELDS &livekit_pb_data_stream_header_t_msg
+#define LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_FIELDS &livekit_pb_data_stream_header_attributes_entry_t_msg
+#define LIVEKIT_PB_DATA_STREAM_CHUNK_FIELDS &livekit_pb_data_stream_chunk_t_msg
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_FIELDS &livekit_pb_data_stream_trailer_t_msg
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_FIELDS &livekit_pb_data_stream_trailer_attributes_entry_t_msg
+#define LIVEKIT_PB_WEBHOOK_CONFIG_FIELDS &livekit_pb_webhook_config_t_msg
 
 /* Maximum encoded size of messages (where known) */
-/* livekit_Pagination_size depends on runtime parameters */
-/* livekit_ListUpdate_size depends on runtime parameters */
-/* livekit_Room_size depends on runtime parameters */
-/* livekit_Codec_size depends on runtime parameters */
-/* livekit_SimulcastCodecInfo_size depends on runtime parameters */
-/* livekit_TrackInfo_size depends on runtime parameters */
-/* livekit_DataPacket_size depends on runtime parameters */
-/* livekit_ActiveSpeakerUpdate_size depends on runtime parameters */
-/* livekit_SpeakerInfo_size depends on runtime parameters */
-/* livekit_UserPacket_size depends on runtime parameters */
-/* livekit_SipDTMF_size depends on runtime parameters */
-/* livekit_Transcription_size depends on runtime parameters */
-/* livekit_TranscriptionSegment_size depends on runtime parameters */
-/* livekit_ChatMessage_size depends on runtime parameters */
-/* livekit_RpcRequest_size depends on runtime parameters */
-/* livekit_RpcAck_size depends on runtime parameters */
-/* livekit_RpcResponse_size depends on runtime parameters */
-/* livekit_RpcError_size depends on runtime parameters */
-/* livekit_ParticipantTracks_size depends on runtime parameters */
-/* livekit_ServerInfo_size depends on runtime parameters */
-/* livekit_ClientInfo_size depends on runtime parameters */
-/* livekit_DisabledCodecs_size depends on runtime parameters */
-/* livekit_RTPStats_size depends on runtime parameters */
-/* livekit_RTPForwarderState_size depends on runtime parameters */
-/* livekit_DataStream_TextHeader_size depends on runtime parameters */
-/* livekit_DataStream_ByteHeader_size depends on runtime parameters */
-/* livekit_DataStream_Header_size depends on runtime parameters */
-/* livekit_DataStream_Header_AttributesEntry_size depends on runtime parameters */
-/* livekit_DataStream_Chunk_size depends on runtime parameters */
-/* livekit_DataStream_Trailer_size depends on runtime parameters */
-/* livekit_DataStream_Trailer_AttributesEntry_size depends on runtime parameters */
-/* livekit_WebhookConfig_size depends on runtime parameters */
-#define LIVEKIT_CLIENT_CONFIGURATION_SIZE        4
-#define LIVEKIT_DATA_STREAM_SIZE                 0
-#define LIVEKIT_ENCRYPTION_SIZE                  0
-#define LIVEKIT_LIVEKIT_MODELS_PB_H_MAX_SIZE     LIVEKIT_RTP_DRIFT_SIZE
-#define LIVEKIT_PARTICIPANT_INFO_SIZE            8
-#define LIVEKIT_PARTICIPANT_PERMISSION_SIZE      6
-#define LIVEKIT_PLAYOUT_DELAY_SIZE               14
-#define LIVEKIT_RTCP_SENDER_REPORT_STATE_SIZE    67
-#define LIVEKIT_RTP_DRIFT_SIZE                   119
-#define LIVEKIT_RTP_MUNGER_STATE_SIZE            48
-#define LIVEKIT_RTP_STATS_GAP_HISTOGRAM_ENTRY_SIZE 17
-#define LIVEKIT_TIMED_VERSION_SIZE               22
-#define LIVEKIT_VIDEO_CONFIGURATION_SIZE         2
-#define LIVEKIT_VIDEO_LAYER_SIZE                 26
-#define LIVEKIT_VP8_MUNGER_STATE_SIZE            31
+/* livekit_pb_Pagination_size depends on runtime parameters */
+/* livekit_pb_ListUpdate_size depends on runtime parameters */
+/* livekit_pb_Room_size depends on runtime parameters */
+/* livekit_pb_Codec_size depends on runtime parameters */
+/* livekit_pb_SimulcastCodecInfo_size depends on runtime parameters */
+/* livekit_pb_TrackInfo_size depends on runtime parameters */
+/* livekit_pb_DataPacket_size depends on runtime parameters */
+/* livekit_pb_ActiveSpeakerUpdate_size depends on runtime parameters */
+/* livekit_pb_SpeakerInfo_size depends on runtime parameters */
+/* livekit_pb_UserPacket_size depends on runtime parameters */
+/* livekit_pb_SipDTMF_size depends on runtime parameters */
+/* livekit_pb_Transcription_size depends on runtime parameters */
+/* livekit_pb_TranscriptionSegment_size depends on runtime parameters */
+/* livekit_pb_ChatMessage_size depends on runtime parameters */
+/* livekit_pb_RpcRequest_size depends on runtime parameters */
+/* livekit_pb_RpcAck_size depends on runtime parameters */
+/* livekit_pb_RpcResponse_size depends on runtime parameters */
+/* livekit_pb_RpcError_size depends on runtime parameters */
+/* livekit_pb_ParticipantTracks_size depends on runtime parameters */
+/* livekit_pb_ServerInfo_size depends on runtime parameters */
+/* livekit_pb_ClientInfo_size depends on runtime parameters */
+/* livekit_pb_DisabledCodecs_size depends on runtime parameters */
+/* livekit_pb_RTPStats_size depends on runtime parameters */
+/* livekit_pb_RTPForwarderState_size depends on runtime parameters */
+/* livekit_pb_DataStream_TextHeader_size depends on runtime parameters */
+/* livekit_pb_DataStream_ByteHeader_size depends on runtime parameters */
+/* livekit_pb_DataStream_Header_size depends on runtime parameters */
+/* livekit_pb_DataStream_Header_AttributesEntry_size depends on runtime parameters */
+/* livekit_pb_DataStream_Chunk_size depends on runtime parameters */
+/* livekit_pb_DataStream_Trailer_size depends on runtime parameters */
+/* livekit_pb_DataStream_Trailer_AttributesEntry_size depends on runtime parameters */
+/* livekit_pb_WebhookConfig_size depends on runtime parameters */
+#define LIVEKIT_LIVEKIT_MODELS_PB_H_MAX_SIZE     LIVEKIT_PB_RTP_DRIFT_SIZE
+#define LIVEKIT_PB_CLIENT_CONFIGURATION_SIZE     4
+#define LIVEKIT_PB_DATA_STREAM_SIZE              0
+#define LIVEKIT_PB_ENCRYPTION_SIZE               0
+#define LIVEKIT_PB_PARTICIPANT_INFO_SIZE         8
+#define LIVEKIT_PB_PARTICIPANT_PERMISSION_SIZE   6
+#define LIVEKIT_PB_PLAYOUT_DELAY_SIZE            14
+#define LIVEKIT_PB_RTCP_SENDER_REPORT_STATE_SIZE 67
+#define LIVEKIT_PB_RTP_DRIFT_SIZE                119
+#define LIVEKIT_PB_RTP_MUNGER_STATE_SIZE         48
+#define LIVEKIT_PB_RTP_STATS_GAP_HISTOGRAM_ENTRY_SIZE 17
+#define LIVEKIT_PB_TIMED_VERSION_SIZE            22
+#define LIVEKIT_PB_VIDEO_CONFIGURATION_SIZE      2
+#define LIVEKIT_PB_VIDEO_LAYER_SIZE              26
+#define LIVEKIT_PB_VP8_MUNGER_STATE_SIZE         31
+
+/* Mapping from canonical names (mangle_names or overridden package name) */
+#define livekit_AudioCodec livekit_pb_AudioCodec
+#define livekit_VideoCodec livekit_pb_VideoCodec
+#define livekit_ImageCodec livekit_pb_ImageCodec
+#define livekit_BackupCodecPolicy livekit_pb_BackupCodecPolicy
+#define livekit_TrackType livekit_pb_TrackType
+#define livekit_TrackSource livekit_pb_TrackSource
+#define livekit_VideoQuality livekit_pb_VideoQuality
+#define livekit_ConnectionQuality livekit_pb_ConnectionQuality
+#define livekit_ClientConfigSetting livekit_pb_ClientConfigSetting
+#define livekit_DisconnectReason livekit_pb_DisconnectReason
+#define livekit_ReconnectReason livekit_pb_ReconnectReason
+#define livekit_SubscriptionError livekit_pb_SubscriptionError
+#define livekit_AudioTrackFeature livekit_pb_AudioTrackFeature
+#define livekit_Pagination livekit_pb_Pagination
+#define livekit_ListUpdate livekit_pb_ListUpdate
+#define livekit_Room livekit_pb_Room
+#define livekit_Codec livekit_pb_Codec
+#define livekit_PlayoutDelay livekit_pb_PlayoutDelay
+#define livekit_ParticipantPermission livekit_pb_ParticipantPermission
+#define livekit_ParticipantInfo livekit_pb_ParticipantInfo
+#define livekit_ParticipantInfo_State livekit_pb_ParticipantInfo_State
+#define livekit_ParticipantInfo_Kind livekit_pb_ParticipantInfo_Kind
+#define livekit_ParticipantInfo_KindDetail livekit_pb_ParticipantInfo_KindDetail
+#define livekit_ParticipantInfo_AttributesEntry livekit_pb_ParticipantInfo_AttributesEntry
+#define livekit_Encryption livekit_pb_Encryption
+#define livekit_Encryption_Type livekit_pb_Encryption_Type
+#define livekit_SimulcastCodecInfo livekit_pb_SimulcastCodecInfo
+#define livekit_TrackInfo livekit_pb_TrackInfo
+#define livekit_VideoLayer livekit_pb_VideoLayer
+#define livekit_DataPacket livekit_pb_DataPacket
+#define livekit_DataPacket_Kind livekit_pb_DataPacket_Kind
+#define livekit_ActiveSpeakerUpdate livekit_pb_ActiveSpeakerUpdate
+#define livekit_SpeakerInfo livekit_pb_SpeakerInfo
+#define livekit_UserPacket livekit_pb_UserPacket
+#define livekit_SipDTMF livekit_pb_SipDTMF
+#define livekit_Transcription livekit_pb_Transcription
+#define livekit_TranscriptionSegment livekit_pb_TranscriptionSegment
+#define livekit_ChatMessage livekit_pb_ChatMessage
+#define livekit_RpcRequest livekit_pb_RpcRequest
+#define livekit_RpcAck livekit_pb_RpcAck
+#define livekit_RpcResponse livekit_pb_RpcResponse
+#define livekit_RpcError livekit_pb_RpcError
+#define livekit_ParticipantTracks livekit_pb_ParticipantTracks
+#define livekit_ServerInfo livekit_pb_ServerInfo
+#define livekit_ServerInfo_Edition livekit_pb_ServerInfo_Edition
+#define livekit_ClientInfo livekit_pb_ClientInfo
+#define livekit_ClientInfo_SDK livekit_pb_ClientInfo_SDK
+#define livekit_ClientConfiguration livekit_pb_ClientConfiguration
+#define livekit_VideoConfiguration livekit_pb_VideoConfiguration
+#define livekit_DisabledCodecs livekit_pb_DisabledCodecs
+#define livekit_RTPDrift livekit_pb_RTPDrift
+#define livekit_RTPStats livekit_pb_RTPStats
+#define livekit_RTPStats_GapHistogramEntry livekit_pb_RTPStats_GapHistogramEntry
+#define livekit_RTCPSenderReportState livekit_pb_RTCPSenderReportState
+#define livekit_RTPForwarderState livekit_pb_RTPForwarderState
+#define livekit_RTPMungerState livekit_pb_RTPMungerState
+#define livekit_VP8MungerState livekit_pb_VP8MungerState
+#define livekit_TimedVersion livekit_pb_TimedVersion
+#define livekit_DataStream livekit_pb_DataStream
+#define livekit_DataStream_OperationType livekit_pb_DataStream_OperationType
+#define livekit_DataStream_TextHeader livekit_pb_DataStream_TextHeader
+#define livekit_DataStream_ByteHeader livekit_pb_DataStream_ByteHeader
+#define livekit_DataStream_Header livekit_pb_DataStream_Header
+#define livekit_DataStream_Header_AttributesEntry livekit_pb_DataStream_Header_AttributesEntry
+#define livekit_DataStream_Chunk livekit_pb_DataStream_Chunk
+#define livekit_DataStream_Trailer livekit_pb_DataStream_Trailer
+#define livekit_DataStream_Trailer_AttributesEntry livekit_pb_DataStream_Trailer_AttributesEntry
+#define livekit_WebhookConfig livekit_pb_WebhookConfig
+#define _LIVEKIT_AUDIO_CODEC_MIN _LIVEKIT_PB_AUDIO_CODEC_MIN
+#define _LIVEKIT_AUDIO_CODEC_MAX _LIVEKIT_PB_AUDIO_CODEC_MAX
+#define _LIVEKIT_AUDIO_CODEC_ARRAYSIZE _LIVEKIT_PB_AUDIO_CODEC_ARRAYSIZE
+#define _LIVEKIT_VIDEO_CODEC_MIN _LIVEKIT_PB_VIDEO_CODEC_MIN
+#define _LIVEKIT_VIDEO_CODEC_MAX _LIVEKIT_PB_VIDEO_CODEC_MAX
+#define _LIVEKIT_VIDEO_CODEC_ARRAYSIZE _LIVEKIT_PB_VIDEO_CODEC_ARRAYSIZE
+#define _LIVEKIT_IMAGE_CODEC_MIN _LIVEKIT_PB_IMAGE_CODEC_MIN
+#define _LIVEKIT_IMAGE_CODEC_MAX _LIVEKIT_PB_IMAGE_CODEC_MAX
+#define _LIVEKIT_IMAGE_CODEC_ARRAYSIZE _LIVEKIT_PB_IMAGE_CODEC_ARRAYSIZE
+#define _LIVEKIT_BACKUP_CODEC_POLICY_MIN _LIVEKIT_PB_BACKUP_CODEC_POLICY_MIN
+#define _LIVEKIT_BACKUP_CODEC_POLICY_MAX _LIVEKIT_PB_BACKUP_CODEC_POLICY_MAX
+#define _LIVEKIT_BACKUP_CODEC_POLICY_ARRAYSIZE _LIVEKIT_PB_BACKUP_CODEC_POLICY_ARRAYSIZE
+#define _LIVEKIT_TRACK_TYPE_MIN _LIVEKIT_PB_TRACK_TYPE_MIN
+#define _LIVEKIT_TRACK_TYPE_MAX _LIVEKIT_PB_TRACK_TYPE_MAX
+#define _LIVEKIT_TRACK_TYPE_ARRAYSIZE _LIVEKIT_PB_TRACK_TYPE_ARRAYSIZE
+#define _LIVEKIT_TRACK_SOURCE_MIN _LIVEKIT_PB_TRACK_SOURCE_MIN
+#define _LIVEKIT_TRACK_SOURCE_MAX _LIVEKIT_PB_TRACK_SOURCE_MAX
+#define _LIVEKIT_TRACK_SOURCE_ARRAYSIZE _LIVEKIT_PB_TRACK_SOURCE_ARRAYSIZE
+#define _LIVEKIT_VIDEO_QUALITY_MIN _LIVEKIT_PB_VIDEO_QUALITY_MIN
+#define _LIVEKIT_VIDEO_QUALITY_MAX _LIVEKIT_PB_VIDEO_QUALITY_MAX
+#define _LIVEKIT_VIDEO_QUALITY_ARRAYSIZE _LIVEKIT_PB_VIDEO_QUALITY_ARRAYSIZE
+#define _LIVEKIT_CONNECTION_QUALITY_MIN _LIVEKIT_PB_CONNECTION_QUALITY_MIN
+#define _LIVEKIT_CONNECTION_QUALITY_MAX _LIVEKIT_PB_CONNECTION_QUALITY_MAX
+#define _LIVEKIT_CONNECTION_QUALITY_ARRAYSIZE _LIVEKIT_PB_CONNECTION_QUALITY_ARRAYSIZE
+#define _LIVEKIT_CLIENT_CONFIG_SETTING_MIN _LIVEKIT_PB_CLIENT_CONFIG_SETTING_MIN
+#define _LIVEKIT_CLIENT_CONFIG_SETTING_MAX _LIVEKIT_PB_CLIENT_CONFIG_SETTING_MAX
+#define _LIVEKIT_CLIENT_CONFIG_SETTING_ARRAYSIZE _LIVEKIT_PB_CLIENT_CONFIG_SETTING_ARRAYSIZE
+#define _LIVEKIT_DISCONNECT_REASON_MIN _LIVEKIT_PB_DISCONNECT_REASON_MIN
+#define _LIVEKIT_DISCONNECT_REASON_MAX _LIVEKIT_PB_DISCONNECT_REASON_MAX
+#define _LIVEKIT_DISCONNECT_REASON_ARRAYSIZE _LIVEKIT_PB_DISCONNECT_REASON_ARRAYSIZE
+#define _LIVEKIT_RECONNECT_REASON_MIN _LIVEKIT_PB_RECONNECT_REASON_MIN
+#define _LIVEKIT_RECONNECT_REASON_MAX _LIVEKIT_PB_RECONNECT_REASON_MAX
+#define _LIVEKIT_RECONNECT_REASON_ARRAYSIZE _LIVEKIT_PB_RECONNECT_REASON_ARRAYSIZE
+#define _LIVEKIT_SUBSCRIPTION_ERROR_MIN _LIVEKIT_PB_SUBSCRIPTION_ERROR_MIN
+#define _LIVEKIT_SUBSCRIPTION_ERROR_MAX _LIVEKIT_PB_SUBSCRIPTION_ERROR_MAX
+#define _LIVEKIT_SUBSCRIPTION_ERROR_ARRAYSIZE _LIVEKIT_PB_SUBSCRIPTION_ERROR_ARRAYSIZE
+#define _LIVEKIT_AUDIO_TRACK_FEATURE_MIN _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN
+#define _LIVEKIT_AUDIO_TRACK_FEATURE_MAX _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MAX
+#define _LIVEKIT_AUDIO_TRACK_FEATURE_ARRAYSIZE _LIVEKIT_PB_AUDIO_TRACK_FEATURE_ARRAYSIZE
+#define _LIVEKIT_PARTICIPANT_INFO_STATE_MIN _LIVEKIT_PB_PARTICIPANT_INFO_STATE_MIN
+#define _LIVEKIT_PARTICIPANT_INFO_STATE_MAX _LIVEKIT_PB_PARTICIPANT_INFO_STATE_MAX
+#define _LIVEKIT_PARTICIPANT_INFO_STATE_ARRAYSIZE _LIVEKIT_PB_PARTICIPANT_INFO_STATE_ARRAYSIZE
+#define _LIVEKIT_PARTICIPANT_INFO_KIND_MIN _LIVEKIT_PB_PARTICIPANT_INFO_KIND_MIN
+#define _LIVEKIT_PARTICIPANT_INFO_KIND_MAX _LIVEKIT_PB_PARTICIPANT_INFO_KIND_MAX
+#define _LIVEKIT_PARTICIPANT_INFO_KIND_ARRAYSIZE _LIVEKIT_PB_PARTICIPANT_INFO_KIND_ARRAYSIZE
+#define _LIVEKIT_PARTICIPANT_INFO_KIND_DETAIL_MIN _LIVEKIT_PB_PARTICIPANT_INFO_KIND_DETAIL_MIN
+#define _LIVEKIT_PARTICIPANT_INFO_KIND_DETAIL_MAX _LIVEKIT_PB_PARTICIPANT_INFO_KIND_DETAIL_MAX
+#define _LIVEKIT_PARTICIPANT_INFO_KIND_DETAIL_ARRAYSIZE _LIVEKIT_PB_PARTICIPANT_INFO_KIND_DETAIL_ARRAYSIZE
+#define _LIVEKIT_ENCRYPTION_TYPE_MIN _LIVEKIT_PB_ENCRYPTION_TYPE_MIN
+#define _LIVEKIT_ENCRYPTION_TYPE_MAX _LIVEKIT_PB_ENCRYPTION_TYPE_MAX
+#define _LIVEKIT_ENCRYPTION_TYPE_ARRAYSIZE _LIVEKIT_PB_ENCRYPTION_TYPE_ARRAYSIZE
+#define _LIVEKIT_DATA_PACKET_KIND_MIN _LIVEKIT_PB_DATA_PACKET_KIND_MIN
+#define _LIVEKIT_DATA_PACKET_KIND_MAX _LIVEKIT_PB_DATA_PACKET_KIND_MAX
+#define _LIVEKIT_DATA_PACKET_KIND_ARRAYSIZE _LIVEKIT_PB_DATA_PACKET_KIND_ARRAYSIZE
+#define _LIVEKIT_SERVER_INFO_EDITION_MIN _LIVEKIT_PB_SERVER_INFO_EDITION_MIN
+#define _LIVEKIT_SERVER_INFO_EDITION_MAX _LIVEKIT_PB_SERVER_INFO_EDITION_MAX
+#define _LIVEKIT_SERVER_INFO_EDITION_ARRAYSIZE _LIVEKIT_PB_SERVER_INFO_EDITION_ARRAYSIZE
+#define _LIVEKIT_CLIENT_INFO_SDK_MIN _LIVEKIT_PB_CLIENT_INFO_SDK_MIN
+#define _LIVEKIT_CLIENT_INFO_SDK_MAX _LIVEKIT_PB_CLIENT_INFO_SDK_MAX
+#define _LIVEKIT_CLIENT_INFO_SDK_ARRAYSIZE _LIVEKIT_PB_CLIENT_INFO_SDK_ARRAYSIZE
+#define _LIVEKIT_DATA_STREAM_OPERATION_TYPE_MIN _LIVEKIT_PB_DATA_STREAM_OPERATION_TYPE_MIN
+#define _LIVEKIT_DATA_STREAM_OPERATION_TYPE_MAX _LIVEKIT_PB_DATA_STREAM_OPERATION_TYPE_MAX
+#define _LIVEKIT_DATA_STREAM_OPERATION_TYPE_ARRAYSIZE _LIVEKIT_PB_DATA_STREAM_OPERATION_TYPE_ARRAYSIZE
+#define LIVEKIT_PAGINATION_INIT_DEFAULT LIVEKIT_PB_PAGINATION_INIT_DEFAULT
+#define LIVEKIT_LIST_UPDATE_INIT_DEFAULT LIVEKIT_PB_LIST_UPDATE_INIT_DEFAULT
+#define LIVEKIT_ROOM_INIT_DEFAULT LIVEKIT_PB_ROOM_INIT_DEFAULT
+#define LIVEKIT_CODEC_INIT_DEFAULT LIVEKIT_PB_CODEC_INIT_DEFAULT
+#define LIVEKIT_PLAYOUT_DELAY_INIT_DEFAULT LIVEKIT_PB_PLAYOUT_DELAY_INIT_DEFAULT
+#define LIVEKIT_PARTICIPANT_PERMISSION_INIT_DEFAULT LIVEKIT_PB_PARTICIPANT_PERMISSION_INIT_DEFAULT
+#define LIVEKIT_PARTICIPANT_INFO_INIT_DEFAULT LIVEKIT_PB_PARTICIPANT_INFO_INIT_DEFAULT
+#define LIVEKIT_ENCRYPTION_INIT_DEFAULT LIVEKIT_PB_ENCRYPTION_INIT_DEFAULT
+#define LIVEKIT_SIMULCAST_CODEC_INFO_INIT_DEFAULT LIVEKIT_PB_SIMULCAST_CODEC_INFO_INIT_DEFAULT
+#define LIVEKIT_TRACK_INFO_INIT_DEFAULT LIVEKIT_PB_TRACK_INFO_INIT_DEFAULT
+#define LIVEKIT_VIDEO_LAYER_INIT_DEFAULT LIVEKIT_PB_VIDEO_LAYER_INIT_DEFAULT
+#define LIVEKIT_DATA_PACKET_INIT_DEFAULT LIVEKIT_PB_DATA_PACKET_INIT_DEFAULT
+#define LIVEKIT_ACTIVE_SPEAKER_UPDATE_INIT_DEFAULT LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_INIT_DEFAULT
+#define LIVEKIT_SPEAKER_INFO_INIT_DEFAULT LIVEKIT_PB_SPEAKER_INFO_INIT_DEFAULT
+#define LIVEKIT_USER_PACKET_INIT_DEFAULT LIVEKIT_PB_USER_PACKET_INIT_DEFAULT
+#define LIVEKIT_SIP_DTMF_INIT_DEFAULT LIVEKIT_PB_SIP_DTMF_INIT_DEFAULT
+#define LIVEKIT_TRANSCRIPTION_INIT_DEFAULT LIVEKIT_PB_TRANSCRIPTION_INIT_DEFAULT
+#define LIVEKIT_TRANSCRIPTION_SEGMENT_INIT_DEFAULT LIVEKIT_PB_TRANSCRIPTION_SEGMENT_INIT_DEFAULT
+#define LIVEKIT_CHAT_MESSAGE_INIT_DEFAULT LIVEKIT_PB_CHAT_MESSAGE_INIT_DEFAULT
+#define LIVEKIT_RPC_REQUEST_INIT_DEFAULT LIVEKIT_PB_RPC_REQUEST_INIT_DEFAULT
+#define LIVEKIT_RPC_ACK_INIT_DEFAULT LIVEKIT_PB_RPC_ACK_INIT_DEFAULT
+#define LIVEKIT_RPC_RESPONSE_INIT_DEFAULT LIVEKIT_PB_RPC_RESPONSE_INIT_DEFAULT
+#define LIVEKIT_RPC_ERROR_INIT_DEFAULT LIVEKIT_PB_RPC_ERROR_INIT_DEFAULT
+#define LIVEKIT_PARTICIPANT_TRACKS_INIT_DEFAULT LIVEKIT_PB_PARTICIPANT_TRACKS_INIT_DEFAULT
+#define LIVEKIT_SERVER_INFO_INIT_DEFAULT LIVEKIT_PB_SERVER_INFO_INIT_DEFAULT
+#define LIVEKIT_CLIENT_INFO_INIT_DEFAULT LIVEKIT_PB_CLIENT_INFO_INIT_DEFAULT
+#define LIVEKIT_CLIENT_CONFIGURATION_INIT_DEFAULT LIVEKIT_PB_CLIENT_CONFIGURATION_INIT_DEFAULT
+#define LIVEKIT_VIDEO_CONFIGURATION_INIT_DEFAULT LIVEKIT_PB_VIDEO_CONFIGURATION_INIT_DEFAULT
+#define LIVEKIT_DISABLED_CODECS_INIT_DEFAULT LIVEKIT_PB_DISABLED_CODECS_INIT_DEFAULT
+#define LIVEKIT_RTP_DRIFT_INIT_DEFAULT LIVEKIT_PB_RTP_DRIFT_INIT_DEFAULT
+#define LIVEKIT_RTP_STATS_INIT_DEFAULT LIVEKIT_PB_RTP_STATS_INIT_DEFAULT
+#define LIVEKIT_RTP_STATS_GAP_HISTOGRAM_ENTRY_INIT_DEFAULT LIVEKIT_PB_RTP_STATS_GAP_HISTOGRAM_ENTRY_INIT_DEFAULT
+#define LIVEKIT_RTCP_SENDER_REPORT_STATE_INIT_DEFAULT LIVEKIT_PB_RTCP_SENDER_REPORT_STATE_INIT_DEFAULT
+#define LIVEKIT_RTP_FORWARDER_STATE_INIT_DEFAULT LIVEKIT_PB_RTP_FORWARDER_STATE_INIT_DEFAULT
+#define LIVEKIT_RTP_MUNGER_STATE_INIT_DEFAULT LIVEKIT_PB_RTP_MUNGER_STATE_INIT_DEFAULT
+#define LIVEKIT_VP8_MUNGER_STATE_INIT_DEFAULT LIVEKIT_PB_VP8_MUNGER_STATE_INIT_DEFAULT
+#define LIVEKIT_TIMED_VERSION_INIT_DEFAULT LIVEKIT_PB_TIMED_VERSION_INIT_DEFAULT
+#define LIVEKIT_DATA_STREAM_INIT_DEFAULT LIVEKIT_PB_DATA_STREAM_INIT_DEFAULT
+#define LIVEKIT_DATA_STREAM_TEXT_HEADER_INIT_DEFAULT LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_INIT_DEFAULT
+#define LIVEKIT_DATA_STREAM_BYTE_HEADER_INIT_DEFAULT LIVEKIT_PB_DATA_STREAM_BYTE_HEADER_INIT_DEFAULT
+#define LIVEKIT_DATA_STREAM_HEADER_INIT_DEFAULT LIVEKIT_PB_DATA_STREAM_HEADER_INIT_DEFAULT
+#define LIVEKIT_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_INIT_DEFAULT LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_INIT_DEFAULT
+#define LIVEKIT_DATA_STREAM_CHUNK_INIT_DEFAULT LIVEKIT_PB_DATA_STREAM_CHUNK_INIT_DEFAULT
+#define LIVEKIT_DATA_STREAM_TRAILER_INIT_DEFAULT LIVEKIT_PB_DATA_STREAM_TRAILER_INIT_DEFAULT
+#define LIVEKIT_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_INIT_DEFAULT LIVEKIT_PB_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_INIT_DEFAULT
+#define LIVEKIT_WEBHOOK_CONFIG_INIT_DEFAULT LIVEKIT_PB_WEBHOOK_CONFIG_INIT_DEFAULT
+#define LIVEKIT_PAGINATION_INIT_ZERO LIVEKIT_PB_PAGINATION_INIT_ZERO
+#define LIVEKIT_LIST_UPDATE_INIT_ZERO LIVEKIT_PB_LIST_UPDATE_INIT_ZERO
+#define LIVEKIT_ROOM_INIT_ZERO LIVEKIT_PB_ROOM_INIT_ZERO
+#define LIVEKIT_CODEC_INIT_ZERO LIVEKIT_PB_CODEC_INIT_ZERO
+#define LIVEKIT_PLAYOUT_DELAY_INIT_ZERO LIVEKIT_PB_PLAYOUT_DELAY_INIT_ZERO
+#define LIVEKIT_PARTICIPANT_PERMISSION_INIT_ZERO LIVEKIT_PB_PARTICIPANT_PERMISSION_INIT_ZERO
+#define LIVEKIT_PARTICIPANT_INFO_INIT_ZERO LIVEKIT_PB_PARTICIPANT_INFO_INIT_ZERO
+#define LIVEKIT_ENCRYPTION_INIT_ZERO LIVEKIT_PB_ENCRYPTION_INIT_ZERO
+#define LIVEKIT_SIMULCAST_CODEC_INFO_INIT_ZERO LIVEKIT_PB_SIMULCAST_CODEC_INFO_INIT_ZERO
+#define LIVEKIT_TRACK_INFO_INIT_ZERO LIVEKIT_PB_TRACK_INFO_INIT_ZERO
+#define LIVEKIT_VIDEO_LAYER_INIT_ZERO LIVEKIT_PB_VIDEO_LAYER_INIT_ZERO
+#define LIVEKIT_DATA_PACKET_INIT_ZERO LIVEKIT_PB_DATA_PACKET_INIT_ZERO
+#define LIVEKIT_ACTIVE_SPEAKER_UPDATE_INIT_ZERO LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_INIT_ZERO
+#define LIVEKIT_SPEAKER_INFO_INIT_ZERO LIVEKIT_PB_SPEAKER_INFO_INIT_ZERO
+#define LIVEKIT_USER_PACKET_INIT_ZERO LIVEKIT_PB_USER_PACKET_INIT_ZERO
+#define LIVEKIT_SIP_DTMF_INIT_ZERO LIVEKIT_PB_SIP_DTMF_INIT_ZERO
+#define LIVEKIT_TRANSCRIPTION_INIT_ZERO LIVEKIT_PB_TRANSCRIPTION_INIT_ZERO
+#define LIVEKIT_TRANSCRIPTION_SEGMENT_INIT_ZERO LIVEKIT_PB_TRANSCRIPTION_SEGMENT_INIT_ZERO
+#define LIVEKIT_CHAT_MESSAGE_INIT_ZERO LIVEKIT_PB_CHAT_MESSAGE_INIT_ZERO
+#define LIVEKIT_RPC_REQUEST_INIT_ZERO LIVEKIT_PB_RPC_REQUEST_INIT_ZERO
+#define LIVEKIT_RPC_ACK_INIT_ZERO LIVEKIT_PB_RPC_ACK_INIT_ZERO
+#define LIVEKIT_RPC_RESPONSE_INIT_ZERO LIVEKIT_PB_RPC_RESPONSE_INIT_ZERO
+#define LIVEKIT_RPC_ERROR_INIT_ZERO LIVEKIT_PB_RPC_ERROR_INIT_ZERO
+#define LIVEKIT_PARTICIPANT_TRACKS_INIT_ZERO LIVEKIT_PB_PARTICIPANT_TRACKS_INIT_ZERO
+#define LIVEKIT_SERVER_INFO_INIT_ZERO LIVEKIT_PB_SERVER_INFO_INIT_ZERO
+#define LIVEKIT_CLIENT_INFO_INIT_ZERO LIVEKIT_PB_CLIENT_INFO_INIT_ZERO
+#define LIVEKIT_CLIENT_CONFIGURATION_INIT_ZERO LIVEKIT_PB_CLIENT_CONFIGURATION_INIT_ZERO
+#define LIVEKIT_VIDEO_CONFIGURATION_INIT_ZERO LIVEKIT_PB_VIDEO_CONFIGURATION_INIT_ZERO
+#define LIVEKIT_DISABLED_CODECS_INIT_ZERO LIVEKIT_PB_DISABLED_CODECS_INIT_ZERO
+#define LIVEKIT_RTP_DRIFT_INIT_ZERO LIVEKIT_PB_RTP_DRIFT_INIT_ZERO
+#define LIVEKIT_RTP_STATS_INIT_ZERO LIVEKIT_PB_RTP_STATS_INIT_ZERO
+#define LIVEKIT_RTP_STATS_GAP_HISTOGRAM_ENTRY_INIT_ZERO LIVEKIT_PB_RTP_STATS_GAP_HISTOGRAM_ENTRY_INIT_ZERO
+#define LIVEKIT_RTCP_SENDER_REPORT_STATE_INIT_ZERO LIVEKIT_PB_RTCP_SENDER_REPORT_STATE_INIT_ZERO
+#define LIVEKIT_RTP_FORWARDER_STATE_INIT_ZERO LIVEKIT_PB_RTP_FORWARDER_STATE_INIT_ZERO
+#define LIVEKIT_RTP_MUNGER_STATE_INIT_ZERO LIVEKIT_PB_RTP_MUNGER_STATE_INIT_ZERO
+#define LIVEKIT_VP8_MUNGER_STATE_INIT_ZERO LIVEKIT_PB_VP8_MUNGER_STATE_INIT_ZERO
+#define LIVEKIT_TIMED_VERSION_INIT_ZERO LIVEKIT_PB_TIMED_VERSION_INIT_ZERO
+#define LIVEKIT_DATA_STREAM_INIT_ZERO LIVEKIT_PB_DATA_STREAM_INIT_ZERO
+#define LIVEKIT_DATA_STREAM_TEXT_HEADER_INIT_ZERO LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_INIT_ZERO
+#define LIVEKIT_DATA_STREAM_BYTE_HEADER_INIT_ZERO LIVEKIT_PB_DATA_STREAM_BYTE_HEADER_INIT_ZERO
+#define LIVEKIT_DATA_STREAM_HEADER_INIT_ZERO LIVEKIT_PB_DATA_STREAM_HEADER_INIT_ZERO
+#define LIVEKIT_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_INIT_ZERO LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_INIT_ZERO
+#define LIVEKIT_DATA_STREAM_CHUNK_INIT_ZERO LIVEKIT_PB_DATA_STREAM_CHUNK_INIT_ZERO
+#define LIVEKIT_DATA_STREAM_TRAILER_INIT_ZERO LIVEKIT_PB_DATA_STREAM_TRAILER_INIT_ZERO
+#define LIVEKIT_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_INIT_ZERO LIVEKIT_PB_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_INIT_ZERO
+#define LIVEKIT_WEBHOOK_CONFIG_INIT_ZERO LIVEKIT_PB_WEBHOOK_CONFIG_INIT_ZERO
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -23,10 +23,10 @@ typedef struct {
     void (*on_connect)(void *ctx);
     void (*on_disconnect)(void *ctx);
     void (*on_error)(void *ctx);
-    void (*on_join)(livekit_join_response_t *join_res, void *ctx);
+    void (*on_join)(livekit_pb_join_response_t *join_res, void *ctx);
     void (*on_answer)(const char *sdp, void *ctx);
     void (*on_offer)(const char *sdp, void *ctx);
-    void (*on_trickle)(const char *ice_candidate, livekit_signal_target_t target, void *ctx);
+    void (*on_trickle)(const char *ice_candidate, livekit_pb_signal_target_t target, void *ctx);
 } livekit_sig_options_t;
 
 livekit_sig_err_t livekit_sig_create(livekit_sig_options_t *options, livekit_sig_handle_t *handle);

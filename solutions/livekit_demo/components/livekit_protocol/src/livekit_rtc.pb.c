@@ -6,133 +6,133 @@
 #error Regenerate this file with the current version of nanopb generator.
 #endif
 
-PB_BIND(LIVEKIT_SIGNAL_REQUEST, livekit_signal_request_t, AUTO)
+PB_BIND(LIVEKIT_PB_SIGNAL_REQUEST, livekit_pb_signal_request_t, AUTO)
 
 
-PB_BIND(LIVEKIT_SIGNAL_RESPONSE, livekit_signal_response_t, AUTO)
+PB_BIND(LIVEKIT_PB_SIGNAL_RESPONSE, livekit_pb_signal_response_t, AUTO)
 
 
-PB_BIND(LIVEKIT_SIMULCAST_CODEC, livekit_simulcast_codec_t, AUTO)
+PB_BIND(LIVEKIT_PB_SIMULCAST_CODEC, livekit_pb_simulcast_codec_t, AUTO)
 
 
-PB_BIND(LIVEKIT_ADD_TRACK_REQUEST, livekit_add_track_request_t, AUTO)
+PB_BIND(LIVEKIT_PB_ADD_TRACK_REQUEST, livekit_pb_add_track_request_t, AUTO)
 
 
-PB_BIND(LIVEKIT_TRICKLE_REQUEST, livekit_trickle_request_t, AUTO)
+PB_BIND(LIVEKIT_PB_TRICKLE_REQUEST, livekit_pb_trickle_request_t, AUTO)
 
 
-PB_BIND(LIVEKIT_MUTE_TRACK_REQUEST, livekit_mute_track_request_t, AUTO)
+PB_BIND(LIVEKIT_PB_MUTE_TRACK_REQUEST, livekit_pb_mute_track_request_t, AUTO)
 
 
-PB_BIND(LIVEKIT_JOIN_RESPONSE, livekit_join_response_t, AUTO)
+PB_BIND(LIVEKIT_PB_JOIN_RESPONSE, livekit_pb_join_response_t, AUTO)
 
 
-PB_BIND(LIVEKIT_RECONNECT_RESPONSE, livekit_reconnect_response_t, AUTO)
+PB_BIND(LIVEKIT_PB_RECONNECT_RESPONSE, livekit_pb_reconnect_response_t, AUTO)
 
 
-PB_BIND(LIVEKIT_TRACK_PUBLISHED_RESPONSE, livekit_track_published_response_t, AUTO)
+PB_BIND(LIVEKIT_PB_TRACK_PUBLISHED_RESPONSE, livekit_pb_track_published_response_t, AUTO)
 
 
-PB_BIND(LIVEKIT_TRACK_UNPUBLISHED_RESPONSE, livekit_track_unpublished_response_t, AUTO)
+PB_BIND(LIVEKIT_PB_TRACK_UNPUBLISHED_RESPONSE, livekit_pb_track_unpublished_response_t, AUTO)
 
 
-PB_BIND(LIVEKIT_SESSION_DESCRIPTION, livekit_session_description_t, AUTO)
+PB_BIND(LIVEKIT_PB_SESSION_DESCRIPTION, livekit_pb_session_description_t, AUTO)
 
 
-PB_BIND(LIVEKIT_PARTICIPANT_UPDATE, livekit_participant_update_t, AUTO)
+PB_BIND(LIVEKIT_PB_PARTICIPANT_UPDATE, livekit_pb_participant_update_t, AUTO)
 
 
-PB_BIND(LIVEKIT_UPDATE_SUBSCRIPTION, livekit_update_subscription_t, AUTO)
+PB_BIND(LIVEKIT_PB_UPDATE_SUBSCRIPTION, livekit_pb_update_subscription_t, AUTO)
 
 
-PB_BIND(LIVEKIT_UPDATE_TRACK_SETTINGS, livekit_update_track_settings_t, AUTO)
+PB_BIND(LIVEKIT_PB_UPDATE_TRACK_SETTINGS, livekit_pb_update_track_settings_t, AUTO)
 
 
-PB_BIND(LIVEKIT_UPDATE_LOCAL_AUDIO_TRACK, livekit_update_local_audio_track_t, AUTO)
+PB_BIND(LIVEKIT_PB_UPDATE_LOCAL_AUDIO_TRACK, livekit_pb_update_local_audio_track_t, AUTO)
 
 
-PB_BIND(LIVEKIT_UPDATE_LOCAL_VIDEO_TRACK, livekit_update_local_video_track_t, AUTO)
+PB_BIND(LIVEKIT_PB_UPDATE_LOCAL_VIDEO_TRACK, livekit_pb_update_local_video_track_t, AUTO)
 
 
-PB_BIND(LIVEKIT_LEAVE_REQUEST, livekit_leave_request_t, AUTO)
+PB_BIND(LIVEKIT_PB_LEAVE_REQUEST, livekit_pb_leave_request_t, AUTO)
 
 
-PB_BIND(LIVEKIT_UPDATE_PARTICIPANT_METADATA, livekit_update_participant_metadata_t, AUTO)
+PB_BIND(LIVEKIT_PB_UPDATE_PARTICIPANT_METADATA, livekit_pb_update_participant_metadata_t, AUTO)
 
 
-PB_BIND(LIVEKIT_UPDATE_PARTICIPANT_METADATA_ATTRIBUTES_ENTRY, livekit_update_participant_metadata_attributes_entry_t, AUTO)
+PB_BIND(LIVEKIT_PB_UPDATE_PARTICIPANT_METADATA_ATTRIBUTES_ENTRY, livekit_pb_update_participant_metadata_attributes_entry_t, AUTO)
 
 
-PB_BIND(LIVEKIT_ICE_SERVER, livekit_ice_server_t, AUTO)
+PB_BIND(LIVEKIT_PB_ICE_SERVER, livekit_pb_ice_server_t, AUTO)
 
 
-PB_BIND(LIVEKIT_SPEAKERS_CHANGED, livekit_speakers_changed_t, AUTO)
+PB_BIND(LIVEKIT_PB_SPEAKERS_CHANGED, livekit_pb_speakers_changed_t, AUTO)
 
 
-PB_BIND(LIVEKIT_ROOM_UPDATE, livekit_room_update_t, AUTO)
+PB_BIND(LIVEKIT_PB_ROOM_UPDATE, livekit_pb_room_update_t, AUTO)
 
 
-PB_BIND(LIVEKIT_CONNECTION_QUALITY_INFO, livekit_connection_quality_info_t, AUTO)
+PB_BIND(LIVEKIT_PB_CONNECTION_QUALITY_INFO, livekit_pb_connection_quality_info_t, AUTO)
 
 
-PB_BIND(LIVEKIT_CONNECTION_QUALITY_UPDATE, livekit_connection_quality_update_t, AUTO)
+PB_BIND(LIVEKIT_PB_CONNECTION_QUALITY_UPDATE, livekit_pb_connection_quality_update_t, AUTO)
 
 
-PB_BIND(LIVEKIT_STREAM_STATE_INFO, livekit_stream_state_info_t, AUTO)
+PB_BIND(LIVEKIT_PB_STREAM_STATE_INFO, livekit_pb_stream_state_info_t, AUTO)
 
 
-PB_BIND(LIVEKIT_STREAM_STATE_UPDATE, livekit_stream_state_update_t, AUTO)
+PB_BIND(LIVEKIT_PB_STREAM_STATE_UPDATE, livekit_pb_stream_state_update_t, AUTO)
 
 
-PB_BIND(LIVEKIT_SUBSCRIBED_QUALITY, livekit_subscribed_quality_t, AUTO)
+PB_BIND(LIVEKIT_PB_SUBSCRIBED_QUALITY, livekit_pb_subscribed_quality_t, AUTO)
 
 
-PB_BIND(LIVEKIT_SUBSCRIBED_CODEC, livekit_subscribed_codec_t, AUTO)
+PB_BIND(LIVEKIT_PB_SUBSCRIBED_CODEC, livekit_pb_subscribed_codec_t, AUTO)
 
 
-PB_BIND(LIVEKIT_SUBSCRIBED_QUALITY_UPDATE, livekit_subscribed_quality_update_t, AUTO)
+PB_BIND(LIVEKIT_PB_SUBSCRIBED_QUALITY_UPDATE, livekit_pb_subscribed_quality_update_t, AUTO)
 
 
-PB_BIND(LIVEKIT_TRACK_PERMISSION, livekit_track_permission_t, AUTO)
+PB_BIND(LIVEKIT_PB_TRACK_PERMISSION, livekit_pb_track_permission_t, AUTO)
 
 
-PB_BIND(LIVEKIT_SUBSCRIPTION_PERMISSION, livekit_subscription_permission_t, AUTO)
+PB_BIND(LIVEKIT_PB_SUBSCRIPTION_PERMISSION, livekit_pb_subscription_permission_t, AUTO)
 
 
-PB_BIND(LIVEKIT_SUBSCRIPTION_PERMISSION_UPDATE, livekit_subscription_permission_update_t, AUTO)
+PB_BIND(LIVEKIT_PB_SUBSCRIPTION_PERMISSION_UPDATE, livekit_pb_subscription_permission_update_t, AUTO)
 
 
-PB_BIND(LIVEKIT_ROOM_MOVED_RESPONSE, livekit_room_moved_response_t, AUTO)
+PB_BIND(LIVEKIT_PB_ROOM_MOVED_RESPONSE, livekit_pb_room_moved_response_t, AUTO)
 
 
-PB_BIND(LIVEKIT_SYNC_STATE, livekit_sync_state_t, AUTO)
+PB_BIND(LIVEKIT_PB_SYNC_STATE, livekit_pb_sync_state_t, AUTO)
 
 
-PB_BIND(LIVEKIT_DATA_CHANNEL_INFO, livekit_data_channel_info_t, AUTO)
+PB_BIND(LIVEKIT_PB_DATA_CHANNEL_INFO, livekit_pb_data_channel_info_t, AUTO)
 
 
-PB_BIND(LIVEKIT_SIMULATE_SCENARIO, livekit_simulate_scenario_t, AUTO)
+PB_BIND(LIVEKIT_PB_SIMULATE_SCENARIO, livekit_pb_simulate_scenario_t, AUTO)
 
 
-PB_BIND(LIVEKIT_PING, livekit_ping_t, AUTO)
+PB_BIND(LIVEKIT_PB_PING, livekit_pb_ping_t, AUTO)
 
 
-PB_BIND(LIVEKIT_PONG, livekit_pong_t, AUTO)
+PB_BIND(LIVEKIT_PB_PONG, livekit_pb_pong_t, AUTO)
 
 
-PB_BIND(LIVEKIT_REGION_SETTINGS, livekit_region_settings_t, AUTO)
+PB_BIND(LIVEKIT_PB_REGION_SETTINGS, livekit_pb_region_settings_t, AUTO)
 
 
-PB_BIND(LIVEKIT_REGION_INFO, livekit_region_info_t, AUTO)
+PB_BIND(LIVEKIT_PB_REGION_INFO, livekit_pb_region_info_t, AUTO)
 
 
-PB_BIND(LIVEKIT_SUBSCRIPTION_RESPONSE, livekit_subscription_response_t, AUTO)
+PB_BIND(LIVEKIT_PB_SUBSCRIPTION_RESPONSE, livekit_pb_subscription_response_t, AUTO)
 
 
-PB_BIND(LIVEKIT_REQUEST_RESPONSE, livekit_request_response_t, AUTO)
+PB_BIND(LIVEKIT_PB_REQUEST_RESPONSE, livekit_pb_request_response_t, AUTO)
 
 
-PB_BIND(LIVEKIT_TRACK_SUBSCRIBED, livekit_track_subscribed_t, AUTO)
+PB_BIND(LIVEKIT_PB_TRACK_SUBSCRIBED, livekit_pb_track_subscribed_t, AUTO)
 
 
 

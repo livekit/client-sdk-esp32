@@ -71,7 +71,7 @@ static void on_sig_error(void *ctx)
     // TODO: Implement
 }
 
-static void on_sig_join(livekit_join_response_t *join_res, void *ctx)
+static void on_sig_join(livekit_pb_join_response_t *join_res, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
     livekit_peer_set_ice_servers(eng->pub_peer, join_res->ice_servers, join_res->ice_servers_count);
@@ -83,7 +83,7 @@ static void on_sig_join(livekit_join_response_t *join_res, void *ctx)
     }
     livekit_peer_connect_options_t connect_options = {
         .force_relay = join_res->has_client_configuration &&
-                       join_res->client_configuration.force_relay == LIVEKIT_CLIENT_CONFIG_SETTING_ENABLED,
+                       join_res->client_configuration.force_relay == LIVEKIT_PB_CLIENT_CONFIG_SETTING_ENABLED,
         .media = &eng->options.media,
     };
     livekit_peer_connect(eng->pub_peer, connect_options);
@@ -104,10 +104,10 @@ static void on_sig_offer(const char *sdp, void *ctx)
     livekit_peer_handle_sdp(eng->sub_peer, sdp);
 }
 
-static void on_sig_trickle(const char *ice_candidate, livekit_signal_target_t target, void *ctx)
+static void on_sig_trickle(const char *ice_candidate, livekit_pb_signal_target_t target, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    livekit_peer_handle_t target_peer = target == LIVEKIT_SIGNAL_TARGET_SUBSCRIBER ?
+    livekit_peer_handle_t target_peer = target == LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER ?
         eng->sub_peer : eng->pub_peer;
     livekit_peer_handle_ice_candidate(target_peer, ice_candidate);
 }
@@ -140,7 +140,7 @@ livekit_eng_err_t livekit_eng_create(livekit_eng_handle_t *handle, livekit_eng_o
         }
 
         livekit_peer_options_t pub_options = {
-            .target = LIVEKIT_SIGNAL_TARGET_PUBLISHER,
+            .target = LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER,
             .on_sdp = on_peer_pub_offer,
             .on_ice_candidate = on_peer_ice_candidate,
             .ctx = eng
@@ -151,7 +151,7 @@ livekit_eng_err_t livekit_eng_create(livekit_eng_handle_t *handle, livekit_eng_o
         }
 
         livekit_peer_options_t sub_options = {
-            .target = LIVEKIT_SIGNAL_TARGET_SUBSCRIBER,
+            .target = LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER,
             .on_sdp = on_peer_sub_answer,
             .on_ice_candidate = on_peer_ice_candidate,
             .ctx = eng
@@ -177,7 +177,7 @@ livekit_eng_err_t livekit_eng_destroy(livekit_eng_handle_t handle)
         return LIVEKIT_ENG_ERR_INVALID_ARG;
     }
     livekit_eng_t *eng = (livekit_eng_t *)handle;
-    livekit_eng_close(handle, LIVEKIT_DISCONNECT_REASON_UNKNOWN_REASON);
+    livekit_eng_close(handle, LIVEKIT_PB_DISCONNECT_REASON_UNKNOWN_REASON);
     free(eng);
     return LIVEKIT_ENG_ERR_NONE;
 }
@@ -198,7 +198,7 @@ livekit_eng_err_t livekit_eng_connect(livekit_eng_handle_t handle, const char* s
     return LIVEKIT_ENG_ERR_NONE;
 }
 
-livekit_eng_err_t livekit_eng_close(livekit_eng_handle_t handle, livekit_disconnect_reason_t reason)
+livekit_eng_err_t livekit_eng_close(livekit_eng_handle_t handle, livekit_pb_disconnect_reason_t reason)
 {
     if (handle == NULL) {
         return LIVEKIT_ENG_ERR_INVALID_ARG;
@@ -214,13 +214,13 @@ livekit_eng_err_t livekit_eng_close(livekit_eng_handle_t handle, livekit_disconn
     return LIVEKIT_ENG_ERR_NONE;
 }
 
-livekit_eng_err_t livekit_eng_publish_data(livekit_eng_handle_t handle, livekit_data_packet_t packet, livekit_data_packet_kind_t kind)
+livekit_eng_err_t livekit_eng_publish_data(livekit_eng_handle_t handle, livekit_pb_data_packet_t packet, livekit_pb_data_packet_kind_t kind)
 {
     // TODO: Implement
     return 0;
 }
 
-livekit_eng_err_t livekit_eng_send_request(livekit_eng_handle_t handle, livekit_signal_request_t request)
+livekit_eng_err_t livekit_eng_send_request(livekit_eng_handle_t handle, livekit_pb_signal_request_t request)
 {
     // TODO: Implement
     return 0;

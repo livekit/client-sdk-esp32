@@ -109,11 +109,11 @@ static livekit_sig_err_t livekit_sig_build_url(const char *server_url, const cha
     return 0;
 }
 
-static livekit_sig_err_t livekit_sig_send_req(livekit_sig_t *sg, livekit_signal_request_t *req, uint8_t *enc_buf, size_t enc_buf_size)
+static livekit_sig_err_t livekit_sig_send_req(livekit_sig_t *sg, livekit_pb_signal_request_t *req, uint8_t *enc_buf, size_t enc_buf_size)
 {
     pb_ostream_t stream = pb_ostream_from_buffer(enc_buf, enc_buf_size);
 
-    if (!pb_encode(&stream, &livekit_signal_request_t_msg, req)) {
+    if (!pb_encode(&stream, LIVEKIT_PB_SIGNAL_REQUEST_FIELDS, req)) {
         ESP_LOGE(TAG, "Failed to encode request: %s", PB_GET_ERROR(&stream));
         return LIVEKIT_SIG_ERR_MESSAGE;
     }
@@ -131,8 +131,8 @@ static void livekit_sig_send_ping(livekit_sig_t *sg)
     int64_t rtt = sg->rtt;
     //ESP_LOGI(TAG, "Sending ping: timestamp=%" PRId64 "ms, rtt=%" PRId64 "ms", timestamp, rtt);
 
-    livekit_signal_request_t req = LIVEKIT_SIGNAL_REQUEST_INIT_DEFAULT;
-    req.which_message = LIVEKIT_SIGNAL_REQUEST_PING_REQ_TAG;
+    livekit_pb_signal_request_t req = LIVEKIT_PB_SIGNAL_REQUEST_INIT_DEFAULT;
+    req.which_message = LIVEKIT_PB_SIGNAL_REQUEST_PING_REQ_TAG;
     req.message.ping_req.timestamp = timestamp;
     req.message.ping_req.rtt = rtt;
 
@@ -190,19 +190,19 @@ static livekit_sig_err_t livekit_sig_stop_ping_task(livekit_sig_t *sg)
     return LIVEKIT_SIG_ERR_NONE;
 }
 
-static void livekit_sig_handle_res(livekit_sig_t *sg, livekit_signal_response_t *res)
+static void livekit_sig_handle_res(livekit_sig_t *sg, livekit_pb_signal_response_t *res)
 {
     switch (res->which_message) {
-        case LIVEKIT_SIGNAL_RESPONSE_PONG_RESP_TAG:
-            livekit_pong_t *pong = &res->message.pong_resp;
+        case LIVEKIT_PB_SIGNAL_RESPONSE_PONG_RESP_TAG:
+            livekit_pb_pong_t *pong = &res->message.pong_resp;
             sg->rtt = get_unix_time_ms() - pong->last_ping_timestamp;
             // TODO: Reset ping timeout
             break;
-        case LIVEKIT_SIGNAL_RESPONSE_REFRESH_TOKEN_TAG:
+        case LIVEKIT_PB_SIGNAL_RESPONSE_REFRESH_TOKEN_TAG:
             // TODO: Handle refresh token
             break;
-        case LIVEKIT_SIGNAL_RESPONSE_JOIN_TAG:
-            livekit_join_response_t *join_res = &res->message.join;
+        case LIVEKIT_PB_SIGNAL_RESPONSE_JOIN_TAG:
+            livekit_pb_join_response_t *join_res = &res->message.join;
             sg->ping_interval = join_res->ping_interval;
             sg->ping_timeout = join_res->ping_timeout;
             ESP_LOGI(TAG,
@@ -214,14 +214,14 @@ static void livekit_sig_handle_res(livekit_sig_t *sg, livekit_signal_response_t 
             livekit_sig_start_ping_task(sg);
             sg->options.on_join(join_res, sg->options.ctx);
             break;
-        case LIVEKIT_SIGNAL_RESPONSE_OFFER_TAG:
+        case LIVEKIT_PB_SIGNAL_RESPONSE_OFFER_TAG:
             sg->options.on_offer(res->message.offer.sdp, sg->options.ctx);
             break;
-        case LIVEKIT_SIGNAL_RESPONSE_ANSWER_TAG:
+        case LIVEKIT_PB_SIGNAL_RESPONSE_ANSWER_TAG:
             sg->options.on_answer(res->message.answer.sdp, sg->options.ctx);
             break;
-        case LIVEKIT_SIGNAL_RESPONSE_TRICKLE_TAG:
-            livekit_trickle_request_t *trickle = &res->message.trickle;
+        case LIVEKIT_PB_SIGNAL_RESPONSE_TRICKLE_TAG:
+            livekit_pb_trickle_request_t *trickle = &res->message.trickle;
             if (trickle->candidate_init == NULL) {
                 ESP_LOGE(TAG, "Trickle candidate_init is NULL");
                 break;
@@ -252,15 +252,15 @@ static void livekit_sig_handle_res(livekit_sig_t *sg, livekit_signal_response_t 
         default:
             break;
     }
-    pb_release(LIVEKIT_SIGNAL_RESPONSE_FIELDS, res);
+    pb_release(LIVEKIT_PB_SIGNAL_RESPONSE_FIELDS, res);
 }
 
 static void livekit_sig_on_data(livekit_sig_t *sg, const char *data, size_t len)
 {
     ESP_LOGI(TAG, "Incoming signal res: %d byte(s)", len);
-    livekit_signal_response_t res = {};
+    livekit_pb_signal_response_t res = {};
     pb_istream_t stream = pb_istream_from_buffer((const pb_byte_t *)data, len);
-    if (!pb_decode(&stream, LIVEKIT_SIGNAL_RESPONSE_FIELDS, &res)) {
+    if (!pb_decode(&stream, LIVEKIT_PB_SIGNAL_RESPONSE_FIELDS, &res)) {
         ESP_LOGE(TAG, "Failed to decode signal res: %s", stream.errmsg);
         return;
     }
@@ -413,12 +413,12 @@ livekit_sig_err_t livekit_sig_close(bool force, livekit_sig_handle_t handle)
     return LIVEKIT_SIG_ERR_NONE;
 }
 
-static livekit_sig_err_t send_request(livekit_signal_request_t *request, livekit_sig_t *sg)
+static livekit_sig_err_t send_request(livekit_pb_signal_request_t *request, livekit_sig_t *sg)
 {
     // TODO: Optimize (use static buffer for small messages)
 
     size_t encoded_size = 0;
-    if (!pb_get_encoded_size(&encoded_size, LIVEKIT_SIGNAL_REQUEST_FIELDS, request)) {
+    if (!pb_get_encoded_size(&encoded_size, LIVEKIT_PB_SIGNAL_REQUEST_FIELDS, request)) {
         return LIVEKIT_SIG_ERR_MESSAGE;
     }
     uint8_t *enc_buf = (uint8_t *)malloc(encoded_size);
@@ -428,7 +428,7 @@ static livekit_sig_err_t send_request(livekit_signal_request_t *request, livekit
     int ret = LIVEKIT_SIG_ERR_NONE;
     do {
         pb_ostream_t stream = pb_ostream_from_buffer(enc_buf, encoded_size);
-        if (!pb_encode(&stream, LIVEKIT_SIGNAL_REQUEST_FIELDS, request)) {
+        if (!pb_encode(&stream, LIVEKIT_PB_SIGNAL_REQUEST_FIELDS, request)) {
             ESP_LOGE(TAG, "Failed to encode signal request");
             ret = LIVEKIT_SIG_ERR_MESSAGE;
             break;
@@ -449,13 +449,13 @@ livekit_sig_err_t livekit_sig_send_answer(const char *sdp, livekit_sig_handle_t 
         return LIVEKIT_SIG_ERR_INVALID_ARG;
     }
     livekit_sig_t *sg = (livekit_sig_t *)handle;
-    livekit_signal_request_t req = LIVEKIT_SIGNAL_REQUEST_INIT_ZERO;
+    livekit_pb_signal_request_t req = LIVEKIT_PB_SIGNAL_REQUEST_INIT_ZERO;
 
-    livekit_session_description_t desc = {
+    livekit_pb_session_description_t desc = {
         .type = "answer",
         .sdp = sdp
     };
-    req.which_message = LIVEKIT_SIGNAL_REQUEST_ANSWER_TAG;
+    req.which_message = LIVEKIT_PB_SIGNAL_REQUEST_ANSWER_TAG;
     req.message.answer = desc;
     return send_request(&req, sg);
 }
@@ -466,13 +466,13 @@ livekit_sig_err_t livekit_sig_send_offer(const char *sdp, livekit_sig_handle_t h
         return LIVEKIT_SIG_ERR_INVALID_ARG;
     }
     livekit_sig_t *sg = (livekit_sig_t *)handle;
-    livekit_signal_request_t req = LIVEKIT_SIGNAL_REQUEST_INIT_ZERO;
+    livekit_pb_signal_request_t req = LIVEKIT_PB_SIGNAL_REQUEST_INIT_ZERO;
 
-    livekit_session_description_t desc = {
+    livekit_pb_session_description_t desc = {
         .type = "offer",
         .sdp = sdp
     };
-    req.which_message = LIVEKIT_SIGNAL_REQUEST_OFFER_TAG;
+    req.which_message = LIVEKIT_PB_SIGNAL_REQUEST_OFFER_TAG;
     req.message.offer = desc;
     return send_request(&req, sg);
 }

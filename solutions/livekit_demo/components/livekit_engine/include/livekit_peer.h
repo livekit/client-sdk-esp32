@@ -20,7 +20,7 @@ typedef enum {
 } livekit_peer_err_t;
 
 typedef struct {
-    livekit_signal_target_t target;
+    livekit_pb_signal_target_t target;
     void *ctx;
     void (*on_sdp)(const char *sdp, void *ctx);
     void (*on_ice_candidate)(const char *candidate, void *ctx);
@@ -39,7 +39,7 @@ livekit_peer_err_t livekit_peer_disconnect(livekit_peer_handle_t handle);
 
 /// @brief Sets the ICE server to use for the connection
 /// @note Must be called prior to establishing the connection.
-livekit_peer_err_t livekit_peer_set_ice_servers(livekit_peer_handle_t handle, livekit_ice_server_t *servers, int count);
+livekit_peer_err_t livekit_peer_set_ice_servers(livekit_peer_handle_t handle, livekit_pb_ice_server_t *servers, int count);
 
 /// @brief Handles an SDP message from the remote peer.
 livekit_peer_err_t livekit_peer_handle_sdp(livekit_peer_handle_t handle, const char *sdp);

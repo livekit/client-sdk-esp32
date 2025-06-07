@@ -12,32 +12,32 @@
 
 /* Enum definitions */
 /* index from [0: MAX_LABEL_PREDEFINED_MAX_VALUE) are for predefined labels (`MetricLabel`) */
-typedef enum livekit_metric_label {
-    LIVEKIT_METRIC_LABEL_AGENTS_LLM_TTFT = 0, /* time to first token from LLM */
-    LIVEKIT_METRIC_LABEL_AGENTS_STT_TTFT = 1, /* time to final transcription */
-    LIVEKIT_METRIC_LABEL_AGENTS_TTS_TTFB = 2, /* time to first byte */
-    LIVEKIT_METRIC_LABEL_CLIENT_VIDEO_SUBSCRIBER_FREEZE_COUNT = 3, /* Number of video freezes */
-    LIVEKIT_METRIC_LABEL_CLIENT_VIDEO_SUBSCRIBER_TOTAL_FREEZE_DURATION = 4, /* total duration of freezes */
-    LIVEKIT_METRIC_LABEL_CLIENT_VIDEO_SUBSCRIBER_PAUSE_COUNT = 5, /* number of video pauses */
-    LIVEKIT_METRIC_LABEL_CLIENT_VIDEO_SUBSCRIBER_TOTAL_PAUSES_DURATION = 6, /* total duration of pauses */
-    LIVEKIT_METRIC_LABEL_CLIENT_AUDIO_SUBSCRIBER_CONCEALED_SAMPLES = 7, /* number of concealed (synthesized) audio samples */
-    LIVEKIT_METRIC_LABEL_CLIENT_AUDIO_SUBSCRIBER_SILENT_CONCEALED_SAMPLES = 8, /* number of silent concealed samples */
-    LIVEKIT_METRIC_LABEL_CLIENT_AUDIO_SUBSCRIBER_CONCEALMENT_EVENTS = 9, /* number of concealment events */
-    LIVEKIT_METRIC_LABEL_CLIENT_AUDIO_SUBSCRIBER_INTERRUPTION_COUNT = 10, /* number of interruptions */
-    LIVEKIT_METRIC_LABEL_CLIENT_AUDIO_SUBSCRIBER_TOTAL_INTERRUPTION_DURATION = 11, /* total duration of interruptions */
-    LIVEKIT_METRIC_LABEL_CLIENT_SUBSCRIBER_JITTER_BUFFER_DELAY = 12, /* total time spent in jitter buffer */
-    LIVEKIT_METRIC_LABEL_CLIENT_SUBSCRIBER_JITTER_BUFFER_EMITTED_COUNT = 13, /* total time spent in jitter buffer */
-    LIVEKIT_METRIC_LABEL_CLIENT_VIDEO_PUBLISHER_QUALITY_LIMITATION_DURATION_BANDWIDTH = 14, /* total duration spent in bandwidth quality limitation */
-    LIVEKIT_METRIC_LABEL_CLIENT_VIDEO_PUBLISHER_QUALITY_LIMITATION_DURATION_CPU = 15, /* total duration spent in cpu quality limitation */
-    LIVEKIT_METRIC_LABEL_CLIENT_VIDEO_PUBLISHER_QUALITY_LIMITATION_DURATION_OTHER = 16, /* total duration spent in other quality limitation */
-    LIVEKIT_METRIC_LABEL_PUBLISHER_RTT = 17, /* Publisher RTT (participant -> server) */
-    LIVEKIT_METRIC_LABEL_SERVER_MESH_RTT = 18, /* RTT between publisher node and subscriber node (could involve intermedia node(s)) */
-    LIVEKIT_METRIC_LABEL_SUBSCRIBER_RTT = 19, /* Subscribe RTT (server -> participant) */
-    LIVEKIT_METRIC_LABEL_METRIC_LABEL_PREDEFINED_MAX_VALUE = 4096
-} livekit_metric_label_t;
+typedef enum livekit_pb_metric_label {
+    LIVEKIT_PB_METRIC_LABEL_AGENTS_LLM_TTFT = 0, /* time to first token from LLM */
+    LIVEKIT_PB_METRIC_LABEL_AGENTS_STT_TTFT = 1, /* time to final transcription */
+    LIVEKIT_PB_METRIC_LABEL_AGENTS_TTS_TTFB = 2, /* time to first byte */
+    LIVEKIT_PB_METRIC_LABEL_CLIENT_VIDEO_SUBSCRIBER_FREEZE_COUNT = 3, /* Number of video freezes */
+    LIVEKIT_PB_METRIC_LABEL_CLIENT_VIDEO_SUBSCRIBER_TOTAL_FREEZE_DURATION = 4, /* total duration of freezes */
+    LIVEKIT_PB_METRIC_LABEL_CLIENT_VIDEO_SUBSCRIBER_PAUSE_COUNT = 5, /* number of video pauses */
+    LIVEKIT_PB_METRIC_LABEL_CLIENT_VIDEO_SUBSCRIBER_TOTAL_PAUSES_DURATION = 6, /* total duration of pauses */
+    LIVEKIT_PB_METRIC_LABEL_CLIENT_AUDIO_SUBSCRIBER_CONCEALED_SAMPLES = 7, /* number of concealed (synthesized) audio samples */
+    LIVEKIT_PB_METRIC_LABEL_CLIENT_AUDIO_SUBSCRIBER_SILENT_CONCEALED_SAMPLES = 8, /* number of silent concealed samples */
+    LIVEKIT_PB_METRIC_LABEL_CLIENT_AUDIO_SUBSCRIBER_CONCEALMENT_EVENTS = 9, /* number of concealment events */
+    LIVEKIT_PB_METRIC_LABEL_CLIENT_AUDIO_SUBSCRIBER_INTERRUPTION_COUNT = 10, /* number of interruptions */
+    LIVEKIT_PB_METRIC_LABEL_CLIENT_AUDIO_SUBSCRIBER_TOTAL_INTERRUPTION_DURATION = 11, /* total duration of interruptions */
+    LIVEKIT_PB_METRIC_LABEL_CLIENT_SUBSCRIBER_JITTER_BUFFER_DELAY = 12, /* total time spent in jitter buffer */
+    LIVEKIT_PB_METRIC_LABEL_CLIENT_SUBSCRIBER_JITTER_BUFFER_EMITTED_COUNT = 13, /* total time spent in jitter buffer */
+    LIVEKIT_PB_METRIC_LABEL_CLIENT_VIDEO_PUBLISHER_QUALITY_LIMITATION_DURATION_BANDWIDTH = 14, /* total duration spent in bandwidth quality limitation */
+    LIVEKIT_PB_METRIC_LABEL_CLIENT_VIDEO_PUBLISHER_QUALITY_LIMITATION_DURATION_CPU = 15, /* total duration spent in cpu quality limitation */
+    LIVEKIT_PB_METRIC_LABEL_CLIENT_VIDEO_PUBLISHER_QUALITY_LIMITATION_DURATION_OTHER = 16, /* total duration spent in other quality limitation */
+    LIVEKIT_PB_METRIC_LABEL_PUBLISHER_RTT = 17, /* Publisher RTT (participant -> server) */
+    LIVEKIT_PB_METRIC_LABEL_SERVER_MESH_RTT = 18, /* RTT between publisher node and subscriber node (could involve intermedia node(s)) */
+    LIVEKIT_PB_METRIC_LABEL_SUBSCRIBER_RTT = 19, /* Subscribe RTT (server -> participant) */
+    LIVEKIT_PB_METRIC_LABEL_METRIC_LABEL_PREDEFINED_MAX_VALUE = 4096
+} livekit_pb_metric_label_t;
 
 /* Struct definitions */
-typedef struct livekit_metrics_batch {
+typedef struct livekit_pb_metrics_batch {
     int64_t timestamp_ms; /* time at which this batch is sent based on a monotonic clock (millisecond resolution) */
     bool has_normalized_timestamp;
     google_protobuf_timestamp_t normalized_timestamp;
@@ -50,9 +50,9 @@ typedef struct livekit_metrics_batch {
     pb_callback_t str_data;
     pb_callback_t time_series;
     pb_callback_t events;
-} livekit_metrics_batch_t;
+} livekit_pb_metrics_batch_t;
 
-typedef struct livekit_time_series_metric {
+typedef struct livekit_pb_time_series_metric {
     /* Metric name e.g "speech_probablity". The string value is not directly stored in the message, but referenced by index
  in the `str_data` field of `MetricsBatch` */
     uint32_t label;
@@ -60,16 +60,16 @@ typedef struct livekit_time_series_metric {
     uint32_t track_sid; /* index into `str_data` */
     pb_callback_t samples;
     uint32_t rid; /* index into 'str_data' */
-} livekit_time_series_metric_t;
+} livekit_pb_time_series_metric_t;
 
-typedef struct livekit_metric_sample {
+typedef struct livekit_pb_metric_sample {
     int64_t timestamp_ms; /* time of metric based on a monotonic clock (in milliseconds) */
     bool has_normalized_timestamp;
     google_protobuf_timestamp_t normalized_timestamp;
     float value;
-} livekit_metric_sample_t;
+} livekit_pb_metric_sample_t;
 
-typedef struct livekit_event_metric {
+typedef struct livekit_pb_event_metric {
     uint32_t label;
     uint32_t participant_identity; /* index into `str_data` */
     uint32_t track_sid; /* index into `str_data` */
@@ -82,7 +82,7 @@ typedef struct livekit_event_metric {
     google_protobuf_timestamp_t normalized_end_timestamp;
     pb_callback_t metadata;
     uint32_t rid; /* index into 'str_data' */
-} livekit_event_metric_t;
+} livekit_pb_event_metric_t;
 
 
 #ifdef __cplusplus
@@ -90,9 +90,9 @@ extern "C" {
 #endif
 
 /* Helper constants for enums */
-#define _LIVEKIT_METRIC_LABEL_MIN LIVEKIT_METRIC_LABEL_AGENTS_LLM_TTFT
-#define _LIVEKIT_METRIC_LABEL_MAX LIVEKIT_METRIC_LABEL_METRIC_LABEL_PREDEFINED_MAX_VALUE
-#define _LIVEKIT_METRIC_LABEL_ARRAYSIZE ((livekit_metric_label_t)(LIVEKIT_METRIC_LABEL_METRIC_LABEL_PREDEFINED_MAX_VALUE+1))
+#define _LIVEKIT_PB_METRIC_LABEL_MIN LIVEKIT_PB_METRIC_LABEL_AGENTS_LLM_TTFT
+#define _LIVEKIT_PB_METRIC_LABEL_MAX LIVEKIT_PB_METRIC_LABEL_METRIC_LABEL_PREDEFINED_MAX_VALUE
+#define _LIVEKIT_PB_METRIC_LABEL_ARRAYSIZE ((livekit_pb_metric_label_t)(LIVEKIT_PB_METRIC_LABEL_METRIC_LABEL_PREDEFINED_MAX_VALUE+1))
 
 
 
@@ -100,71 +100,71 @@ extern "C" {
 
 
 /* Initializer values for message structs */
-#define LIVEKIT_METRICS_BATCH_INIT_DEFAULT       {0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_TIME_SERIES_METRIC_INIT_DEFAULT  {0, 0, 0, {{NULL}, NULL}, 0}
-#define LIVEKIT_METRIC_SAMPLE_INIT_DEFAULT       {0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, 0}
-#define LIVEKIT_EVENT_METRIC_INIT_DEFAULT        {0, 0, 0, 0, false, 0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, {{NULL}, NULL}, 0}
-#define LIVEKIT_METRICS_BATCH_INIT_ZERO          {0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_TIME_SERIES_METRIC_INIT_ZERO     {0, 0, 0, {{NULL}, NULL}, 0}
-#define LIVEKIT_METRIC_SAMPLE_INIT_ZERO          {0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, 0}
-#define LIVEKIT_EVENT_METRIC_INIT_ZERO           {0, 0, 0, 0, false, 0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, {{NULL}, NULL}, 0}
+#define LIVEKIT_PB_METRICS_BATCH_INIT_DEFAULT    {0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_TIME_SERIES_METRIC_INIT_DEFAULT {0, 0, 0, {{NULL}, NULL}, 0}
+#define LIVEKIT_PB_METRIC_SAMPLE_INIT_DEFAULT    {0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, 0}
+#define LIVEKIT_PB_EVENT_METRIC_INIT_DEFAULT     {0, 0, 0, 0, false, 0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, {{NULL}, NULL}, 0}
+#define LIVEKIT_PB_METRICS_BATCH_INIT_ZERO       {0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_TIME_SERIES_METRIC_INIT_ZERO  {0, 0, 0, {{NULL}, NULL}, 0}
+#define LIVEKIT_PB_METRIC_SAMPLE_INIT_ZERO       {0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, 0}
+#define LIVEKIT_PB_EVENT_METRIC_INIT_ZERO        {0, 0, 0, 0, false, 0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, {{NULL}, NULL}, 0}
 
 /* Field tags (for use in manual encoding/decoding) */
-#define LIVEKIT_METRICS_BATCH_TIMESTAMP_MS_TAG   1
-#define LIVEKIT_METRICS_BATCH_NORMALIZED_TIMESTAMP_TAG 2
-#define LIVEKIT_METRICS_BATCH_STR_DATA_TAG       3
-#define LIVEKIT_METRICS_BATCH_TIME_SERIES_TAG    4
-#define LIVEKIT_METRICS_BATCH_EVENTS_TAG         5
-#define LIVEKIT_TIME_SERIES_METRIC_LABEL_TAG     1
-#define LIVEKIT_TIME_SERIES_METRIC_PARTICIPANT_IDENTITY_TAG 2
-#define LIVEKIT_TIME_SERIES_METRIC_TRACK_SID_TAG 3
-#define LIVEKIT_TIME_SERIES_METRIC_SAMPLES_TAG   4
-#define LIVEKIT_TIME_SERIES_METRIC_RID_TAG       5
-#define LIVEKIT_METRIC_SAMPLE_TIMESTAMP_MS_TAG   1
-#define LIVEKIT_METRIC_SAMPLE_NORMALIZED_TIMESTAMP_TAG 2
-#define LIVEKIT_METRIC_SAMPLE_VALUE_TAG          3
-#define LIVEKIT_EVENT_METRIC_LABEL_TAG           1
-#define LIVEKIT_EVENT_METRIC_PARTICIPANT_IDENTITY_TAG 2
-#define LIVEKIT_EVENT_METRIC_TRACK_SID_TAG       3
-#define LIVEKIT_EVENT_METRIC_START_TIMESTAMP_MS_TAG 4
-#define LIVEKIT_EVENT_METRIC_END_TIMESTAMP_MS_TAG 5
-#define LIVEKIT_EVENT_METRIC_NORMALIZED_START_TIMESTAMP_TAG 6
-#define LIVEKIT_EVENT_METRIC_NORMALIZED_END_TIMESTAMP_TAG 7
-#define LIVEKIT_EVENT_METRIC_METADATA_TAG        8
-#define LIVEKIT_EVENT_METRIC_RID_TAG             9
+#define LIVEKIT_PB_METRICS_BATCH_TIMESTAMP_MS_TAG 1
+#define LIVEKIT_PB_METRICS_BATCH_NORMALIZED_TIMESTAMP_TAG 2
+#define LIVEKIT_PB_METRICS_BATCH_STR_DATA_TAG    3
+#define LIVEKIT_PB_METRICS_BATCH_TIME_SERIES_TAG 4
+#define LIVEKIT_PB_METRICS_BATCH_EVENTS_TAG      5
+#define LIVEKIT_PB_TIME_SERIES_METRIC_LABEL_TAG  1
+#define LIVEKIT_PB_TIME_SERIES_METRIC_PARTICIPANT_IDENTITY_TAG 2
+#define LIVEKIT_PB_TIME_SERIES_METRIC_TRACK_SID_TAG 3
+#define LIVEKIT_PB_TIME_SERIES_METRIC_SAMPLES_TAG 4
+#define LIVEKIT_PB_TIME_SERIES_METRIC_RID_TAG    5
+#define LIVEKIT_PB_METRIC_SAMPLE_TIMESTAMP_MS_TAG 1
+#define LIVEKIT_PB_METRIC_SAMPLE_NORMALIZED_TIMESTAMP_TAG 2
+#define LIVEKIT_PB_METRIC_SAMPLE_VALUE_TAG       3
+#define LIVEKIT_PB_EVENT_METRIC_LABEL_TAG        1
+#define LIVEKIT_PB_EVENT_METRIC_PARTICIPANT_IDENTITY_TAG 2
+#define LIVEKIT_PB_EVENT_METRIC_TRACK_SID_TAG    3
+#define LIVEKIT_PB_EVENT_METRIC_START_TIMESTAMP_MS_TAG 4
+#define LIVEKIT_PB_EVENT_METRIC_END_TIMESTAMP_MS_TAG 5
+#define LIVEKIT_PB_EVENT_METRIC_NORMALIZED_START_TIMESTAMP_TAG 6
+#define LIVEKIT_PB_EVENT_METRIC_NORMALIZED_END_TIMESTAMP_TAG 7
+#define LIVEKIT_PB_EVENT_METRIC_METADATA_TAG     8
+#define LIVEKIT_PB_EVENT_METRIC_RID_TAG          9
 
 /* Struct field encoding specification for nanopb */
-#define LIVEKIT_METRICS_BATCH_FIELDLIST(X, a) \
+#define LIVEKIT_PB_METRICS_BATCH_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, INT64,    timestamp_ms,      1) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  normalized_timestamp,   2) \
 X(a, CALLBACK, REPEATED, STRING,   str_data,          3) \
 X(a, CALLBACK, REPEATED, MESSAGE,  time_series,       4) \
 X(a, CALLBACK, REPEATED, MESSAGE,  events,            5)
-#define LIVEKIT_METRICS_BATCH_CALLBACK pb_default_field_callback
-#define LIVEKIT_METRICS_BATCH_DEFAULT NULL
-#define livekit_metrics_batch_t_normalized_timestamp_MSGTYPE google_protobuf_timestamp_t
-#define livekit_metrics_batch_t_time_series_MSGTYPE livekit_time_series_metric_t
-#define livekit_metrics_batch_t_events_MSGTYPE livekit_event_metric_t
+#define LIVEKIT_PB_METRICS_BATCH_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_METRICS_BATCH_DEFAULT NULL
+#define livekit_pb_metrics_batch_t_normalized_timestamp_MSGTYPE google_protobuf_timestamp_t
+#define livekit_pb_metrics_batch_t_time_series_MSGTYPE livekit_pb_time_series_metric_t
+#define livekit_pb_metrics_batch_t_events_MSGTYPE livekit_pb_event_metric_t
 
-#define LIVEKIT_TIME_SERIES_METRIC_FIELDLIST(X, a) \
+#define LIVEKIT_PB_TIME_SERIES_METRIC_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   label,             1) \
 X(a, STATIC,   SINGULAR, UINT32,   participant_identity,   2) \
 X(a, STATIC,   SINGULAR, UINT32,   track_sid,         3) \
 X(a, CALLBACK, REPEATED, MESSAGE,  samples,           4) \
 X(a, STATIC,   SINGULAR, UINT32,   rid,               5)
-#define LIVEKIT_TIME_SERIES_METRIC_CALLBACK pb_default_field_callback
-#define LIVEKIT_TIME_SERIES_METRIC_DEFAULT NULL
-#define livekit_time_series_metric_t_samples_MSGTYPE livekit_metric_sample_t
+#define LIVEKIT_PB_TIME_SERIES_METRIC_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_TIME_SERIES_METRIC_DEFAULT NULL
+#define livekit_pb_time_series_metric_t_samples_MSGTYPE livekit_pb_metric_sample_t
 
-#define LIVEKIT_METRIC_SAMPLE_FIELDLIST(X, a) \
+#define LIVEKIT_PB_METRIC_SAMPLE_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, INT64,    timestamp_ms,      1) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  normalized_timestamp,   2) \
 X(a, STATIC,   SINGULAR, FLOAT,    value,             3)
-#define LIVEKIT_METRIC_SAMPLE_CALLBACK NULL
-#define LIVEKIT_METRIC_SAMPLE_DEFAULT NULL
-#define livekit_metric_sample_t_normalized_timestamp_MSGTYPE google_protobuf_timestamp_t
+#define LIVEKIT_PB_METRIC_SAMPLE_CALLBACK NULL
+#define LIVEKIT_PB_METRIC_SAMPLE_DEFAULT NULL
+#define livekit_pb_metric_sample_t_normalized_timestamp_MSGTYPE google_protobuf_timestamp_t
 
-#define LIVEKIT_EVENT_METRIC_FIELDLIST(X, a) \
+#define LIVEKIT_PB_EVENT_METRIC_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   label,             1) \
 X(a, STATIC,   SINGULAR, UINT32,   participant_identity,   2) \
 X(a, STATIC,   SINGULAR, UINT32,   track_sid,         3) \
@@ -174,28 +174,46 @@ X(a, STATIC,   OPTIONAL, MESSAGE,  normalized_start_timestamp,   6) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  normalized_end_timestamp,   7) \
 X(a, CALLBACK, SINGULAR, STRING,   metadata,          8) \
 X(a, STATIC,   SINGULAR, UINT32,   rid,               9)
-#define LIVEKIT_EVENT_METRIC_CALLBACK pb_default_field_callback
-#define LIVEKIT_EVENT_METRIC_DEFAULT NULL
-#define livekit_event_metric_t_normalized_start_timestamp_MSGTYPE google_protobuf_timestamp_t
-#define livekit_event_metric_t_normalized_end_timestamp_MSGTYPE google_protobuf_timestamp_t
+#define LIVEKIT_PB_EVENT_METRIC_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_EVENT_METRIC_DEFAULT NULL
+#define livekit_pb_event_metric_t_normalized_start_timestamp_MSGTYPE google_protobuf_timestamp_t
+#define livekit_pb_event_metric_t_normalized_end_timestamp_MSGTYPE google_protobuf_timestamp_t
 
-extern const pb_msgdesc_t livekit_metrics_batch_t_msg;
-extern const pb_msgdesc_t livekit_time_series_metric_t_msg;
-extern const pb_msgdesc_t livekit_metric_sample_t_msg;
-extern const pb_msgdesc_t livekit_event_metric_t_msg;
+extern const pb_msgdesc_t livekit_pb_metrics_batch_t_msg;
+extern const pb_msgdesc_t livekit_pb_time_series_metric_t_msg;
+extern const pb_msgdesc_t livekit_pb_metric_sample_t_msg;
+extern const pb_msgdesc_t livekit_pb_event_metric_t_msg;
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
-#define LIVEKIT_METRICS_BATCH_FIELDS &livekit_metrics_batch_t_msg
-#define LIVEKIT_TIME_SERIES_METRIC_FIELDS &livekit_time_series_metric_t_msg
-#define LIVEKIT_METRIC_SAMPLE_FIELDS &livekit_metric_sample_t_msg
-#define LIVEKIT_EVENT_METRIC_FIELDS &livekit_event_metric_t_msg
+#define LIVEKIT_PB_METRICS_BATCH_FIELDS &livekit_pb_metrics_batch_t_msg
+#define LIVEKIT_PB_TIME_SERIES_METRIC_FIELDS &livekit_pb_time_series_metric_t_msg
+#define LIVEKIT_PB_METRIC_SAMPLE_FIELDS &livekit_pb_metric_sample_t_msg
+#define LIVEKIT_PB_EVENT_METRIC_FIELDS &livekit_pb_event_metric_t_msg
 
 /* Maximum encoded size of messages (where known) */
-/* livekit_MetricsBatch_size depends on runtime parameters */
-/* livekit_TimeSeriesMetric_size depends on runtime parameters */
-/* livekit_EventMetric_size depends on runtime parameters */
-#define LIVEKIT_LIVEKIT_METRICS_PB_H_MAX_SIZE    LIVEKIT_METRIC_SAMPLE_SIZE
-#define LIVEKIT_METRIC_SAMPLE_SIZE               40
+/* livekit_pb_MetricsBatch_size depends on runtime parameters */
+/* livekit_pb_TimeSeriesMetric_size depends on runtime parameters */
+/* livekit_pb_EventMetric_size depends on runtime parameters */
+#define LIVEKIT_LIVEKIT_METRICS_PB_H_MAX_SIZE    LIVEKIT_PB_METRIC_SAMPLE_SIZE
+#define LIVEKIT_PB_METRIC_SAMPLE_SIZE            40
+
+/* Mapping from canonical names (mangle_names or overridden package name) */
+#define livekit_MetricLabel livekit_pb_MetricLabel
+#define livekit_MetricsBatch livekit_pb_MetricsBatch
+#define livekit_TimeSeriesMetric livekit_pb_TimeSeriesMetric
+#define livekit_MetricSample livekit_pb_MetricSample
+#define livekit_EventMetric livekit_pb_EventMetric
+#define _LIVEKIT_METRIC_LABEL_MIN _LIVEKIT_PB_METRIC_LABEL_MIN
+#define _LIVEKIT_METRIC_LABEL_MAX _LIVEKIT_PB_METRIC_LABEL_MAX
+#define _LIVEKIT_METRIC_LABEL_ARRAYSIZE _LIVEKIT_PB_METRIC_LABEL_ARRAYSIZE
+#define LIVEKIT_METRICS_BATCH_INIT_DEFAULT LIVEKIT_PB_METRICS_BATCH_INIT_DEFAULT
+#define LIVEKIT_TIME_SERIES_METRIC_INIT_DEFAULT LIVEKIT_PB_TIME_SERIES_METRIC_INIT_DEFAULT
+#define LIVEKIT_METRIC_SAMPLE_INIT_DEFAULT LIVEKIT_PB_METRIC_SAMPLE_INIT_DEFAULT
+#define LIVEKIT_EVENT_METRIC_INIT_DEFAULT LIVEKIT_PB_EVENT_METRIC_INIT_DEFAULT
+#define LIVEKIT_METRICS_BATCH_INIT_ZERO LIVEKIT_PB_METRICS_BATCH_INIT_ZERO
+#define LIVEKIT_TIME_SERIES_METRIC_INIT_ZERO LIVEKIT_PB_TIME_SERIES_METRIC_INIT_ZERO
+#define LIVEKIT_METRIC_SAMPLE_INIT_ZERO LIVEKIT_PB_METRIC_SAMPLE_INIT_ZERO
+#define LIVEKIT_EVENT_METRIC_INIT_ZERO LIVEKIT_PB_EVENT_METRIC_INIT_ZERO
 
 #ifdef __cplusplus
 } /* extern "C" */

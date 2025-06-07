@@ -79,6 +79,7 @@ def generate_bindings(verbose = False):
         "--nanopb_opt=--c-style",
         "--nanopb_opt=--error-on-unmatched",
         "--nanopb_opt=-s discard_deprecated:true",
+        "--nanopb_opt=-s package:'livekit_pb'", # Prefixes generated types
         f"--nanopb_out={os.path.abspath(bindings_src_dest)}",
     ] + input_files
 
