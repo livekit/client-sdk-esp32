@@ -6,6 +6,7 @@
 #include "esp_capture.h"
 #include "av_render.h"
 
+#include "livekit_common.h"
 #include "livekit_protocol.h"
 
 #ifdef __cplusplus
@@ -107,6 +108,7 @@ typedef struct {
     void (*on_stream_chunk)(livekit_eng_event_stream_chunk_t detail, void *ctx);
     void (*on_stream_trailer)(livekit_eng_event_stream_trailer_t detail, void *ctx);
 
+    livekit_eng_media_options_t media;
 } livekit_eng_options_t;
 
 /// @brief Creates a new instance.
@@ -129,9 +131,6 @@ livekit_eng_err_t livekit_eng_publish_data(livekit_eng_handle_t handle, livekit_
 
 /// @brief Sends a signaling request.
 livekit_eng_err_t livekit_eng_send_request(livekit_eng_handle_t handle, livekit_signal_request_t request);
-
-/// @brief Sets the media provider.
-livekit_eng_err_t livekit_eng_set_media_provider(livekit_eng_handle_t handle, livekit_eng_media_provider_t* provider);
 
 #ifdef __cplusplus
 }

@@ -39,6 +39,16 @@ typedef struct {
     esp_codec_dev_handle_t        play_handle;
 } livekit_peer_t;
 
+static esp_peer_media_dir_t get_media_direction(esp_peer_media_dir_t direction, livekit_signal_target_t target) {
+    switch (target) {
+        case LIVEKIT_SIGNAL_TARGET_PUBLISHER:
+            return direction & ESP_PEER_MEDIA_DIR_SEND_ONLY;
+        case LIVEKIT_SIGNAL_TARGET_SUBSCRIBER:
+            return direction & ESP_PEER_MEDIA_DIR_RECV_ONLY;
+    }
+    return ESP_PEER_MEDIA_DIR_NONE;
+}
+
 static void peer_task(void *ctx)
 {
     livekit_peer_t *peer = (livekit_peer_t *)ctx;
@@ -184,12 +194,18 @@ livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle, livekit_pe
         ESP_LOGE(TAG(peer), "No ICE servers configured");
         return LIVEKIT_PEER_ERR_INVALID_STATE;
     }
+
     if (peer->connection != NULL) {
         if (peer->options.target == LIVEKIT_SIGNAL_TARGET_PUBLISHER) {
             esp_peer_new_connection(peer->connection);
         }
         return LIVEKIT_PEER_ERR_NONE;
     }
+    if (connect_options.media->video_info.codec == ESP_PEER_VIDEO_CODEC_MJPEG) {
+        ESP_LOGE(TAG(peer), "MJPEG over data channel is not supported yet");
+        return LIVEKIT_PEER_ERR_INVALID_ARG;
+    }
+
     // Configuration for the default peer implementation.
     esp_peer_default_cfg_t default_peer_cfg = {
         .agent_recv_timeout = 10000,
@@ -199,13 +215,20 @@ livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle, livekit_pe
             .recv_cache_size = 100 * 1024
         }
     };
+
+    esp_peer_media_dir_t audio_dir = get_media_direction(connect_options.media->audio_dir, peer->options.target);
+    esp_peer_media_dir_t video_dir = get_media_direction(connect_options.media->video_dir, peer->options.target);
+    ESP_LOGI(TAG(peer), "Audio dir: %d, Video dir: %d", audio_dir, video_dir);
+
     esp_peer_cfg_t peer_cfg = {
         .server_lists = peer->ice_servers,
         .server_num = peer->ice_server_count,
         .ice_trans_policy = connect_options.force_relay ?
             ESP_PEER_ICE_TRANS_POLICY_RELAY : ESP_PEER_ICE_TRANS_POLICY_ALL,
-        .audio_dir = ESP_PEER_MEDIA_DIR_NONE,
-        .video_dir = ESP_PEER_MEDIA_DIR_NONE,
+        .audio_dir = audio_dir,
+        .video_dir = video_dir,
+        .audio_info = connect_options.media->audio_info,
+        .video_info = connect_options.media->video_info,
         .enable_data_channel = peer->options.target == LIVEKIT_SIGNAL_TARGET_PUBLISHER,
         .manual_ch_create = true,
         .no_auto_reconnect = false,

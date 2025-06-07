@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include "livekit_common.h"
+#include "livekit_engine.h"
 #include "livekit_protocol.h"
 
 #ifdef __cplusplus
@@ -26,6 +28,7 @@ typedef struct {
 
 typedef struct {
     bool force_relay;
+    livekit_eng_media_options_t* media;
 } livekit_peer_connect_options_t;
 
 livekit_peer_err_t livekit_peer_create(livekit_peer_handle_t *handle, livekit_peer_options_t options);

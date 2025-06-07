@@ -2,6 +2,7 @@
 #include <esp_log.h>
 #include <livekit_engine.h>
 #include "livekit.h"
+#include "esp_peer.h"
 
 static const char *TAG = "livekit";
 
@@ -84,7 +85,22 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, livekit_room_op
     }
 
     livekit_eng_options_t eng_options = {
-        .ctx = room,
+        // TODO: Expose these options through the public API
+        .media = {
+            .audio_dir = ESP_PEER_MEDIA_DIR_SEND_RECV,
+            .video_dir = ESP_PEER_MEDIA_DIR_SEND_RECV,
+            .audio_info = {
+                .codec = ESP_PEER_AUDIO_CODEC_OPUS,
+                .sample_rate = 16000,
+                .channel = 2,
+            },
+            .video_info = {
+                .codec = ESP_PEER_VIDEO_CODEC_H264,
+                .width = 1920,
+                .height = 1080,
+                .fps = 25,
+            }
+        },
         .on_connected = on_eng_connected,
         .on_disconnected = on_eng_disconnected,
         .on_error = on_eng_error,
@@ -96,6 +112,7 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, livekit_room_op
         .on_stream_header = on_eng_stream_header,
         .on_stream_chunk = on_eng_stream_chunk,
         .on_stream_trailer = on_eng_stream_trailer,
+        .ctx = room
     };
 
     int ret = LIVEKIT_ERR_OTHER;

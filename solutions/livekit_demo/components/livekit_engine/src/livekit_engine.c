@@ -10,7 +10,6 @@ static const char *TAG = "livekit_engine";
 typedef struct {
     livekit_eng_options_t options;
     livekit_sig_handle_t  sig;
-    livekit_eng_media_provider_t media_provider;
 
     livekit_peer_handle_t pub_peer;
     livekit_peer_handle_t sub_peer;
@@ -78,9 +77,14 @@ static void on_sig_join(livekit_join_response_t *join_res, void *ctx)
     livekit_peer_set_ice_servers(eng->pub_peer, join_res->ice_servers, join_res->ice_servers_count);
     livekit_peer_set_ice_servers(eng->sub_peer, join_res->ice_servers, join_res->ice_servers_count);
 
+    if (join_res->subscriber_primary) {
+        ESP_LOGE(TAG, "Subscriber primary is not supported yet");
+        return;
+    }
     livekit_peer_connect_options_t connect_options = {
         .force_relay = join_res->has_client_configuration &&
-                       join_res->client_configuration.force_relay == LIVEKIT_CLIENT_CONFIG_SETTING_ENABLED
+                       join_res->client_configuration.force_relay == LIVEKIT_CLIENT_CONFIG_SETTING_ENABLED,
+        .media = &eng->options.media,
     };
     livekit_peer_connect(eng->pub_peer, connect_options);
     // livekit_peer_connect(connection_options, eng->sub_peer);
@@ -89,14 +93,14 @@ static void on_sig_join(livekit_join_response_t *join_res, void *ctx)
 static void on_sig_answer(const char *sdp, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    ESP_LOGI(TAG, "Received answer: %s", sdp);
+    ESP_LOGI(TAG, "Received answer: \n%s", sdp);
     livekit_peer_handle_sdp(eng->pub_peer, sdp);
 }
 
 static void on_sig_offer(const char *sdp, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    ESP_LOGI(TAG, "Received offer: %s", sdp);
+    ESP_LOGI(TAG, "Received offer: \n%s", sdp);
     livekit_peer_handle_sdp(eng->sub_peer, sdp);
 }
 
@@ -220,14 +224,4 @@ livekit_eng_err_t livekit_eng_send_request(livekit_eng_handle_t handle, livekit_
 {
     // TODO: Implement
     return 0;
-}
-
-livekit_eng_err_t livekit_eng_set_media_provider(livekit_eng_handle_t handle, livekit_eng_media_provider_t* provider)
-{
-    if (handle == NULL || provider == NULL) {
-        return LIVEKIT_ENG_ERR_INVALID_ARG;
-    }
-    livekit_eng_t *eng = (livekit_eng_t *)handle;
-    eng->media_provider = *provider;
-    return LIVEKIT_ENG_ERR_NONE;
 }
