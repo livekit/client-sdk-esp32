@@ -3,12 +3,22 @@
 #include "livekit_demo.h"
 
 static const char *TAG = "livekit_demo";
-
 static livekit_room_handle_t room_handle;
-static livekit_room_options_t room_options = {};
 
 int join_room()
 {
+    livekit_room_options_t room_options = {
+        .publish = {
+            .kind = LIVEKIT_MEDIA_TYPE_AUDIO,
+            .audio_encode = {
+                .codec = LIVEKIT_AUDIO_CODEC_OPUS,
+                .sample_rate = 16000,
+                .channel_count = 1
+            },
+            .capturer = (esp_capture_handle_t)2
+        }
+    };
+
     if (room_handle != NULL) {
         ESP_LOGE(TAG, "Room already created");
         return -1;
