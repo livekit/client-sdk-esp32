@@ -371,7 +371,6 @@ livekit_sig_err_t livekit_sig_connect(livekit_sig_handle_t handle, const char* s
     }
     livekit_sig_t *sg = (livekit_sig_t *)handle;
 
-    livekit_sig_close(handle, true);
     int ret = livekit_sig_build_url(server_url, token, &sg->url);
     if (ret != LIVEKIT_SIG_ERR_NONE) return ret;
 
