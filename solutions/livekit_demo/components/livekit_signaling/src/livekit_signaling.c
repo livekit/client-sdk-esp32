@@ -311,7 +311,7 @@ void livekit_sig_event_handler(void *ctx, esp_event_base_t base, int32_t event_i
     }
 }
 
-livekit_sig_err_t livekit_sig_create(livekit_sig_options_t *options, livekit_sig_handle_t *handle)
+livekit_sig_err_t livekit_sig_create(livekit_sig_handle_t *handle, livekit_sig_options_t *options)
 {
     if (options == NULL || handle == NULL) {
         return LIVEKIT_SIG_ERR_INVALID_ARG;
@@ -358,20 +358,20 @@ livekit_sig_err_t livekit_sig_destroy(livekit_sig_handle_t handle)
         return LIVEKIT_SIG_ERR_INVALID_ARG;
     }
     livekit_sig_t *sg = (livekit_sig_t *)handle;
-    livekit_sig_close(true, handle);
+    livekit_sig_close(handle, true);
     esp_websocket_client_destroy(sg->ws);
     free(sg);
     return LIVEKIT_SIG_ERR_NONE;
 }
 
-livekit_sig_err_t livekit_sig_connect(const char* server_url, const char* token, livekit_sig_handle_t handle)
+livekit_sig_err_t livekit_sig_connect(livekit_sig_handle_t handle, const char* server_url, const char* token)
 {
     if (server_url == NULL || token == NULL || handle == NULL) {
         return LIVEKIT_SIG_ERR_INVALID_ARG;
     }
     livekit_sig_t *sg = (livekit_sig_t *)handle;
 
-    livekit_sig_close(true, handle);
+    livekit_sig_close(handle, true);
     int ret = livekit_sig_build_url(server_url, token, &sg->url);
     if (ret != LIVEKIT_SIG_ERR_NONE) return ret;
 
@@ -386,7 +386,7 @@ livekit_sig_err_t livekit_sig_connect(const char* server_url, const char* token,
     return LIVEKIT_SIG_ERR_NONE;
 }
 
-livekit_sig_err_t livekit_sig_close(bool force, livekit_sig_handle_t handle)
+livekit_sig_err_t livekit_sig_close(livekit_sig_handle_t handle, bool force)
 {
     if (handle == NULL) {
         return LIVEKIT_SIG_ERR_INVALID_ARG;
@@ -443,7 +443,7 @@ static livekit_sig_err_t send_request(livekit_pb_signal_request_t *request, live
     return ret;
 }
 
-livekit_sig_err_t livekit_sig_send_answer(const char *sdp, livekit_sig_handle_t handle)
+livekit_sig_err_t livekit_sig_send_answer(livekit_sig_handle_t handle, const char *sdp)
 {
     if (sdp == NULL || handle == NULL) {
         return LIVEKIT_SIG_ERR_INVALID_ARG;
@@ -460,7 +460,7 @@ livekit_sig_err_t livekit_sig_send_answer(const char *sdp, livekit_sig_handle_t 
     return send_request(&req, sg);
 }
 
-livekit_sig_err_t livekit_sig_send_offer(const char *sdp, livekit_sig_handle_t handle)
+livekit_sig_err_t livekit_sig_send_offer(livekit_sig_handle_t handle, const char *sdp)
 {
     if (sdp == NULL || handle == NULL) {
         return LIVEKIT_SIG_ERR_INVALID_ARG;

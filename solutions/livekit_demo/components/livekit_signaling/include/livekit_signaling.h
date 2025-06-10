@@ -29,19 +29,19 @@ typedef struct {
     void (*on_trickle)(const char *ice_candidate, livekit_pb_signal_target_t target, void *ctx);
 } livekit_sig_options_t;
 
-livekit_sig_err_t livekit_sig_create(livekit_sig_options_t *options, livekit_sig_handle_t *handle);
+livekit_sig_err_t livekit_sig_create(livekit_sig_handle_t *handle, livekit_sig_options_t *options);
 livekit_sig_err_t livekit_sig_destroy(livekit_sig_handle_t handle);
 
 /// @brief Establishes the WebSocket connection
 /// @note This function will close the existing connection if already connected.
-livekit_sig_err_t livekit_sig_connect(const char* server_url, const char* token, livekit_sig_handle_t handle);
+livekit_sig_err_t livekit_sig_connect(livekit_sig_handle_t handle, const char* server_url, const char* token);
 
 /// @brief Closes the WebSocket connection
 /// @param force If true, the connection will be closed immediately without sending a leave message.
-livekit_sig_err_t livekit_sig_close(bool force, livekit_sig_handle_t handle);
+livekit_sig_err_t livekit_sig_close(livekit_sig_handle_t handle, bool force);
 
-livekit_sig_err_t livekit_sig_send_offer(const char *sdp, livekit_sig_handle_t handle);
-livekit_sig_err_t livekit_sig_send_answer(const char *sdp, livekit_sig_handle_t handle);
+livekit_sig_err_t livekit_sig_send_offer(livekit_sig_handle_t handle, const char *sdp);
+livekit_sig_err_t livekit_sig_send_answer(livekit_sig_handle_t handle, const char *sdp);
 
 #ifdef __cplusplus
 }

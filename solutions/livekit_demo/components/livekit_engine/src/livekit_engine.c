@@ -34,14 +34,14 @@ static void on_peer_pub_offer(const char *sdp, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
     ESP_LOGI(TAG, "Pub peer generated offer: %s", sdp);
-    livekit_sig_send_offer(sdp, eng->sig);
+    livekit_sig_send_offer(eng->sig, sdp);
 }
 
 static void on_peer_sub_answer(const char *sdp, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
     ESP_LOGI(TAG, "Sub peer generated answer: %s", sdp);
-    livekit_sig_send_answer(sdp, eng->sig);
+    livekit_sig_send_answer(eng->sig, sdp);
 }
 
 static void on_peer_ice_candidate(const char *candidate, void *ctx)
@@ -134,7 +134,7 @@ livekit_eng_err_t livekit_eng_create(livekit_eng_handle_t *handle, livekit_eng_o
     };
     int ret = LIVEKIT_ENG_ERR_OTHER;
     do {
-        if (livekit_sig_create(&sig_options, &eng->sig) != LIVEKIT_SIG_ERR_NONE) {
+        if (livekit_sig_create(&eng->sig, &sig_options) != LIVEKIT_SIG_ERR_NONE) {
             ESP_LOGE(TAG, "Failed to create signaling client");
             break;
         }
@@ -191,7 +191,7 @@ livekit_eng_err_t livekit_eng_connect(livekit_eng_handle_t handle, const char* s
 
     sys_init();
 
-    if (livekit_sig_connect(server_url, token, eng->sig) != LIVEKIT_SIG_ERR_NONE) {
+    if (livekit_sig_connect(eng->sig, server_url, token) != LIVEKIT_SIG_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to connect signaling client");
         return LIVEKIT_ENG_ERR_SIGNALING;
     }
@@ -207,7 +207,7 @@ livekit_eng_err_t livekit_eng_close(livekit_eng_handle_t handle, livekit_pb_disc
 
     // TODO: Send leave request
 
-    if (livekit_sig_close(true, eng->sig) != LIVEKIT_SIG_ERR_NONE) {
+    if (livekit_sig_close(eng->sig, true) != LIVEKIT_SIG_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to close signaling client");
         return LIVEKIT_ENG_ERR_SIGNALING;
     }
