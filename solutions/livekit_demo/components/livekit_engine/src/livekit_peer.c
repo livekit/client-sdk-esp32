@@ -13,6 +13,9 @@ static const char *SUB_TAG = "livekit_peer.sub";
 static const char *PUB_TAG = "livekit_peer.pub";
 #define TAG(peer) (peer->options.target == LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER ? SUB_TAG : PUB_TAG)
 
+#define RELIABLE_CHANNEL_LABEL "_reliable"
+#define LOSSY_CHANNEL_LABEL "_lossy"
+
 #define PC_EXIT_BIT      (1 << 0)
 #define PC_PAUSED_BIT    (1 << 1)
 #define PC_RESUME_BIT    (1 << 2)
@@ -80,10 +83,35 @@ static void free_ice_servers(livekit_peer_t *peer)
     peer->ice_server_count = 0;
 }
 
+static void create_data_channels(livekit_peer_t *peer)
+{
+    if (peer->options.target != LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER) return;
+    esp_peer_data_channel_cfg_t channel_cfg = {};
+
+    // TODO: This is a temporary solution to create data channels. This is NOT
+    // actually reliable. Update once necessary options are exposed.
+    channel_cfg.label = RELIABLE_CHANNEL_LABEL;
+    if (esp_peer_create_data_channel(peer->connection, &channel_cfg) != ESP_PEER_ERR_NONE) {
+        ESP_LOGE(TAG(peer), "Failed to create reliable data channel");
+    }
+    channel_cfg.label = LOSSY_CHANNEL_LABEL;
+    if (esp_peer_create_data_channel(peer->connection, &channel_cfg) != ESP_PEER_ERR_NONE) {
+        ESP_LOGE(TAG(peer), "Failed to create lossy data channel");
+    }
+}
+
 static int on_state(esp_peer_state_t state, void *ctx)
 {
     livekit_peer_t *peer = (livekit_peer_t *)ctx;
     ESP_LOGI(TAG(peer), "State changed to %d", state);
+
+    switch (state) {
+        case ESP_PEER_STATE_CONNECTED:
+            create_data_channels(peer);
+            break;
+        default:
+            break;
+    }
     return 0;
 }
 
