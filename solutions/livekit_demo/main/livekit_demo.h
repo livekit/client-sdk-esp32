@@ -2,6 +2,7 @@
 #pragma once
 
 #include <livekit.h>
+#include <livekit_sandbox.h>
 
 #ifdef __cplusplus
 extern "C" {

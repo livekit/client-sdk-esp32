@@ -13,16 +13,10 @@ list(APPEND EXTRA_COMPONENT_DIRS "../../components")
 
 list(APPEND EXTRA_COMPONENT_DIRS "../common")
 
-if(NOT DEFINED ENV{LK_SERVER_URL})
-  message(FATAL_ERROR "Env variable LK_SERVER_URL must be set")
+if(NOT DEFINED ENV{LK_SANDBOX_ID})
+  message(FATAL_ERROR "LiveKit sandbox ID not set in env variable LK_SANDBOX_ID")
 endif()
 
-add_compile_definitions(LK_SERVER_URL="$ENV{LK_SERVER_URL}")
-
-if(NOT DEFINED ENV{LK_TOKEN})
-  message(FATAL_ERROR "Env variable LK_TOKEN must be set")
-endif()
-
-add_compile_definitions(LK_TOKEN="$ENV{LK_TOKEN}")
+add_compile_definitions(LK_SANDBOX_ID="$ENV{LK_SANDBOX_ID}")
 
 project(livekit_demo)

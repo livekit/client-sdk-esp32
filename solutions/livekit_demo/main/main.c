@@ -120,7 +120,11 @@ static void thread_scheduler(const char *thread_name, media_lib_thread_cfg_t *th
 static int network_event_handler(bool connected)
 {
     // Auto-join when network is connected
-    if (connected) join_room();
+    if (connected) {
+        RUN_ASYNC(join, {
+            join_room();
+        });
+    }
     return 0;
 }
 
