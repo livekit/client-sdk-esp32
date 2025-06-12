@@ -129,16 +129,10 @@ PB_BIND(LIVEKIT_PB_DATA_STREAM_BYTE_HEADER, livekit_pb_data_stream_byte_header_t
 PB_BIND(LIVEKIT_PB_DATA_STREAM_HEADER, livekit_pb_data_stream_header_t, AUTO)
 
 
-PB_BIND(LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY, livekit_pb_data_stream_header_attributes_entry_t, AUTO)
-
-
 PB_BIND(LIVEKIT_PB_DATA_STREAM_CHUNK, livekit_pb_data_stream_chunk_t, AUTO)
 
 
 PB_BIND(LIVEKIT_PB_DATA_STREAM_TRAILER, livekit_pb_data_stream_trailer_t, AUTO)
-
-
-PB_BIND(LIVEKIT_PB_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY, livekit_pb_data_stream_trailer_attributes_entry_t, AUTO)
 
 
 PB_BIND(LIVEKIT_PB_WEBHOOK_CONFIG, livekit_pb_webhook_config_t, AUTO)

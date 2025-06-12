@@ -28,5 +28,43 @@ livekit_pb.ParticipantPermission.can_subscribe_metrics type:FT_IGNORE
 livekit_pb.VideoLayer.bitrate type:FT_IGNORE
 livekit_pb.VideoLayer.ssrc type:FT_IGNORE
 
+livekit_pb.DataPacket.metrics type:FT_IGNORE
 livekit_pb.DataPacket.transcription type:FT_IGNORE
 livekit_pb.DataPacket.chat_message type:FT_IGNORE
+livekit_pb.DataPacket.participant_identity type:FT_POINTER
+livekit_pb.DataPacket.destination_identities type:FT_POINTER
+
+livekit_pb.UserPacket.payload type:FT_POINTER
+livekit_pb.UserPacket.topic type:FT_POINTER
+livekit_pb.UserPacket.id max_length:36
+livekit_pb.UserPacket.start_time type:FT_IGNORE
+livekit_pb.UserPacket.end_time type:FT_IGNORE
+livekit_pb.UserPacket.nonce type:FT_IGNORE
+
+livekit_pb.RpcRequest.id max_length:36
+livekit_pb.RpcRequest.method type:FT_POINTER
+livekit_pb.RpcRequest.payload type:FT_POINTER
+
+livekit_pb.RpcAck.request_id max_length:36
+
+livekit_pb.RpcResponse.request_id max_length:36
+livekit_pb.RpcResponse.payload type:FT_POINTER
+
+livekit_pb.RpcError.message type:FT_IGNORE
+livekit_pb.RpcError.data type:FT_POINTER
+
+livekit_pb.DataStream.Header.stream_id max_length:36
+livekit_pb.DataStream.Header.topic type:FT_POINTER
+livekit_pb.DataStream.Header.mime_type type:FT_POINTER
+livekit_pb.DataStream.Header.encryption_type type:FT_IGNORE
+livekit_pb.DataStream.Header.attributes type:FT_IGNORE
+
+livekit_pb.DataStream.Chunk.stream_id max_length:36
+livekit_pb.DataStream.Chunk.content type:FT_POINTER
+livekit_pb.DataStream.Chunk.iv type:FT_IGNORE
+
+livekit_pb.DataStream.Trailer.stream_id max_length:36
+livekit_pb.DataStream.Trailer.reason max_length:15
+livekit_pb.DataStream.Trailer.attributes type:FT_IGNORE
+
+livekit_pb.SipDTMF.digit max_length:1
