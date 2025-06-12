@@ -32,7 +32,7 @@
 #include "esp_audio_dec_default.h"
 #include "esp_capture_defaults.h"
 
-const char *TAG = "media_sys";
+const char *TAG = "media_setup";
 
 #define RET_ON_NULL(ptr, v) do {                                \
     if (ptr == NULL) {                                          \
@@ -202,7 +202,7 @@ static int build_player_system()
     return 0;
 }
 
-int media_sys_buildup(void)
+int media_setup_init(void)
 {
     // Register for default audio and video codecs
     esp_video_enc_register_default();
@@ -216,9 +216,12 @@ int media_sys_buildup(void)
     return 0;
 }
 
-int media_sys_get_provider(esp_webrtc_media_provider_t *provide)
+esp_capture_handle_t media_setup_get_capturer(void)
 {
-    provide->capture = capture_sys.capture_handle;
-    provide->player = player_sys.player;
-    return 0;
+    return capture_sys.capture_handle;
+}
+
+av_render_handle_t media_setup_get_renderer(void)
+{
+    return player_sys.player;
 }

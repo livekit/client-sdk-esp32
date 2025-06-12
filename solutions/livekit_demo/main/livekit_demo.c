@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <esp_log.h>
 #include "livekit_demo.h"
+#include "media_setup.h"
 
 static const char *TAG = "livekit_demo";
 static livekit_room_handle_t room_handle;
@@ -15,7 +16,7 @@ int join_room()
                 .sample_rate = 16000,
                 .channel_count = 1
             },
-            .capturer = (esp_capture_handle_t)2
+            .capturer = media_setup_get_capturer()
         }
     };
 

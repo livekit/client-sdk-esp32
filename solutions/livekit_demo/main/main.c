@@ -22,7 +22,7 @@
 #include "webrtc_utils_time.h"
 #include "esp_cpu.h"
 #include "settings.h"
-#include "media_sys.h"
+#include "media_setup.h"
 #include "network.h"
 #include "sys_state.h"
 #include "board.h"
@@ -134,7 +134,7 @@ void app_main(void)
     media_lib_add_default_adapter();
     media_lib_thread_set_schedule_cb(thread_scheduler);
     init_board();
-    media_sys_buildup();
+    media_setup_init();
     init_console();
     network_init(WIFI_SSID, WIFI_PASSWORD, network_event_handler);
     while (1)
