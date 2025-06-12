@@ -27,3 +27,6 @@ livekit_pb.ParticipantPermission.can_subscribe_metrics type:FT_IGNORE
 
 livekit_pb.VideoLayer.bitrate type:FT_IGNORE
 livekit_pb.VideoLayer.ssrc type:FT_IGNORE
+
+livekit_pb.DataPacket.transcription type:FT_IGNORE
+livekit_pb.DataPacket.chat_message type:FT_IGNORE

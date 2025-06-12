@@ -631,9 +631,7 @@ typedef struct livekit_pb_data_packet {
     union {
         livekit_pb_user_packet_t user;
         livekit_pb_sip_dtmf_t sip_dtmf;
-        livekit_pb_transcription_t transcription;
         livekit_pb_metrics_batch_t metrics;
-        livekit_pb_chat_message_t chat_message;
         livekit_pb_rpc_request_t rpc_request;
         livekit_pb_rpc_ack_t rpc_ack;
         livekit_pb_rpc_response_t rpc_response;
@@ -1132,9 +1130,7 @@ extern "C" {
 #define LIVEKIT_PB_DATA_STREAM_TRAILER_ATTRIBUTES_TAG 3
 #define LIVEKIT_PB_DATA_PACKET_USER_TAG          2
 #define LIVEKIT_PB_DATA_PACKET_SIP_DTMF_TAG      6
-#define LIVEKIT_PB_DATA_PACKET_TRANSCRIPTION_TAG 7
 #define LIVEKIT_PB_DATA_PACKET_METRICS_TAG       8
-#define LIVEKIT_PB_DATA_PACKET_CHAT_MESSAGE_TAG  9
 #define LIVEKIT_PB_DATA_PACKET_RPC_REQUEST_TAG   10
 #define LIVEKIT_PB_DATA_PACKET_RPC_ACK_TAG       11
 #define LIVEKIT_PB_DATA_PACKET_RPC_RESPONSE_TAG  12
@@ -1259,9 +1255,7 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (value,user,value.user),   2) \
 X(a, CALLBACK, SINGULAR, STRING,   participant_identity,   4) \
 X(a, CALLBACK, REPEATED, STRING,   destination_identities,   5) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (value,sip_dtmf,value.sip_dtmf),   6) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (value,transcription,value.transcription),   7) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (value,metrics,value.metrics),   8) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (value,chat_message,value.chat_message),   9) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (value,rpc_request,value.rpc_request),  10) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (value,rpc_ack,value.rpc_ack),  11) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (value,rpc_response,value.rpc_response),  12) \
@@ -1272,9 +1266,7 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (value,stream_trailer,value.stream_trailer), 
 #define LIVEKIT_PB_DATA_PACKET_DEFAULT NULL
 #define livekit_pb_data_packet_t_value_user_MSGTYPE livekit_pb_user_packet_t
 #define livekit_pb_data_packet_t_value_sip_dtmf_MSGTYPE livekit_pb_sip_dtmf_t
-#define livekit_pb_data_packet_t_value_transcription_MSGTYPE livekit_pb_transcription_t
 #define livekit_pb_data_packet_t_value_metrics_MSGTYPE livekit_pb_metrics_batch_t
-#define livekit_pb_data_packet_t_value_chat_message_MSGTYPE livekit_pb_chat_message_t
 #define livekit_pb_data_packet_t_value_rpc_request_MSGTYPE livekit_pb_rpc_request_t
 #define livekit_pb_data_packet_t_value_rpc_ack_MSGTYPE livekit_pb_rpc_ack_t
 #define livekit_pb_data_packet_t_value_rpc_response_MSGTYPE livekit_pb_rpc_response_t
