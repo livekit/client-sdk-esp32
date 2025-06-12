@@ -21,6 +21,7 @@ static const char *TAG = "livekit_signaling";
 #define LIVEKIT_SDK_VERSION      "alpha"
 
 #define LIVEKIT_SIG_WS_BUFFER_SIZE          2048
+#define LIVEKIT_SIG_WS_SEND_TIMEOUT_MS      5000
 #define LIVEKIT_SIG_WS_RECONNECT_TIMEOUT_MS 1000
 #define LIVEKIT_SIG_WS_NETWORK_TIMEOUT_MS   1000
 #define LIVEKIT_SIG_WS_CLOSE_CODE           1000
@@ -109,20 +110,37 @@ static livekit_sig_err_t livekit_sig_build_url(const char *server_url, const cha
     return 0;
 }
 
-static livekit_sig_err_t livekit_sig_send_req(livekit_sig_t *sg, livekit_pb_signal_request_t *req, uint8_t *enc_buf, size_t enc_buf_size)
+static livekit_sig_err_t send_request(livekit_sig_t *sg, livekit_pb_signal_request_t *request)
 {
-    pb_ostream_t stream = pb_ostream_from_buffer(enc_buf, enc_buf_size);
+    // TODO: Optimize (use static buffer for small messages)
 
-    if (!pb_encode(&stream, LIVEKIT_PB_SIGNAL_REQUEST_FIELDS, req)) {
-        ESP_LOGE(TAG, "Failed to encode request: %s", PB_GET_ERROR(&stream));
+    size_t encoded_size = 0;
+    if (!pb_get_encoded_size(&encoded_size, LIVEKIT_PB_SIGNAL_REQUEST_FIELDS, request)) {
         return LIVEKIT_SIG_ERR_MESSAGE;
     }
-    // TODO: Set send timeout
-    if (esp_websocket_client_send_bin(sg->ws, (const char *)enc_buf, stream.bytes_written, 0) < 0) {
-        ESP_LOGE(TAG, "Failed to send request");
-        return LIVEKIT_SIG_ERR_MESSAGE;
+    uint8_t *enc_buf = (uint8_t *)malloc(encoded_size);
+    if (enc_buf == NULL) {
+        return LIVEKIT_SIG_ERR_NO_MEM;
     }
-    return LIVEKIT_SIG_ERR_NONE;
+    int ret = LIVEKIT_SIG_ERR_NONE;
+    do {
+        pb_ostream_t stream = pb_ostream_from_buffer(enc_buf, encoded_size);
+        if (!pb_encode(&stream, LIVEKIT_PB_SIGNAL_REQUEST_FIELDS, request)) {
+            ESP_LOGE(TAG, "Failed to encode signal request");
+            ret = LIVEKIT_SIG_ERR_MESSAGE;
+            break;
+        }
+        if (esp_websocket_client_send_bin(sg->ws,
+                (const char *)enc_buf,
+                stream.bytes_written,
+                pdMS_TO_TICKS(LIVEKIT_SIG_WS_SEND_TIMEOUT_MS)) < 0) {
+            ESP_LOGE(TAG, "Failed to send signal request");
+            ret = LIVEKIT_SIG_ERR_MESSAGE;
+            break;
+        }
+    } while (0);
+    free(enc_buf);
+    return ret;
 }
 
 static void livekit_sig_send_ping(livekit_sig_t *sg)
@@ -136,9 +154,8 @@ static void livekit_sig_send_ping(livekit_sig_t *sg)
     req.message.ping_req.timestamp = timestamp;
     req.message.ping_req.rtt = rtt;
 
-    uint8_t enc_buf[512];
-    if (livekit_sig_send_req(sg, &req, enc_buf, sizeof(enc_buf)) != 0) {
-       //ESP_LOGE(TAG, "Failed to send ping");
+    if (send_request(sg, &req) != 0) {
+        ESP_LOGE(TAG, "Failed to send ping");
         return;
     }
 }
@@ -412,36 +429,6 @@ livekit_sig_err_t livekit_sig_close(livekit_sig_handle_t handle, bool force)
     return LIVEKIT_SIG_ERR_NONE;
 }
 
-static livekit_sig_err_t send_request(livekit_pb_signal_request_t *request, livekit_sig_t *sg)
-{
-    // TODO: Optimize (use static buffer for small messages)
-
-    size_t encoded_size = 0;
-    if (!pb_get_encoded_size(&encoded_size, LIVEKIT_PB_SIGNAL_REQUEST_FIELDS, request)) {
-        return LIVEKIT_SIG_ERR_MESSAGE;
-    }
-    uint8_t *enc_buf = (uint8_t *)malloc(encoded_size);
-    if (enc_buf == NULL) {
-        return LIVEKIT_SIG_ERR_NO_MEM;
-    }
-    int ret = LIVEKIT_SIG_ERR_NONE;
-    do {
-        pb_ostream_t stream = pb_ostream_from_buffer(enc_buf, encoded_size);
-        if (!pb_encode(&stream, LIVEKIT_PB_SIGNAL_REQUEST_FIELDS, request)) {
-            ESP_LOGE(TAG, "Failed to encode signal request");
-            ret = LIVEKIT_SIG_ERR_MESSAGE;
-            break;
-        }
-        if (esp_websocket_client_send_bin(sg->ws, (const char *)enc_buf, stream.bytes_written, 0) < 0) {
-            ESP_LOGE(TAG, "Failed to send signal request");
-            ret = LIVEKIT_SIG_ERR_MESSAGE;
-            break;
-        }
-    } while (0);
-    free(enc_buf);
-    return ret;
-}
-
 livekit_sig_err_t livekit_sig_send_answer(livekit_sig_handle_t handle, const char *sdp)
 {
     if (sdp == NULL || handle == NULL) {
@@ -456,7 +443,7 @@ livekit_sig_err_t livekit_sig_send_answer(livekit_sig_handle_t handle, const cha
     };
     req.which_message = LIVEKIT_PB_SIGNAL_REQUEST_ANSWER_TAG;
     req.message.answer = desc;
-    return send_request(&req, sg);
+    return send_request(sg, &req);
 }
 
 livekit_sig_err_t livekit_sig_send_offer(livekit_sig_handle_t handle, const char *sdp)
@@ -473,5 +460,5 @@ livekit_sig_err_t livekit_sig_send_offer(livekit_sig_handle_t handle, const char
     };
     req.which_message = LIVEKIT_PB_SIGNAL_REQUEST_OFFER_TAG;
     req.message.offer = desc;
-    return send_request(&req, sg);
+    return send_request(sg, &req);
 }
