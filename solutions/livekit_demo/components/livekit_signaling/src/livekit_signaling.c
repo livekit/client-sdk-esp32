@@ -68,7 +68,7 @@ static void log_error_if_nonzero(const char *message, int error_code)
     }
 }
 
-static livekit_sig_err_t livekit_sig_build_url(const char *server_url, const char *token, char **out_url)
+static livekit_sig_err_t build_url(const char *server_url, const char *token, char **out_url)
 {
     static const char url_format[] = "%s%srtc?sdk=%s&version=%s&auto_subscribe=true&access_token=%s";
     // Access token parameter must stay at the end for logging
@@ -149,7 +149,7 @@ static livekit_sig_err_t send_request(livekit_sig_t *sg, livekit_pb_signal_reque
     return ret;
 }
 
-static livekit_sig_err_t livekit_sig_send_ping(livekit_sig_t *sg)
+static livekit_sig_err_t send_ping(livekit_sig_t *sg)
 {
     livekit_pb_signal_request_t req = LIVEKIT_PB_SIGNAL_REQUEST_INIT_DEFAULT;
     req.which_message = LIVEKIT_PB_SIGNAL_REQUEST_PING_REQ_TAG;
@@ -158,7 +158,7 @@ static livekit_sig_err_t livekit_sig_send_ping(livekit_sig_t *sg)
     return send_request(sg, &req);
 }
 
-static void livekit_sig_ping_task(void *arg)
+static void ping_task(void *arg)
 {
     assert(arg != NULL);
     livekit_sig_t *sg = (livekit_sig_t *)arg;
@@ -171,7 +171,7 @@ static void livekit_sig_ping_task(void *arg)
             sg->ping_interval_ms);
 
         if (bits & PING_STOP_BIT) break;
-        if (livekit_sig_send_ping(sg) != LIVEKIT_SIG_ERR_NONE) {
+        if (send_ping(sg) != LIVEKIT_SIG_ERR_NONE) {
             ESP_LOGE(TAG, "Failed to send ping");
         }
     }
@@ -197,7 +197,7 @@ static livekit_sig_err_t livekit_sig_start_ping_task(livekit_sig_t *sg)
     if (media_lib_thread_create(
         &sg->ping_thread,
         "lk_ping",
-        livekit_sig_ping_task,
+        ping_task,
         sg,
         8 * 1024,
         10, // MEDIA_LIB_DEFAULT_THREAD_PRIORITY
@@ -210,7 +210,7 @@ static livekit_sig_err_t livekit_sig_start_ping_task(livekit_sig_t *sg)
     return LIVEKIT_SIG_ERR_NONE;
 }
 
-static livekit_sig_err_t livekit_sig_stop_ping_task(livekit_sig_t *sg)
+static livekit_sig_err_t stop_ping_task(livekit_sig_t *sg)
 {
     if (sg->ping_thread == NULL) {
         return LIVEKIT_SIG_ERR_NONE;
@@ -226,7 +226,7 @@ static livekit_sig_err_t livekit_sig_stop_ping_task(livekit_sig_t *sg)
     return LIVEKIT_SIG_ERR_NONE;
 }
 
-static void livekit_sig_handle_res(livekit_sig_t *sg, livekit_pb_signal_response_t *res)
+static void handle_res(livekit_sig_t *sg, livekit_pb_signal_response_t *res)
 {
     switch (res->which_message) {
         case LIVEKIT_PB_SIGNAL_RESPONSE_PONG_RESP_TAG:
@@ -286,7 +286,7 @@ static void livekit_sig_handle_res(livekit_sig_t *sg, livekit_pb_signal_response
     pb_release(LIVEKIT_PB_SIGNAL_RESPONSE_FIELDS, res);
 }
 
-static void livekit_sig_on_data(livekit_sig_t *sg, const char *data, size_t len)
+static void on_data(livekit_sig_t *sg, const char *data, size_t len)
 {
     ESP_LOGI(TAG, "Incoming signal res: %d byte(s)", len);
     livekit_pb_signal_response_t res = {};
@@ -296,11 +296,13 @@ static void livekit_sig_on_data(livekit_sig_t *sg, const char *data, size_t len)
         return;
     }
 
-    ESP_LOGI(TAG, "Decoded signal res: type=%s(%d)", livekit_protocol_sig_res_name(res.which_message), res.which_message);
-    livekit_sig_handle_res(sg, &res);
+    ESP_LOGI(TAG, "Decoded signal res: type=%s(%d)",
+        livekit_protocol_sig_res_name(res.which_message),
+        res.which_message);
+    handle_res(sg, &res);
 }
 
-void livekit_sig_event_handler(void *ctx, esp_event_base_t base, int32_t event_id, void *event_data)
+void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void *event_data)
 {
     assert(ctx != NULL);
     livekit_sig_t *sg = (livekit_sig_t *)ctx;
@@ -312,7 +314,7 @@ void livekit_sig_event_handler(void *ctx, esp_event_base_t base, int32_t event_i
             break;
         case WEBSOCKET_EVENT_DISCONNECTED:
             ESP_LOGI(TAG, "Signaling disconnected");
-            livekit_sig_stop_ping_task(sg);
+            stop_ping_task(sg);
 
             log_error_if_nonzero("HTTP status code", data->error_handle.esp_ws_handshake_status_code);
             if (data->error_handle.error_type == WEBSOCKET_ERROR_TYPE_TCP_TRANSPORT) {
@@ -328,11 +330,11 @@ void livekit_sig_event_handler(void *ctx, esp_event_base_t base, int32_t event_i
                 break;
             }
             if (data->data_len < 1) break;
-            livekit_sig_on_data(sg, data->data_ptr, data->data_len);
+            on_data(sg, data->data_ptr, data->data_len);
             break;
         case WEBSOCKET_EVENT_ERROR:
             ESP_LOGE(TAG, "Failed to connect to server");
-            livekit_sig_stop_ping_task(sg);
+            stop_ping_task(sg);
 
             log_error_if_nonzero("HTTP status code", data->error_handle.esp_ws_handshake_status_code);
             if (data->error_handle.error_type == WEBSOCKET_ERROR_TYPE_TCP_TRANSPORT) {
@@ -387,7 +389,7 @@ livekit_sig_err_t livekit_sig_create(livekit_sig_handle_t *handle, livekit_sig_o
     esp_websocket_register_events(
         sg->ws,
         WEBSOCKET_EVENT_ANY,
-        livekit_sig_event_handler,
+        on_ws_event,
         (void *)sg
     );
     *handle = sg;
@@ -414,7 +416,7 @@ livekit_sig_err_t livekit_sig_connect(livekit_sig_handle_t handle, const char* s
     }
     livekit_sig_t *sg = (livekit_sig_t *)handle;
 
-    int ret = livekit_sig_build_url(server_url, token, &sg->url);
+    int ret = build_url(server_url, token, &sg->url);
     if (ret != LIVEKIT_SIG_ERR_NONE) return ret;
 
     if (esp_websocket_client_set_uri(sg->ws, sg->url) != ESP_OK) {
@@ -434,7 +436,7 @@ livekit_sig_err_t livekit_sig_close(livekit_sig_handle_t handle)
         return LIVEKIT_SIG_ERR_INVALID_ARG;
     }
     livekit_sig_t *sg = (livekit_sig_t *)handle;
-    livekit_sig_stop_ping_task(sg);
+    stop_ping_task(sg);
 
     if (sg->ws != NULL && esp_websocket_client_is_connected(sg->ws)) {
         if (esp_websocket_client_close(sg->ws, pdMS_TO_TICKS(LIVEKIT_SIG_WS_CLOSE_TIMEOUT_MS)) != ESP_OK) {
