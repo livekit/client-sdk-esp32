@@ -73,6 +73,7 @@ bool livekit_sandbox_generate(const char *sandbox_id, livekit_sandbox_res_t *res
     esp_http_client_handle_t client = esp_http_client_init(&http_config);
     if (client == NULL) {
         ESP_LOGE(TAG, "Failed to create HTTP client");
+        free(res_buffer);
         return false;
     }
 
