@@ -7,24 +7,14 @@
    CONDITIONS OF ANY KIND, either express or implied.
 */
 
-#include <esp_wifi.h>
-#include <esp_event.h>
 #include <esp_log.h>
-#include <esp_system.h>
-#include <nvs_flash.h>
-#include <sys/param.h>
-#include "argtable3/argtable3.h"
 #include "esp_console.h"
-#include "esp_webrtc.h"
 #include "media_lib_adapter.h"
 #include "media_lib_os.h"
-#include "esp_timer.h"
-#include "webrtc_utils_time.h"
-#include "esp_cpu.h"
+#include "network.h"
+
 #include "settings.h"
 #include "media_setup.h"
-#include "network.h"
-#include "sys_state.h"
 #include "board.h"
 #include "livekit_demo.h"
 
