@@ -254,9 +254,6 @@ typedef struct livekit_pb_video_layer {
     livekit_pb_video_quality_t quality;
     uint32_t width;
     uint32_t height;
-    /* target bitrate in bit per second (bps), server will measure actual */
-    uint32_t bitrate;
-    uint32_t ssrc;
 } livekit_pb_video_layer_t;
 
 typedef struct livekit_pb_active_speaker_update {
@@ -821,7 +818,7 @@ extern "C" {
 #define LIVEKIT_PB_ENCRYPTION_INIT_DEFAULT       {0}
 #define LIVEKIT_PB_SIMULCAST_CODEC_INFO_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_TRACK_INFO_INIT_DEFAULT       {{{NULL}, NULL}, _LIVEKIT_PB_TRACK_TYPE_MIN, {{NULL}, NULL}, 0, 0, 0, 0, 0, _LIVEKIT_PB_TRACK_SOURCE_MIN, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0, _LIVEKIT_PB_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, false, LIVEKIT_PB_TIMED_VERSION_INIT_DEFAULT, {{NULL}, NULL}, _LIVEKIT_PB_BACKUP_CODEC_POLICY_MIN}
-#define LIVEKIT_PB_VIDEO_LAYER_INIT_DEFAULT      {_LIVEKIT_PB_VIDEO_QUALITY_MIN, 0, 0, 0, 0}
+#define LIVEKIT_PB_VIDEO_LAYER_INIT_DEFAULT      {_LIVEKIT_PB_VIDEO_QUALITY_MIN, 0, 0}
 #define LIVEKIT_PB_DATA_PACKET_INIT_DEFAULT      {0, {LIVEKIT_PB_USER_PACKET_INIT_DEFAULT}, {{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_INIT_DEFAULT {{{NULL}, NULL}}
 #define LIVEKIT_PB_SPEAKER_INFO_INIT_DEFAULT     {{{NULL}, NULL}, 0, 0}
@@ -867,7 +864,7 @@ extern "C" {
 #define LIVEKIT_PB_ENCRYPTION_INIT_ZERO          {0}
 #define LIVEKIT_PB_SIMULCAST_CODEC_INFO_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_TRACK_INFO_INIT_ZERO          {{{NULL}, NULL}, _LIVEKIT_PB_TRACK_TYPE_MIN, {{NULL}, NULL}, 0, 0, 0, 0, 0, _LIVEKIT_PB_TRACK_SOURCE_MIN, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0, _LIVEKIT_PB_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, false, LIVEKIT_PB_TIMED_VERSION_INIT_ZERO, {{NULL}, NULL}, _LIVEKIT_PB_BACKUP_CODEC_POLICY_MIN}
-#define LIVEKIT_PB_VIDEO_LAYER_INIT_ZERO         {_LIVEKIT_PB_VIDEO_QUALITY_MIN, 0, 0, 0, 0}
+#define LIVEKIT_PB_VIDEO_LAYER_INIT_ZERO         {_LIVEKIT_PB_VIDEO_QUALITY_MIN, 0, 0}
 #define LIVEKIT_PB_DATA_PACKET_INIT_ZERO         {0, {LIVEKIT_PB_USER_PACKET_INIT_ZERO}, {{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_INIT_ZERO {{{NULL}, NULL}}
 #define LIVEKIT_PB_SPEAKER_INFO_INIT_ZERO        {{{NULL}, NULL}, 0, 0}
@@ -924,8 +921,6 @@ extern "C" {
 #define LIVEKIT_PB_VIDEO_LAYER_QUALITY_TAG       1
 #define LIVEKIT_PB_VIDEO_LAYER_WIDTH_TAG         2
 #define LIVEKIT_PB_VIDEO_LAYER_HEIGHT_TAG        3
-#define LIVEKIT_PB_VIDEO_LAYER_BITRATE_TAG       4
-#define LIVEKIT_PB_VIDEO_LAYER_SSRC_TAG          5
 #define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_SPEAKERS_TAG 1
 #define LIVEKIT_PB_SPEAKER_INFO_SID_TAG          1
 #define LIVEKIT_PB_SPEAKER_INFO_LEVEL_TAG        2
@@ -1255,9 +1250,7 @@ X(a, STATIC,   SINGULAR, UENUM,    backup_codec_policy,  20)
 #define LIVEKIT_PB_VIDEO_LAYER_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UENUM,    quality,           1) \
 X(a, STATIC,   SINGULAR, UINT32,   width,             2) \
-X(a, STATIC,   SINGULAR, UINT32,   height,            3) \
-X(a, STATIC,   SINGULAR, UINT32,   bitrate,           4) \
-X(a, STATIC,   SINGULAR, UINT32,   ssrc,              5)
+X(a, STATIC,   SINGULAR, UINT32,   height,            3)
 #define LIVEKIT_PB_VIDEO_LAYER_CALLBACK NULL
 #define LIVEKIT_PB_VIDEO_LAYER_DEFAULT NULL
 
@@ -1771,7 +1764,7 @@ extern const pb_msgdesc_t livekit_pb_webhook_config_t_msg;
 #define LIVEKIT_PB_RTP_STATS_GAP_HISTOGRAM_ENTRY_SIZE 17
 #define LIVEKIT_PB_TIMED_VERSION_SIZE            22
 #define LIVEKIT_PB_VIDEO_CONFIGURATION_SIZE      2
-#define LIVEKIT_PB_VIDEO_LAYER_SIZE              26
+#define LIVEKIT_PB_VIDEO_LAYER_SIZE              14
 #define LIVEKIT_PB_VP8_MUNGER_STATE_SIZE         31
 
 /* Mapping from canonical names (mangle_names or overridden package name) */

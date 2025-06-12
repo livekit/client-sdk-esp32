@@ -49,27 +49,16 @@ typedef struct livekit_pb_simulcast_codec {
 
 typedef struct livekit_pb_add_track_request {
     /* client ID of track, to match it when RTC track is received */
-    pb_callback_t cid;
-    pb_callback_t name;
+    char cid[16];
+    char name[16];
     livekit_pb_track_type_t type;
-    /* to be deprecated in favor of layers */
-    uint32_t width;
-    uint32_t height;
     /* true to add track and initialize to muted */
     bool muted;
     livekit_pb_track_source_t source;
-    pb_callback_t layers;
-    pb_callback_t simulcast_codecs;
-    /* server ID of track, publish new codec to exist track */
-    pb_callback_t sid;
-    /* true if RED (Redundant Encoding) is disabled for audio */
-    bool disable_red;
-    livekit_pb_encryption_type_t encryption;
-    /* which stream the track belongs to, used to group tracks together.
- if not specified, server will infer it from track source to bundle camera/microphone, screenshare/audio together */
-    pb_callback_t stream;
-    livekit_pb_backup_codec_policy_t backup_codec_policy;
-    pb_callback_t audio_features;
+    pb_size_t layers_count;
+    livekit_pb_video_layer_t layers[1];
+    pb_size_t audio_features_count;
+    livekit_pb_audio_track_feature_t audio_features[8];
 } livekit_pb_add_track_request_t;
 
 typedef struct livekit_pb_trickle_request {
@@ -467,8 +456,6 @@ extern "C" {
 
 #define livekit_pb_add_track_request_t_type_ENUMTYPE livekit_pb_track_type_t
 #define livekit_pb_add_track_request_t_source_ENUMTYPE livekit_pb_track_source_t
-#define livekit_pb_add_track_request_t_encryption_ENUMTYPE livekit_pb_encryption_type_t
-#define livekit_pb_add_track_request_t_backup_codec_policy_ENUMTYPE livekit_pb_backup_codec_policy_t
 #define livekit_pb_add_track_request_t_audio_features_ENUMTYPE livekit_pb_audio_track_feature_t
 
 #define livekit_pb_trickle_request_t_target_ENUMTYPE livekit_pb_signal_target_t
@@ -527,7 +514,7 @@ extern "C" {
 #define LIVEKIT_PB_SIGNAL_REQUEST_INIT_DEFAULT   {0, {LIVEKIT_PB_SESSION_DESCRIPTION_INIT_DEFAULT}}
 #define LIVEKIT_PB_SIGNAL_RESPONSE_INIT_DEFAULT  {0, {LIVEKIT_PB_JOIN_RESPONSE_INIT_DEFAULT}}
 #define LIVEKIT_PB_SIMULCAST_CODEC_INIT_DEFAULT  {{{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_PB_ADD_TRACK_REQUEST_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}, _LIVEKIT_PB_TRACK_TYPE_MIN, 0, 0, 0, _LIVEKIT_PB_TRACK_SOURCE_MIN, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, _LIVEKIT_PB_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, _LIVEKIT_PB_BACKUP_CODEC_POLICY_MIN, {{NULL}, NULL}}
+#define LIVEKIT_PB_ADD_TRACK_REQUEST_INIT_DEFAULT {"", "", _LIVEKIT_PB_TRACK_TYPE_MIN, 0, _LIVEKIT_PB_TRACK_SOURCE_MIN, 0, {LIVEKIT_PB_VIDEO_LAYER_INIT_DEFAULT}, 0, {_LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN}}
 #define LIVEKIT_PB_TRICKLE_REQUEST_INIT_DEFAULT  {NULL, _LIVEKIT_PB_SIGNAL_TARGET_MIN, 0}
 #define LIVEKIT_PB_MUTE_TRACK_REQUEST_INIT_DEFAULT {{{NULL}, NULL}, 0}
 #define LIVEKIT_PB_JOIN_RESPONSE_INIT_DEFAULT    {LIVEKIT_PB_PARTICIPANT_INFO_INIT_DEFAULT, 0, {LIVEKIT_PB_ICE_SERVER_INIT_DEFAULT, LIVEKIT_PB_ICE_SERVER_INIT_DEFAULT, LIVEKIT_PB_ICE_SERVER_INIT_DEFAULT, LIVEKIT_PB_ICE_SERVER_INIT_DEFAULT}, 0, false, LIVEKIT_PB_CLIENT_CONFIGURATION_INIT_DEFAULT, 0, 0}
@@ -570,7 +557,7 @@ extern "C" {
 #define LIVEKIT_PB_SIGNAL_REQUEST_INIT_ZERO      {0, {LIVEKIT_PB_SESSION_DESCRIPTION_INIT_ZERO}}
 #define LIVEKIT_PB_SIGNAL_RESPONSE_INIT_ZERO     {0, {LIVEKIT_PB_JOIN_RESPONSE_INIT_ZERO}}
 #define LIVEKIT_PB_SIMULCAST_CODEC_INIT_ZERO     {{{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_PB_ADD_TRACK_REQUEST_INIT_ZERO   {{{NULL}, NULL}, {{NULL}, NULL}, _LIVEKIT_PB_TRACK_TYPE_MIN, 0, 0, 0, _LIVEKIT_PB_TRACK_SOURCE_MIN, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, _LIVEKIT_PB_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, _LIVEKIT_PB_BACKUP_CODEC_POLICY_MIN, {{NULL}, NULL}}
+#define LIVEKIT_PB_ADD_TRACK_REQUEST_INIT_ZERO   {"", "", _LIVEKIT_PB_TRACK_TYPE_MIN, 0, _LIVEKIT_PB_TRACK_SOURCE_MIN, 0, {LIVEKIT_PB_VIDEO_LAYER_INIT_ZERO}, 0, {_LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN}}
 #define LIVEKIT_PB_TRICKLE_REQUEST_INIT_ZERO     {NULL, _LIVEKIT_PB_SIGNAL_TARGET_MIN, 0}
 #define LIVEKIT_PB_MUTE_TRACK_REQUEST_INIT_ZERO  {{{NULL}, NULL}, 0}
 #define LIVEKIT_PB_JOIN_RESPONSE_INIT_ZERO       {LIVEKIT_PB_PARTICIPANT_INFO_INIT_ZERO, 0, {LIVEKIT_PB_ICE_SERVER_INIT_ZERO, LIVEKIT_PB_ICE_SERVER_INIT_ZERO, LIVEKIT_PB_ICE_SERVER_INIT_ZERO, LIVEKIT_PB_ICE_SERVER_INIT_ZERO}, 0, false, LIVEKIT_PB_CLIENT_CONFIGURATION_INIT_ZERO, 0, 0}
@@ -617,17 +604,9 @@ extern "C" {
 #define LIVEKIT_PB_ADD_TRACK_REQUEST_CID_TAG     1
 #define LIVEKIT_PB_ADD_TRACK_REQUEST_NAME_TAG    2
 #define LIVEKIT_PB_ADD_TRACK_REQUEST_TYPE_TAG    3
-#define LIVEKIT_PB_ADD_TRACK_REQUEST_WIDTH_TAG   4
-#define LIVEKIT_PB_ADD_TRACK_REQUEST_HEIGHT_TAG  5
 #define LIVEKIT_PB_ADD_TRACK_REQUEST_MUTED_TAG   6
 #define LIVEKIT_PB_ADD_TRACK_REQUEST_SOURCE_TAG  8
 #define LIVEKIT_PB_ADD_TRACK_REQUEST_LAYERS_TAG  9
-#define LIVEKIT_PB_ADD_TRACK_REQUEST_SIMULCAST_CODECS_TAG 10
-#define LIVEKIT_PB_ADD_TRACK_REQUEST_SID_TAG     11
-#define LIVEKIT_PB_ADD_TRACK_REQUEST_DISABLE_RED_TAG 13
-#define LIVEKIT_PB_ADD_TRACK_REQUEST_ENCRYPTION_TAG 14
-#define LIVEKIT_PB_ADD_TRACK_REQUEST_STREAM_TAG  15
-#define LIVEKIT_PB_ADD_TRACK_REQUEST_BACKUP_CODEC_POLICY_TAG 16
 #define LIVEKIT_PB_ADD_TRACK_REQUEST_AUDIO_FEATURES_TAG 17
 #define LIVEKIT_PB_TRICKLE_REQUEST_CANDIDATE_INIT_TAG 1
 #define LIVEKIT_PB_TRICKLE_REQUEST_TARGET_TAG    2
@@ -869,25 +848,16 @@ X(a, CALLBACK, SINGULAR, STRING,   cid,               2)
 #define LIVEKIT_PB_SIMULCAST_CODEC_DEFAULT NULL
 
 #define LIVEKIT_PB_ADD_TRACK_REQUEST_FIELDLIST(X, a) \
-X(a, CALLBACK, SINGULAR, STRING,   cid,               1) \
-X(a, CALLBACK, SINGULAR, STRING,   name,              2) \
+X(a, STATIC,   SINGULAR, STRING,   cid,               1) \
+X(a, STATIC,   SINGULAR, STRING,   name,              2) \
 X(a, STATIC,   SINGULAR, UENUM,    type,              3) \
-X(a, STATIC,   SINGULAR, UINT32,   width,             4) \
-X(a, STATIC,   SINGULAR, UINT32,   height,            5) \
 X(a, STATIC,   SINGULAR, BOOL,     muted,             6) \
 X(a, STATIC,   SINGULAR, UENUM,    source,            8) \
-X(a, CALLBACK, REPEATED, MESSAGE,  layers,            9) \
-X(a, CALLBACK, REPEATED, MESSAGE,  simulcast_codecs,  10) \
-X(a, CALLBACK, SINGULAR, STRING,   sid,              11) \
-X(a, STATIC,   SINGULAR, BOOL,     disable_red,      13) \
-X(a, STATIC,   SINGULAR, UENUM,    encryption,       14) \
-X(a, CALLBACK, SINGULAR, STRING,   stream,           15) \
-X(a, STATIC,   SINGULAR, UENUM,    backup_codec_policy,  16) \
-X(a, CALLBACK, REPEATED, UENUM,    audio_features,   17)
-#define LIVEKIT_PB_ADD_TRACK_REQUEST_CALLBACK pb_default_field_callback
+X(a, STATIC,   REPEATED, MESSAGE,  layers,            9) \
+X(a, STATIC,   REPEATED, UENUM,    audio_features,   17)
+#define LIVEKIT_PB_ADD_TRACK_REQUEST_CALLBACK NULL
 #define LIVEKIT_PB_ADD_TRACK_REQUEST_DEFAULT NULL
 #define livekit_pb_add_track_request_t_layers_MSGTYPE livekit_pb_video_layer_t
-#define livekit_pb_add_track_request_t_simulcast_codecs_MSGTYPE livekit_pb_simulcast_codec_t
 
 #define LIVEKIT_PB_TRICKLE_REQUEST_FIELDLIST(X, a) \
 X(a, POINTER,  SINGULAR, STRING,   candidate_init,    1) \
@@ -1274,7 +1244,6 @@ extern const pb_msgdesc_t livekit_pb_track_subscribed_t_msg;
 /* livekit_pb_SignalRequest_size depends on runtime parameters */
 /* livekit_pb_SignalResponse_size depends on runtime parameters */
 /* livekit_pb_SimulcastCodec_size depends on runtime parameters */
-/* livekit_pb_AddTrackRequest_size depends on runtime parameters */
 /* livekit_pb_TrickleRequest_size depends on runtime parameters */
 /* livekit_pb_MuteTrackRequest_size depends on runtime parameters */
 /* livekit_pb_JoinResponse_size depends on runtime parameters */
@@ -1309,14 +1278,15 @@ extern const pb_msgdesc_t livekit_pb_track_subscribed_t_msg;
 /* livekit_pb_SubscriptionResponse_size depends on runtime parameters */
 /* livekit_pb_RequestResponse_size depends on runtime parameters */
 /* livekit_pb_TrackSubscribed_size depends on runtime parameters */
-#if defined(livekit_pb_Room_size)
-#define LIVEKIT_PB_ROOM_UPDATE_SIZE              (6 + livekit_pb_Room_size)
-#endif
-#define LIVEKIT_LIVEKIT_RTC_PB_H_MAX_SIZE        LIVEKIT_PB_PING_SIZE
+#define LIVEKIT_LIVEKIT_RTC_PB_H_MAX_SIZE        LIVEKIT_PB_ADD_TRACK_REQUEST_SIZE
+#define LIVEKIT_PB_ADD_TRACK_REQUEST_SIZE        81
 #define LIVEKIT_PB_PING_SIZE                     22
 #define LIVEKIT_PB_PONG_SIZE                     22
 #define LIVEKIT_PB_SIMULATE_SCENARIO_SIZE        11
 #define LIVEKIT_PB_SUBSCRIBED_QUALITY_SIZE       4
+#if defined(livekit_pb_Room_size)
+#define LIVEKIT_PB_ROOM_UPDATE_SIZE              (6 + livekit_pb_Room_size)
+#endif
 
 /* Mapping from canonical names (mangle_names or overridden package name) */
 #define livekit_SignalTarget livekit_pb_SignalTarget
