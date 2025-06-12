@@ -7,12 +7,20 @@
 
 static const char *TAG = "livekit_engine";
 
+#define SAFE_FREE(ptr) if (ptr != NULL) {   \
+    free(ptr);                      \
+    ptr = NULL;                     \
+}
+
 typedef struct {
     livekit_eng_options_t options;
     livekit_sig_handle_t  sig;
 
     livekit_peer_handle_t pub_peer;
     livekit_peer_handle_t sub_peer;
+
+    esp_peer_ice_server_cfg_t *ice_servers;
+    int ice_server_count;
 } livekit_eng_t;
 
 /// @brief Performs one-time system initialization.
@@ -28,6 +36,73 @@ static void sys_init(void)
         ESP_LOGE(TAG, "System initialization failed");
         return;
     }
+}
+
+static void free_ice_servers(livekit_eng_t *eng)
+{
+    if (eng->ice_servers == NULL) return;
+    esp_peer_ice_server_cfg_t *ice_servers = eng->ice_servers;
+    for (int i = 0; i < eng->ice_server_count; i++) {
+        SAFE_FREE(ice_servers[i].stun_url);
+        SAFE_FREE(ice_servers[i].user);
+        SAFE_FREE(ice_servers[i].psw);
+    }
+    SAFE_FREE(eng->ice_servers);
+    eng->ice_server_count = 0;
+}
+
+static livekit_eng_err_t set_ice_servers(livekit_eng_t* eng, livekit_pb_ice_server_t *servers, int count)
+{
+    if (eng == NULL || servers == NULL || count <= 0) {
+        return LIVEKIT_ENG_ERR_INVALID_ARG;
+    }
+    // A single livekit_ice_server_t can contain multiple URLs, which
+    // will map to multiple esp_peer_ice_server_cfg_t entries.
+    size_t cfg_count = 0;
+    for (int i = 0; i < count; i++) {
+        if (servers[i].urls_count <= 0) {
+            return LIVEKIT_PEER_ERR_INVALID_ARG;
+        }
+        for (int j = 0; j < servers[i].urls_count; j++) {
+            if (servers[i].urls[j] == NULL) {
+                return LIVEKIT_PEER_ERR_INVALID_ARG;
+            }
+            cfg_count++;
+        }
+    }
+
+    esp_peer_ice_server_cfg_t *cfgs = calloc(cfg_count, sizeof(esp_peer_ice_server_cfg_t));
+    if (cfgs == NULL) {
+        return LIVEKIT_PEER_ERR_NO_MEM;
+    }
+
+    int cfg_idx = 0;
+    for (int i = 0; i < count; i++) {
+        for (int j = 0; j < servers[i].urls_count; j++) {
+            bool has_auth = false;
+            cfgs[cfg_idx].stun_url = strdup(servers[i].urls[j]);
+            if (servers[i].username != NULL) {
+                cfgs[cfg_idx].user = strdup(servers[i].username);
+                has_auth = true;
+            }
+            if (servers[i].credential != NULL) {
+                cfgs[cfg_idx].psw = strdup(servers[i].credential);
+                has_auth = true;
+            }
+            ESP_LOGI(TAG, "Adding ICE server: has_auth=%d, url=%s", has_auth, servers[i].urls[j]);
+            cfg_idx++;
+        }
+    }
+
+    // Set ICE servers for both peers (owned by engine)
+    livekit_peer_set_ice_servers(eng->pub_peer, cfgs, cfg_count);
+    livekit_peer_set_ice_servers(eng->sub_peer, cfgs, cfg_count);
+
+    free_ice_servers(eng);
+    eng->ice_servers = cfgs;
+    eng->ice_server_count = cfg_count;
+
+    return LIVEKIT_PEER_ERR_NONE;
 }
 
 static void on_peer_pub_offer(const char *sdp, void *ctx)
@@ -74,8 +149,7 @@ static void on_sig_error(void *ctx)
 static void on_sig_join(livekit_pb_join_response_t *join_res, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    livekit_peer_set_ice_servers(eng->pub_peer, join_res->ice_servers, join_res->ice_servers_count);
-    livekit_peer_set_ice_servers(eng->sub_peer, join_res->ice_servers, join_res->ice_servers_count);
+    set_ice_servers(eng, join_res->ice_servers, join_res->ice_servers_count);
 
     if (join_res->subscriber_primary) {
         ESP_LOGE(TAG, "Subscriber primary is not supported yet");
@@ -178,6 +252,7 @@ livekit_eng_err_t livekit_eng_destroy(livekit_eng_handle_t handle)
     }
     livekit_eng_t *eng = (livekit_eng_t *)handle;
     livekit_eng_close(handle, LIVEKIT_PB_DISCONNECT_REASON_UNKNOWN_REASON);
+    free_ice_servers(eng);
     free(eng);
     return LIVEKIT_ENG_ERR_NONE;
 }

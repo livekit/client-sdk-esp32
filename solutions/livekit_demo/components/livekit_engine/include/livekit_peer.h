@@ -39,7 +39,7 @@ livekit_peer_err_t livekit_peer_disconnect(livekit_peer_handle_t handle);
 
 /// @brief Sets the ICE server to use for the connection
 /// @note Must be called prior to establishing the connection.
-livekit_peer_err_t livekit_peer_set_ice_servers(livekit_peer_handle_t handle, livekit_pb_ice_server_t *servers, int count);
+livekit_peer_err_t livekit_peer_set_ice_servers(livekit_peer_handle_t handle, esp_peer_ice_server_cfg_t *servers, int count);
 
 /// @brief Handles an SDP message from the remote peer.
 livekit_peer_err_t livekit_peer_handle_sdp(livekit_peer_handle_t handle, const char *sdp);
