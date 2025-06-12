@@ -98,28 +98,28 @@ typedef struct {
 } livekit_room_options_t;
 
 /// @brief Creates a room.
-/// @param handle[out] Handle to the new room object for use in subsequent operations.
+/// @param handle[out] Room handle.
 /// @param options[in] Options for the new room.
 /// @return LIVEKIT_ERR_NONE if successful, otherwise an error code.
 livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_room_options_t *options);
 
 /// @brief Destroys a room.
-/// @param handle[in] Handle of the room object to destroy.
+/// @param handle[in] Room handle.
 /// @return LIVEKIT_ERR_NONE if successful, otherwise an error code.
 /// @warning Be sure to close the room before destroying it for normal closure.
 livekit_err_t livekit_room_destroy(livekit_room_handle_t handle);
 
 /// @brief Connects to a room asynchronously.
-/// @note Handle room events to get notified once the connection is established or fails.
-/// @param handle[in] Handle of the room object to connect.
+/// @param handle[in] Room handle.
 /// @param server_url[in] URL of the LiveKit server beginning with "wss://" or "ws://" (development only).
 /// @param token[in] Server-generated token for authentication.
+/// @note Handle room events to get notified once the connection is established or fails.
 /// @return LIVEKIT_ERR_NONE, otherwise an error code.
 livekit_err_t livekit_room_connect(livekit_room_handle_t handle, const char *server_url, const char *token);
 
 /// @brief Disconnects from a room asynchronously.
+/// @param handle[in] Room handle.
 /// @note Handle room events to get notified once the disconnection is complete.
-/// @param handle[in] Handle of the room object to disconnect.
 /// @return LIVEKIT_ERR_NONE if successful, otherwise an error code.
 livekit_err_t livekit_room_close(livekit_room_handle_t handle);
 
