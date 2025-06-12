@@ -27,15 +27,21 @@ static const char *TAG = "livekit_signaling";
 #define LIVEKIT_SIG_WS_CLOSE_CODE           1000
 #define LIVEKIT_SIG_WS_CLOSE_TIMEOUT_MS     250
 
+#define PING_STOP_BIT    (1 << 0)
+#define PING_PAUSED_BIT  (1 << 1)
+#define PING_RESUME_BIT  (1 << 2)
+#define PING_EXIT_BIT    (1 << 3)
+
 typedef struct {
     char* url;
     esp_websocket_client_handle_t ws;
     livekit_sig_options_t         options;
 
-    bool                          pinging;
-    bool                          ping_stop;
-    int32_t                       ping_timeout;
-    int32_t                       ping_interval;
+    media_lib_event_grp_handle_t  ping_event;
+    media_lib_thread_handle_t     ping_thread;
+
+    int32_t                       ping_interval_ms;
+    int32_t                       ping_timeout_ms;
     int64_t                       rtt;
 } livekit_sig_t;
 
@@ -143,21 +149,13 @@ static livekit_sig_err_t send_request(livekit_sig_t *sg, livekit_pb_signal_reque
     return ret;
 }
 
-static void livekit_sig_send_ping(livekit_sig_t *sg)
+static livekit_sig_err_t livekit_sig_send_ping(livekit_sig_t *sg)
 {
-    int64_t timestamp = get_unix_time_ms();
-    int64_t rtt = sg->rtt;
-    //ESP_LOGI(TAG, "Sending ping: timestamp=%" PRId64 "ms, rtt=%" PRId64 "ms", timestamp, rtt);
-
     livekit_pb_signal_request_t req = LIVEKIT_PB_SIGNAL_REQUEST_INIT_DEFAULT;
     req.which_message = LIVEKIT_PB_SIGNAL_REQUEST_PING_REQ_TAG;
-    req.message.ping_req.timestamp = timestamp;
-    req.message.ping_req.rtt = rtt;
-
-    if (send_request(sg, &req) != 0) {
-        ESP_LOGE(TAG, "Failed to send ping");
-        return;
-    }
+    req.message.ping_req.timestamp = get_unix_time_ms();
+    req.message.ping_req.rtt = sg->rtt;
+    return send_request(sg, &req);
 }
 
 static void livekit_sig_ping_task(void *arg)
@@ -166,44 +164,66 @@ static void livekit_sig_ping_task(void *arg)
     livekit_sig_t *sg = (livekit_sig_t *)arg;
     ESP_LOGI(TAG, "Ping task started");
 
-    while (!sg->ping_stop) {
-        media_lib_thread_sleep(sg->ping_interval * 1000);
-        livekit_sig_send_ping(sg);
+    while (true) {
+        uint32_t bits = media_lib_event_group_wait_bits(
+            sg->ping_event,
+            PING_STOP_BIT,
+            sg->ping_interval_ms);
+
+        if (bits & PING_STOP_BIT) break;
+        if (livekit_sig_send_ping(sg) != LIVEKIT_SIG_ERR_NONE) {
+            ESP_LOGE(TAG, "Failed to send ping");
+        }
     }
+
+    media_lib_event_group_set_bits(sg->ping_event, PING_EXIT_BIT);
+    ESP_LOGI(TAG, "Ping task exited");
     media_lib_thread_destroy(NULL);
 }
 
 static livekit_sig_err_t livekit_sig_start_ping_task(livekit_sig_t *sg)
 {
-    if (sg->pinging) return LIVEKIT_SIG_ERR_OTHER;
-    sg->ping_stop = false;
-    sg->pinging = false;
-
-    media_lib_thread_handle_t handle;
+    if (sg->ping_thread != NULL) {
+        ESP_LOGW(TAG, "Ping task already running");
+        return LIVEKIT_SIG_ERR_NONE;
+    }
+    media_lib_event_group_clr_bits(sg->ping_event, PING_STOP_BIT | PING_EXIT_BIT);
+    ESP_LOGI(TAG, "Starting ping task: interval=%" PRId32 "ms, timeout=%" PRId32 "ms",
+             sg->ping_interval_ms, sg->ping_timeout_ms);
 
     // Use larger stack size to accommodate livekit_signal_request_t. This type is
     // especially large because it contains a union of all possible messages (even though
     // the ping_req message is small).
-    media_lib_thread_create(
-        &handle,
-        "ping",
+    if (media_lib_thread_create(
+        &sg->ping_thread,
+        "lk_ping",
         livekit_sig_ping_task,
         sg,
         8 * 1024,
         10, // MEDIA_LIB_DEFAULT_THREAD_PRIORITY
         0 // MEDIA_LIB_DEFAULT_THREAD_CORE
-    );
-    if (!handle) return LIVEKIT_SIG_ERR_OTHER;
-    sg->pinging = true;
+    ) != ESP_OK) {
+        sg->ping_thread = NULL;
+        ESP_LOGE(TAG, "Failed to create ping task");
+        return LIVEKIT_SIG_ERR_OTHER;
+    }
     return LIVEKIT_SIG_ERR_NONE;
 }
 
 static livekit_sig_err_t livekit_sig_stop_ping_task(livekit_sig_t *sg)
 {
-    sg->ping_stop = true;
-    while (sg->pinging) {
-        media_lib_thread_sleep(50);
+    if (sg->ping_thread == NULL) {
+        ESP_LOGI(TAG, "Ping task not running");
+        return LIVEKIT_SIG_ERR_NONE;
     }
+    ESP_LOGI(TAG, "Stopping ping task");
+
+    media_lib_event_group_set_bits(sg->ping_event, PING_STOP_BIT);
+    media_lib_event_group_wait_bits(sg->ping_event, PING_EXIT_BIT, MEDIA_LIB_MAX_LOCK_TIME);
+    media_lib_event_group_clr_bits(sg->ping_event, PING_EXIT_BIT);
+
+    ESP_LOGI(TAG, "Ping task joined");
+    sg->ping_thread = NULL;
     return LIVEKIT_SIG_ERR_NONE;
 }
 
@@ -220,14 +240,9 @@ static void livekit_sig_handle_res(livekit_sig_t *sg, livekit_pb_signal_response
             break;
         case LIVEKIT_PB_SIGNAL_RESPONSE_JOIN_TAG:
             livekit_pb_join_response_t *join_res = &res->message.join;
-            sg->ping_interval = join_res->ping_interval;
-            sg->ping_timeout = join_res->ping_timeout;
-            ESP_LOGI(TAG,
-                "Join res: subscriber_primary=%d, ping_interval=%" PRId32 "ms, ping_timeout=%" PRId32 "ms",
-                join_res->subscriber_primary,
-                sg->ping_interval,
-                sg->ping_timeout
-            );
+            sg->ping_interval_ms = join_res->ping_interval * 1000;
+            sg->ping_timeout_ms = join_res->ping_timeout * 1000;
+            ESP_LOGI(TAG, "Join res: subscriber_primary=%d", join_res->subscriber_primary);
             livekit_sig_start_ping_task(sg);
             sg->options.on_join(join_res, sg->options.ctx);
             break;
@@ -292,12 +307,14 @@ void livekit_sig_event_handler(void *ctx, esp_event_base_t base, int32_t event_i
     livekit_sig_t *sg = (livekit_sig_t *)ctx;
     esp_websocket_event_data_t *data = (esp_websocket_event_data_t *)event_data;
     switch (event_id) {
-        case WEBSOCKET_EVENT_CONNECTED:
+                case WEBSOCKET_EVENT_CONNECTED:
             ESP_LOGI(TAG, "Signaling connected");
             sg->options.on_connect(sg->options.ctx);
             break;
         case WEBSOCKET_EVENT_DISCONNECTED:
             ESP_LOGI(TAG, "Signaling disconnected");
+            livekit_sig_stop_ping_task(sg);
+
             log_error_if_nonzero("HTTP status code", data->error_handle.esp_ws_handshake_status_code);
             if (data->error_handle.error_type == WEBSOCKET_ERROR_TYPE_TCP_TRANSPORT) {
                 log_error_if_nonzero("reported from esp-tls", data->error_handle.esp_tls_last_esp_err);
@@ -316,6 +333,8 @@ void livekit_sig_event_handler(void *ctx, esp_event_base_t base, int32_t event_i
             break;
         case WEBSOCKET_EVENT_ERROR:
             ESP_LOGE(TAG, "Failed to connect to server");
+            livekit_sig_stop_ping_task(sg);
+
             log_error_if_nonzero("HTTP status code", data->error_handle.esp_ws_handshake_status_code);
             if (data->error_handle.error_type == WEBSOCKET_ERROR_TYPE_TCP_TRANSPORT) {
                 log_error_if_nonzero("reported from esp-tls", data->error_handle.esp_tls_last_esp_err);
@@ -352,10 +371,17 @@ livekit_sig_err_t livekit_sig_create(livekit_sig_handle_t *handle, livekit_sig_o
     }
     sg->options = *options;
 
+    if (media_lib_event_group_create(&sg->ping_event) != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to create ping event group");
+        free(sg);
+        return LIVEKIT_SIG_ERR_OTHER;
+    }
+
     // URL will be set on connect
     sg->ws = esp_websocket_client_init(&default_ws_cfg);
     if (sg->ws == NULL) {
         ESP_LOGE(TAG, "Failed to initialize WebSocket client");
+        media_lib_event_group_destroy(sg->ping_event);
         free(sg);
         return LIVEKIT_SIG_ERR_WEBSOCKET;
     }
@@ -377,6 +403,7 @@ livekit_sig_err_t livekit_sig_destroy(livekit_sig_handle_t handle)
     livekit_sig_t *sg = (livekit_sig_t *)handle;
     livekit_sig_close(handle, true);
     esp_websocket_client_destroy(sg->ws);
+    media_lib_event_group_destroy(sg->ping_event);
     free(sg);
     return LIVEKIT_SIG_ERR_NONE;
 }
@@ -408,11 +435,9 @@ livekit_sig_err_t livekit_sig_close(livekit_sig_handle_t handle, bool force)
         return LIVEKIT_SIG_ERR_INVALID_ARG;
     }
     livekit_sig_t *sg = (livekit_sig_t *)handle;
+    livekit_sig_stop_ping_task(sg);
+
     if (sg->ws != NULL) {
-        if (livekit_sig_stop_ping_task(sg) != LIVEKIT_SIG_ERR_NONE) {
-            ESP_LOGE(TAG, "Failed to stop ping task");
-            return LIVEKIT_SIG_ERR_OTHER;
-        }
         int res = force ?
             esp_websocket_client_stop(sg->ws) :
             esp_websocket_client_close_with_code(
