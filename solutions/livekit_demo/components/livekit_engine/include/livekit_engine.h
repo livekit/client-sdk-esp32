@@ -129,9 +129,6 @@ livekit_eng_err_t livekit_eng_close(livekit_eng_handle_t handle, livekit_pb_disc
 /// @brief Publishes a data packet over the data channel.
 livekit_eng_err_t livekit_eng_publish_data(livekit_eng_handle_t handle, livekit_pb_data_packet_t packet, livekit_pb_data_packet_kind_t kind);
 
-/// @brief Sends a signaling request.
-livekit_eng_err_t livekit_eng_send_request(livekit_eng_handle_t handle, livekit_pb_signal_request_t request);
-
 #ifdef __cplusplus
 }
 #endif

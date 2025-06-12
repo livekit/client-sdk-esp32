@@ -294,9 +294,3 @@ livekit_eng_err_t livekit_eng_publish_data(livekit_eng_handle_t handle, livekit_
     // TODO: Implement
     return 0;
 }
-
-livekit_eng_err_t livekit_eng_send_request(livekit_eng_handle_t handle, livekit_pb_signal_request_t request)
-{
-    // TODO: Implement
-    return 0;
-}
