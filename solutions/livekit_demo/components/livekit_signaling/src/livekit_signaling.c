@@ -213,7 +213,6 @@ static livekit_sig_err_t livekit_sig_start_ping_task(livekit_sig_t *sg)
 static livekit_sig_err_t livekit_sig_stop_ping_task(livekit_sig_t *sg)
 {
     if (sg->ping_thread == NULL) {
-        ESP_LOGI(TAG, "Ping task not running");
         return LIVEKIT_SIG_ERR_NONE;
     }
     ESP_LOGI(TAG, "Stopping ping task");
@@ -401,7 +400,7 @@ livekit_sig_err_t livekit_sig_destroy(livekit_sig_handle_t handle)
         return LIVEKIT_SIG_ERR_INVALID_ARG;
     }
     livekit_sig_t *sg = (livekit_sig_t *)handle;
-    livekit_sig_close(handle, true);
+    livekit_sig_close(handle);
     esp_websocket_client_destroy(sg->ws);
     media_lib_event_group_destroy(sg->ping_event);
     free(sg);
@@ -429,7 +428,7 @@ livekit_sig_err_t livekit_sig_connect(livekit_sig_handle_t handle, const char* s
     return LIVEKIT_SIG_ERR_NONE;
 }
 
-livekit_sig_err_t livekit_sig_close(livekit_sig_handle_t handle, bool force)
+livekit_sig_err_t livekit_sig_close(livekit_sig_handle_t handle)
 {
     if (handle == NULL) {
         return LIVEKIT_SIG_ERR_INVALID_ARG;
@@ -437,12 +436,8 @@ livekit_sig_err_t livekit_sig_close(livekit_sig_handle_t handle, bool force)
     livekit_sig_t *sg = (livekit_sig_t *)handle;
     livekit_sig_stop_ping_task(sg);
 
-    if (sg->ws != NULL) {
-        int res = force ?
-            esp_websocket_client_stop(sg->ws) :
-            esp_websocket_client_close_with_code(
-                sg->ws, LIVEKIT_SIG_WS_CLOSE_CODE, NULL, 0, pdMS_TO_TICKS(LIVEKIT_SIG_WS_CLOSE_TIMEOUT_MS));
-        if (res != ESP_OK) {
+    if (sg->ws != NULL && esp_websocket_client_is_connected(sg->ws)) {
+        if (esp_websocket_client_close(sg->ws, pdMS_TO_TICKS(LIVEKIT_SIG_WS_CLOSE_TIMEOUT_MS)) != ESP_OK) {
             ESP_LOGE(TAG, "Failed to close WebSocket");
             return LIVEKIT_SIG_ERR_WEBSOCKET;
         }
@@ -452,6 +447,24 @@ livekit_sig_err_t livekit_sig_close(livekit_sig_handle_t handle, bool force)
         sg->url = NULL;
     }
     return LIVEKIT_SIG_ERR_NONE;
+}
+
+livekit_sig_err_t livekit_sig_send_leave(livekit_sig_handle_t handle)
+{
+    if (handle == NULL) {
+        return LIVEKIT_SIG_ERR_INVALID_ARG;
+    }
+    livekit_sig_t *sg = (livekit_sig_t *)handle;
+    livekit_pb_signal_request_t req = LIVEKIT_PB_SIGNAL_REQUEST_INIT_ZERO;
+    req.which_message = LIVEKIT_PB_SIGNAL_REQUEST_LEAVE_TAG;
+
+    livekit_pb_leave_request_t leave = {
+        .reason = LIVEKIT_PB_DISCONNECT_REASON_CLIENT_INITIATED,
+        .action = LIVEKIT_PB_LEAVE_REQUEST_ACTION_DISCONNECT,
+        .can_reconnect = false
+    };
+    req.message.leave = leave;
+    return send_request(sg, &req);
 }
 
 livekit_sig_err_t livekit_sig_send_answer(livekit_sig_handle_t handle, const char *sdp)

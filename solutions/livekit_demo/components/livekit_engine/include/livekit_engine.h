@@ -123,8 +123,7 @@ livekit_eng_err_t livekit_eng_destroy(livekit_eng_handle_t handle);
 livekit_eng_err_t livekit_eng_connect(livekit_eng_handle_t handle, const char* server_url, const char* token);
 
 /// @brief Close the engine.
-/// @param reason Reason for why the engine is being closed.
-livekit_eng_err_t livekit_eng_close(livekit_eng_handle_t handle, livekit_pb_disconnect_reason_t reason);
+livekit_eng_err_t livekit_eng_close(livekit_eng_handle_t handle);
 
 /// @brief Publishes a data packet over the data channel.
 livekit_eng_err_t livekit_eng_publish_data(livekit_eng_handle_t handle, livekit_pb_data_packet_t packet, livekit_pb_data_packet_kind_t kind);

@@ -57,7 +57,7 @@ int leave_room()
         ESP_LOGE(TAG, "Failed to leave room");
         return -1;
     }
-    if (livekit_room_destroy(&room_handle) != LIVEKIT_ERR_NONE) {
+    if (livekit_room_destroy(room_handle) != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to destroy room");
         return -1;
     }

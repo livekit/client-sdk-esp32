@@ -40,7 +40,9 @@ static void sys_init(void)
 
 static void free_ice_servers(livekit_eng_t *eng)
 {
-    if (eng->ice_servers == NULL) return;
+    if (eng == NULL || eng->ice_servers == NULL) {
+        return;
+    }
     esp_peer_ice_server_cfg_t *ice_servers = eng->ice_servers;
     for (int i = 0; i < eng->ice_server_count; i++) {
         SAFE_FREE(ice_servers[i].stun_url);
@@ -238,9 +240,15 @@ livekit_eng_err_t livekit_eng_create(livekit_eng_handle_t *handle, livekit_eng_o
         return LIVEKIT_ENG_ERR_NONE;
     } while (0);
 
-    if (eng->sub_peer != NULL) livekit_peer_destroy(eng->sub_peer);
-    if (eng->pub_peer != NULL) livekit_peer_destroy(eng->pub_peer);
-    if (eng->sig != NULL) livekit_sig_destroy(eng->sig);
+    if (eng->sub_peer != NULL) {
+        livekit_peer_destroy(eng->sub_peer);
+    }
+    if (eng->pub_peer != NULL) {
+        livekit_peer_destroy(eng->pub_peer);
+    }
+    if (eng->sig != NULL) {
+        livekit_sig_destroy(eng->sig);
+    }
     free(eng);
     return ret;
 }
@@ -251,7 +259,19 @@ livekit_eng_err_t livekit_eng_destroy(livekit_eng_handle_t handle)
         return LIVEKIT_ENG_ERR_INVALID_ARG;
     }
     livekit_eng_t *eng = (livekit_eng_t *)handle;
-    livekit_eng_close(handle, LIVEKIT_PB_DISCONNECT_REASON_UNKNOWN_REASON);
+
+    if (eng->sub_peer != NULL) {
+        livekit_peer_destroy(eng->sub_peer);
+        eng->sub_peer = NULL;
+    }
+    if (eng->pub_peer != NULL) {
+        livekit_peer_destroy(eng->pub_peer);
+        eng->pub_peer = NULL;
+    }
+    if (eng->sig != NULL) {
+        livekit_sig_destroy(eng->sig);
+        eng->sig = NULL;
+    }
     free_ice_servers(eng);
     free(eng);
     return LIVEKIT_ENG_ERR_NONE;
@@ -273,18 +293,23 @@ livekit_eng_err_t livekit_eng_connect(livekit_eng_handle_t handle, const char* s
     return LIVEKIT_ENG_ERR_NONE;
 }
 
-livekit_eng_err_t livekit_eng_close(livekit_eng_handle_t handle, livekit_pb_disconnect_reason_t reason)
+livekit_eng_err_t livekit_eng_close(livekit_eng_handle_t handle)
 {
     if (handle == NULL) {
         return LIVEKIT_ENG_ERR_INVALID_ARG;
     }
     livekit_eng_t *eng = (livekit_eng_t *)handle;
 
-    // TODO: Send leave request
-
-    if (livekit_sig_close(eng->sig, true) != LIVEKIT_SIG_ERR_NONE) {
-        ESP_LOGE(TAG, "Failed to close signaling client");
-        return LIVEKIT_ENG_ERR_SIGNALING;
+    if (eng->sub_peer != NULL) {
+        livekit_peer_disconnect(eng->sub_peer);
+    }
+    if (eng->pub_peer != NULL) {
+        livekit_peer_disconnect(eng->pub_peer);
+    }
+    if (eng->sig != NULL) {
+        // TODO: Ensure the WebSocket stays open long enough for the leave message to be sent
+        livekit_sig_send_leave(eng->sig);
+        livekit_sig_close(eng->sig);
     }
     return LIVEKIT_ENG_ERR_NONE;
 }

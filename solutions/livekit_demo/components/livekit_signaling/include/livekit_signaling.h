@@ -37,9 +37,9 @@ livekit_sig_err_t livekit_sig_destroy(livekit_sig_handle_t handle);
 livekit_sig_err_t livekit_sig_connect(livekit_sig_handle_t handle, const char* server_url, const char* token);
 
 /// @brief Closes the WebSocket connection
-/// @param force If true, the connection will be closed immediately without sending a leave message.
-livekit_sig_err_t livekit_sig_close(livekit_sig_handle_t handle, bool force);
+livekit_sig_err_t livekit_sig_close(livekit_sig_handle_t handle);
 
+livekit_sig_err_t livekit_sig_send_leave(livekit_sig_handle_t handle);
 livekit_sig_err_t livekit_sig_send_offer(livekit_sig_handle_t handle, const char *sdp);
 livekit_sig_err_t livekit_sig_send_answer(livekit_sig_handle_t handle, const char *sdp);
 

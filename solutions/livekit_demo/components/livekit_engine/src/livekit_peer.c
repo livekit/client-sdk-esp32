@@ -184,7 +184,6 @@ livekit_peer_err_t livekit_peer_destroy(livekit_peer_handle_t handle)
         return LIVEKIT_PEER_ERR_INVALID_ARG;
     }
     livekit_peer_t *peer = (livekit_peer_t *)handle;
-    esp_peer_close(peer->connection);
     free(peer);
     return LIVEKIT_PEER_ERR_NONE;
 }

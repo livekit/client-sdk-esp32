@@ -8,7 +8,6 @@ static const char *TAG = "livekit";
 
 typedef struct {
     livekit_eng_handle_t engine;
-    // TODO: Add fields here
 } livekit_room_t;
 
 static void populate_media_options(
@@ -203,6 +202,7 @@ livekit_err_t livekit_room_destroy(livekit_room_handle_t handle)
     if (room == NULL) {
         return LIVEKIT_ERR_INVALID_ARG;
     }
+    livekit_room_close(handle);
     livekit_eng_destroy(room->engine);
     free(room);
     return LIVEKIT_ERR_NONE;
@@ -228,6 +228,6 @@ livekit_err_t livekit_room_close(livekit_room_handle_t handle)
         return LIVEKIT_ERR_INVALID_ARG;
     }
     livekit_room_t *room = (livekit_room_t *)handle;
-    livekit_eng_close(room->engine, LIVEKIT_PB_DISCONNECT_REASON_CLIENT_INITIATED);
+    livekit_eng_close(room->engine);
     return LIVEKIT_ERR_NONE;
 }
