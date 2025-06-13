@@ -25,6 +25,9 @@ typedef struct {
     void *ctx;
     void (*on_sdp)(const char *sdp, void *ctx);
     void (*on_ice_candidate)(const char *candidate, void *ctx);
+
+    /// @brief Invoked when a data packet is received over the data channel.
+    void (*on_packet_received)(livekit_pb_data_packet_t* packet, void *ctx);
 } livekit_peer_options_t;
 
 typedef struct {

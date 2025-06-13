@@ -172,7 +172,27 @@ static int on_channel_close(esp_peer_data_channel_info_t *ch, void *ctx)
 static int on_data(esp_peer_data_frame_t *frame, void *ctx)
 {
     livekit_peer_t *peer = (livekit_peer_t *)ctx;
-    ESP_LOGI(TAG(peer), "Data received: size=%d", frame->size);
+    ESP_LOGI(TAG(peer), "Data received: size=%d, stream_id=%d", frame->size, frame->stream_id);
+
+    if (peer->options.on_packet_received == NULL) {
+        ESP_LOGE(TAG(peer), "Packet received handler is not set");
+        return -1;
+    }
+    if (frame->type != ESP_PEER_DATA_CHANNEL_DATA) {
+        ESP_LOGE(TAG(peer), "Unexpected data frame type: %d", frame->type);
+        return -1;
+    }
+
+    livekit_pb_data_packet_t packet = {};
+    pb_istream_t stream = pb_istream_from_buffer((const pb_byte_t *)frame->data, frame->size);
+    if (!pb_decode(&stream, LIVEKIT_PB_DATA_PACKET_FIELDS, &packet)) {
+        ESP_LOGE(TAG(peer), "Failed to decode data packet: %s", stream.errmsg);
+        return -1;
+    }
+
+    ESP_LOGI(TAG(peer), "Decoded data packet: type=%d", packet.which_value);
+    peer->options.on_packet_received(&packet, peer->options.ctx);
+    pb_release(LIVEKIT_PB_DATA_PACKET_FIELDS, &packet);
     return 0;
 }
 

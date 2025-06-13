@@ -180,6 +180,36 @@ static void on_sig_offer(const char *sdp, void *ctx)
     livekit_peer_handle_sdp(eng->sub_peer, sdp);
 }
 
+static void on_peer_packet_received(livekit_pb_data_packet_t* packet, void *ctx)
+{
+    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    switch (packet->which_value) {
+        case LIVEKIT_PB_DATA_PACKET_USER_TAG:
+            eng->options.on_user_packet(&packet->value.user, eng->options.ctx);
+            break;
+        case LIVEKIT_PB_DATA_PACKET_RPC_REQUEST_TAG:
+            eng->options.on_rpc_request(&packet->value.rpc_request, eng->options.ctx);
+            break;
+        case LIVEKIT_PB_DATA_PACKET_RPC_ACK_TAG:
+            eng->options.on_rpc_ack(&packet->value.rpc_ack, eng->options.ctx);
+            break;
+        case LIVEKIT_PB_DATA_PACKET_RPC_RESPONSE_TAG:
+            eng->options.on_rpc_response(&packet->value.rpc_response, eng->options.ctx);
+            break;
+        case LIVEKIT_PB_DATA_PACKET_STREAM_HEADER_TAG:
+            eng->options.on_stream_header(&packet->value.stream_header, eng->options.ctx);
+            break;
+        case LIVEKIT_PB_DATA_PACKET_STREAM_CHUNK_TAG:
+            eng->options.on_stream_chunk(&packet->value.stream_chunk, eng->options.ctx);
+            break;
+        case LIVEKIT_PB_DATA_PACKET_STREAM_TRAILER_TAG:
+            eng->options.on_stream_trailer(&packet->value.stream_trailer, eng->options.ctx);
+            break;
+        default:
+            break;
+    }
+}
+
 static void on_sig_trickle(const char *ice_candidate, livekit_pb_signal_target_t target, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
@@ -219,6 +249,7 @@ livekit_eng_err_t livekit_eng_create(livekit_eng_handle_t *handle, livekit_eng_o
             .target = LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER,
             .on_sdp = on_peer_pub_offer,
             .on_ice_candidate = on_peer_ice_candidate,
+            .on_packet_received = on_peer_packet_received,
             .ctx = eng
         };
         if (livekit_peer_create(&eng->pub_peer, pub_options) != LIVEKIT_PEER_ERR_NONE) {

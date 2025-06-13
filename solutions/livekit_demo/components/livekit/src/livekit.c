@@ -81,49 +81,43 @@ static void on_eng_error(livekit_eng_event_error_t detail, void *ctx)
     // TODO: Implement
 }
 
-static void on_eng_room_update(livekit_eng_event_room_update_t detail, void *ctx)
+static void on_eng_user_packet(livekit_pb_user_packet_t* packet, void *ctx)
 {
     ESP_LOGI(TAG, "Received engine room update event");
     // TODO: Implement
 }
 
-static void on_eng_data(livekit_eng_event_data_t detail, void *ctx)
+static void on_eng_rpc_request(livekit_pb_rpc_request_t* req, void *ctx)
 {
     ESP_LOGI(TAG, "Received engine data event");
     // TODO: Implement
 }
 
-static void on_eng_rpc_request(livekit_eng_event_rpc_request_t detail, void *ctx)
-{
-    ESP_LOGI(TAG, "Received engine RPC request event");
-    // TODO: Implement
-}
-
-static void on_eng_rpc_response(livekit_eng_event_rpc_response_t detail, void *ctx)
+static void on_eng_rpc_response(livekit_pb_rpc_response_t* res, void *ctx)
 {
     ESP_LOGI(TAG, "Received engine RPC response event");
     // TODO: Implement
 }
 
-static void on_eng_rpc_ack(livekit_eng_event_rpc_ack_t detail, void *ctx)
+static void on_eng_rpc_ack(livekit_pb_rpc_ack_t* ack, void *ctx)
 {
     ESP_LOGI(TAG, "Received engine RPC ack event");
     // TODO: Implement
 }
 
-static void on_eng_stream_header(livekit_eng_event_stream_header_t detail, void *ctx)
+static void on_eng_stream_header(livekit_pb_data_stream_header_t* header, void *ctx)
 {
     ESP_LOGI(TAG, "Received engine stream header event");
     // TODO: Implement
 }
 
-static void on_eng_stream_chunk(livekit_eng_event_stream_chunk_t detail, void *ctx)
+static void on_eng_stream_chunk(livekit_pb_data_stream_chunk_t* chunk, void *ctx)
 {
     ESP_LOGI(TAG, "Received engine stream chunk event");
     // TODO: Implement
 }
 
-static void on_eng_stream_trailer(livekit_eng_event_stream_trailer_t detail, void *ctx)
+static void on_eng_stream_trailer(livekit_pb_data_stream_trailer_t* trailer, void *ctx)
 {
     ESP_LOGI(TAG, "Received engine stream trailer event");
     // TODO: Implement
@@ -170,8 +164,6 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_r
         .on_connected = on_eng_connected,
         .on_disconnected = on_eng_disconnected,
         .on_error = on_eng_error,
-        .on_room_update = on_eng_room_update,
-        .on_data = on_eng_data,
         .on_rpc_request = on_eng_rpc_request,
         .on_rpc_response = on_eng_rpc_response,
         .on_rpc_ack = on_eng_rpc_ack,

@@ -50,64 +50,19 @@ typedef struct {
 } livekit_eng_event_error_t;
 
 typedef struct {
-    livekit_pb_room_t *updated_room;
-} livekit_eng_event_room_update_t;
-
-typedef struct {
-    char* participant_sid;
-    uint8_t *data;
-    int size;
-} livekit_eng_event_data_t;
-
-typedef struct {
-    char* caller_sid;
-    char* request_id;
-    char* method;
-    char* payload;
-    uint32_t response_timeout;
-    uint32_t version;
-} livekit_eng_event_rpc_request_t;
-
-typedef struct {
-    char* request_id;
-    char* payload;
-    livekit_pb_rpc_error_t* error;
-} livekit_eng_event_rpc_response_t;
-
-typedef struct {
-    char* request_id;
-} livekit_eng_event_rpc_ack_t;
-
-typedef struct {
-    livekit_pb_data_stream_header_t header;
-    char* participant_identity;
-} livekit_eng_event_stream_header_t;
-
-typedef struct {
-    livekit_pb_data_stream_chunk_t chunk;
-    char* participant_identity;
-} livekit_eng_event_stream_chunk_t;
-
-typedef struct {
-    livekit_pb_data_stream_trailer_t trailer;
-    char* participant_identity;
-} livekit_eng_event_stream_trailer_t;
-
-typedef struct {
     void *ctx;
 
     void (*on_connected)(livekit_eng_event_connected_t detail, void *ctx);
     void (*on_disconnected)(livekit_eng_event_disconnected_t detail, void *ctx);
     void (*on_error)(livekit_eng_event_error_t detail, void *ctx);
 
-    void (*on_room_update)(livekit_eng_event_room_update_t detail, void *ctx);
-    void (*on_data)(livekit_eng_event_data_t detail, void *ctx);
-    void (*on_rpc_request)(livekit_eng_event_rpc_request_t detail, void *ctx);
-    void (*on_rpc_response)(livekit_eng_event_rpc_response_t detail, void *ctx);
-    void (*on_rpc_ack)(livekit_eng_event_rpc_ack_t detail, void *ctx);
-    void (*on_stream_header)(livekit_eng_event_stream_header_t detail, void *ctx);
-    void (*on_stream_chunk)(livekit_eng_event_stream_chunk_t detail, void *ctx);
-    void (*on_stream_trailer)(livekit_eng_event_stream_trailer_t detail, void *ctx);
+    void (*on_user_packet)(livekit_pb_user_packet_t* packet, void *ctx);
+    void (*on_rpc_request)(livekit_pb_rpc_request_t* req, void *ctx);
+    void (*on_rpc_response)(livekit_pb_rpc_response_t* res, void *ctx);
+    void (*on_rpc_ack)(livekit_pb_rpc_ack_t* ack, void *ctx);
+    void (*on_stream_header)(livekit_pb_data_stream_header_t* header, void *ctx);
+    void (*on_stream_chunk)(livekit_pb_data_stream_chunk_t* chunk, void *ctx);
+    void (*on_stream_trailer)(livekit_pb_data_stream_trailer_t* trailer, void *ctx);
 
     livekit_eng_media_options_t media;
 } livekit_eng_options_t;
