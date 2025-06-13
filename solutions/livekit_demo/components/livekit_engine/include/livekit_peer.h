@@ -20,18 +20,32 @@ typedef enum {
     LIVEKIT_PEER_ERR_MESSAGE        = -5
 } livekit_peer_err_t;
 
+
+/// @brief Options for creating a peer.
 typedef struct {
+    /// @brief Whether the peer is a publisher or subscriber.
     livekit_pb_signal_target_t target;
-    void *ctx;
+
+    /// @brief Invoked when an SDP message is available. This can be either
+    /// an offer or answer depending on target configuration.
     void (*on_sdp)(const char *sdp, void *ctx);
+
+    /// @brief Invoked when a new ICE candidate is available.
     void (*on_ice_candidate)(const char *candidate, void *ctx);
 
     /// @brief Invoked when a data packet is received over the data channel.
     void (*on_packet_received)(livekit_pb_data_packet_t* packet, void *ctx);
+
+    /// @brief Context pointer passed to the handlers.
+    void *ctx;
 } livekit_peer_options_t;
 
+/// @brief Options for connecting a peer.
 typedef struct {
+    /// @brief Weather to force the use of relay ICE candidates.
     bool force_relay;
+
+    /// @brief Media options used for creating SDP messages.
     livekit_eng_media_options_t* media;
 } livekit_peer_connect_options_t;
 
