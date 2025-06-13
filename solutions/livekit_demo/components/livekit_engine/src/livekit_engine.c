@@ -314,8 +314,16 @@ livekit_eng_err_t livekit_eng_close(livekit_eng_handle_t handle)
     return LIVEKIT_ENG_ERR_NONE;
 }
 
-livekit_eng_err_t livekit_eng_publish_data(livekit_eng_handle_t handle, livekit_pb_data_packet_t packet, livekit_pb_data_packet_kind_t kind)
+livekit_eng_err_t livekit_eng_send_data_packet(livekit_eng_handle_t handle, livekit_pb_data_packet_t* packet, livekit_pb_data_packet_kind_t kind)
 {
-    // TODO: Implement
-    return 0;
+    if (handle == NULL || packet == NULL) {
+        return LIVEKIT_ENG_ERR_INVALID_ARG;
+    }
+    livekit_eng_t *eng = (livekit_eng_t *)handle;
+
+    // TODO: Once subscriber primary is supported, dynamically switch between pub and sub peers
+    if (livekit_peer_send_data_packet(eng->pub_peer, packet, kind) != LIVEKIT_PEER_ERR_NONE) {
+        return LIVEKIT_ENG_ERR_RTC;
+    }
+    return LIVEKIT_ENG_ERR_NONE;
 }

@@ -58,6 +58,28 @@ typedef struct {
     uint8_t channel_count;        // Output number of channels
 } livekit_audio_encode_options_t;
 
+/// @brief Options for publishing a data packet.
+typedef struct {
+    /// @brief Topic to send the data packet under.
+    char* topic;
+
+    /// @brief Whether the data packet is sent using the lossy channel.
+    bool lossy;
+
+    /// @brief Identifies of participants to send the data packet to. If not
+    /// specified, the data packet is sent to all participants.
+    char** destination_identities;
+
+    /// @brief Number of destination identities.
+    int destination_identities_count;
+} livekit_publish_data_options_t;
+
+/// @brief Payload containing a pointer to data and its size.
+typedef struct {
+    uint8_t *bytes;
+    size_t size;
+} livekit_payload_t;
+
 /// @brief Options for publishing media.
 typedef struct {
     /// @brief Kind of media that can be published.
@@ -122,6 +144,13 @@ livekit_err_t livekit_room_connect(livekit_room_handle_t handle, const char *ser
 /// @note Handle room events to get notified once the disconnection is complete.
 /// @return LIVEKIT_ERR_NONE if successful, otherwise an error code.
 livekit_err_t livekit_room_close(livekit_room_handle_t handle);
+
+/// @brief Publishes a data packet to participants in a room asynchronously.
+/// @param handle[in] Room handle.
+/// @param payload[in] Data to publish and its size.
+/// @param options[in] Options for sending the data packet (e.g. reliability, topic, etc.).
+/// @return LIVEKIT_ERR_NONE if successful, otherwise an error code.
+livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_payload_t *payload, livekit_publish_data_options_t *options);
 
 #ifdef __cplusplus
 }

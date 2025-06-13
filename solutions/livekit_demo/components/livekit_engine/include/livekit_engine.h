@@ -21,7 +21,8 @@ typedef enum {
     LIVEKIT_ENG_ERR_INVALID_ARG = -1,
     LIVEKIT_ENG_ERR_NO_MEM      = -2,
     LIVEKIT_ENG_ERR_SIGNALING   = -3,
-    LIVEKIT_ENG_ERR_OTHER       = -4,
+    LIVEKIT_ENG_ERR_RTC         = -4,
+    LIVEKIT_ENG_ERR_OTHER       = -5,
     // TODO: Add more error cases as needed
 } livekit_eng_err_t;
 
@@ -125,8 +126,8 @@ livekit_eng_err_t livekit_eng_connect(livekit_eng_handle_t handle, const char* s
 /// @brief Close the engine.
 livekit_eng_err_t livekit_eng_close(livekit_eng_handle_t handle);
 
-/// @brief Publishes a data packet over the data channel.
-livekit_eng_err_t livekit_eng_publish_data(livekit_eng_handle_t handle, livekit_pb_data_packet_t packet, livekit_pb_data_packet_kind_t kind);
+/// @brief Sends a data packet to the remote peer.
+livekit_eng_err_t livekit_eng_send_data_packet(livekit_eng_handle_t handle, livekit_pb_data_packet_t* packet, livekit_pb_data_packet_kind_t kind);
 
 #ifdef __cplusplus
 }

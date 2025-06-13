@@ -231,3 +231,42 @@ livekit_err_t livekit_room_close(livekit_room_handle_t handle)
     livekit_eng_close(room->engine);
     return LIVEKIT_ERR_NONE;
 }
+
+livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_payload_t *payload, livekit_publish_data_options_t *options)
+{
+    if (handle == NULL || payload == NULL || options == NULL) {
+        return LIVEKIT_ERR_INVALID_ARG;
+    }
+    livekit_room_t *room = (livekit_room_t *)handle;
+
+    // TODO: Can this be done without allocating additional memory?
+    pb_bytes_array_t *bytes_array = malloc(PB_BYTES_ARRAY_T_ALLOCSIZE(payload->size));
+    if (bytes_array == NULL) {
+        return LIVEKIT_ERR_NO_MEM;
+    }
+    bytes_array->size = payload->size;
+    memcpy(bytes_array->bytes, payload->bytes, payload->size);
+
+    livekit_pb_user_packet_t user_packet = {
+        .topic = options->topic,
+        .payload = bytes_array
+    };
+    livekit_pb_data_packet_t packet = LIVEKIT_PB_DATA_PACKET_INIT_ZERO;
+    packet.which_value = LIVEKIT_PB_DATA_PACKET_USER_TAG;
+    packet.value.user = user_packet;
+
+    packet.destination_identities_count = options->destination_identities_count;
+    packet.destination_identities = options->destination_identities;
+    // TODO: Set sender identity
+
+    livekit_pb_data_packet_kind_t kind = options->lossy ?
+        LIVEKIT_PB_DATA_PACKET_KIND_LOSSY : LIVEKIT_PB_DATA_PACKET_KIND_RELIABLE;
+
+    if (livekit_eng_send_data_packet(room->engine, &packet, kind) != LIVEKIT_ENG_ERR_NONE) {
+        ESP_LOGE(TAG, "Failed to send data packet");
+        free(bytes_array);
+        return LIVEKIT_ERR_ENGINE;
+    }
+    free(bytes_array);
+    return LIVEKIT_ERR_NONE;
+}

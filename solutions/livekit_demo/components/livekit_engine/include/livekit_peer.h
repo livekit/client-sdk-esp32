@@ -16,7 +16,8 @@ typedef enum {
     LIVEKIT_PEER_ERR_INVALID_ARG    = -1,
     LIVEKIT_PEER_ERR_NO_MEM         = -2,
     LIVEKIT_PEER_ERR_INVALID_STATE  = -3,
-    LIVEKIT_PEER_ERR_RTC            = -4
+    LIVEKIT_PEER_ERR_RTC            = -4,
+    LIVEKIT_PEER_ERR_MESSAGE        = -5
 } livekit_peer_err_t;
 
 typedef struct {
@@ -46,6 +47,9 @@ livekit_peer_err_t livekit_peer_handle_sdp(livekit_peer_handle_t handle, const c
 
 /// @brief Handles an ICE candidate from the remote peer.
 livekit_peer_err_t livekit_peer_handle_ice_candidate(livekit_peer_handle_t handle, const char *candidate);
+
+/// @brief Sends a data packet to the remote peer.
+livekit_peer_err_t livekit_peer_send_data_packet(livekit_peer_handle_t handle, livekit_pb_data_packet_t* packet, livekit_pb_data_packet_kind_t kind);
 
 #ifdef __cplusplus
 }
