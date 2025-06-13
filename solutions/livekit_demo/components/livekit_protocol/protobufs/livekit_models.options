@@ -36,7 +36,7 @@ livekit_pb.DataPacket.destination_identities type:FT_POINTER
 
 livekit_pb.UserPacket.payload type:FT_POINTER
 livekit_pb.UserPacket.topic type:FT_POINTER
-livekit_pb.UserPacket.id max_length:36
+livekit_pb.UserPacket.id type:FT_IGNORE
 livekit_pb.UserPacket.start_time type:FT_IGNORE
 livekit_pb.UserPacket.end_time type:FT_IGNORE
 livekit_pb.UserPacket.nonce type:FT_IGNORE

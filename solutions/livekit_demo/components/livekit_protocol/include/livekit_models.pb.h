@@ -273,9 +273,6 @@ typedef struct livekit_pb_user_packet {
     pb_bytes_array_t *payload;
     /* topic under which the message was published */
     char *topic;
-    /* Unique ID to indentify the message */
-    bool has_id;
-    char id[37];
 } livekit_pb_user_packet_t;
 
 typedef struct livekit_pb_sip_dtmf {
@@ -796,7 +793,7 @@ extern "C" {
 #define LIVEKIT_PB_DATA_PACKET_INIT_DEFAULT      {0, {LIVEKIT_PB_USER_PACKET_INIT_DEFAULT}, NULL, 0, NULL}
 #define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_INIT_DEFAULT {{{NULL}, NULL}}
 #define LIVEKIT_PB_SPEAKER_INFO_INIT_DEFAULT     {{{NULL}, NULL}, 0, 0}
-#define LIVEKIT_PB_USER_PACKET_INIT_DEFAULT      {NULL, NULL, false, ""}
+#define LIVEKIT_PB_USER_PACKET_INIT_DEFAULT      {NULL, NULL}
 #define LIVEKIT_PB_SIP_DTMF_INIT_DEFAULT         {0, ""}
 #define LIVEKIT_PB_TRANSCRIPTION_INIT_DEFAULT    {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_TRANSCRIPTION_SEGMENT_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}, 0, 0, 0, {{NULL}, NULL}}
@@ -840,7 +837,7 @@ extern "C" {
 #define LIVEKIT_PB_DATA_PACKET_INIT_ZERO         {0, {LIVEKIT_PB_USER_PACKET_INIT_ZERO}, NULL, 0, NULL}
 #define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_INIT_ZERO {{{NULL}, NULL}}
 #define LIVEKIT_PB_SPEAKER_INFO_INIT_ZERO        {{{NULL}, NULL}, 0, 0}
-#define LIVEKIT_PB_USER_PACKET_INIT_ZERO         {NULL, NULL, false, ""}
+#define LIVEKIT_PB_USER_PACKET_INIT_ZERO         {NULL, NULL}
 #define LIVEKIT_PB_SIP_DTMF_INIT_ZERO            {0, ""}
 #define LIVEKIT_PB_TRANSCRIPTION_INIT_ZERO       {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_TRANSCRIPTION_SEGMENT_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}, 0, 0, 0, {{NULL}, NULL}}
@@ -897,7 +894,6 @@ extern "C" {
 #define LIVEKIT_PB_SPEAKER_INFO_ACTIVE_TAG       3
 #define LIVEKIT_PB_USER_PACKET_PAYLOAD_TAG       2
 #define LIVEKIT_PB_USER_PACKET_TOPIC_TAG         4
-#define LIVEKIT_PB_USER_PACKET_ID_TAG            8
 #define LIVEKIT_PB_SIP_DTMF_CODE_TAG             3
 #define LIVEKIT_PB_SIP_DTMF_DIGIT_TAG            4
 #define LIVEKIT_PB_TRANSCRIPTION_TRANSCRIBED_PARTICIPANT_IDENTITY_TAG 2
@@ -1246,8 +1242,7 @@ X(a, STATIC,   SINGULAR, BOOL,     active,            3)
 
 #define LIVEKIT_PB_USER_PACKET_FIELDLIST(X, a) \
 X(a, POINTER,  SINGULAR, BYTES,    payload,           2) \
-X(a, POINTER,  OPTIONAL, STRING,   topic,             4) \
-X(a, STATIC,   OPTIONAL, STRING,   id,                8)
+X(a, POINTER,  OPTIONAL, STRING,   topic,             4)
 #define LIVEKIT_PB_USER_PACKET_CALLBACK NULL
 #define LIVEKIT_PB_USER_PACKET_DEFAULT NULL
 
