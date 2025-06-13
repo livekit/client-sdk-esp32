@@ -502,3 +502,15 @@ livekit_sig_err_t livekit_sig_send_offer(livekit_sig_handle_t handle, const char
     req.message.offer = desc;
     return send_request(sg, &req);
 }
+
+livekit_sig_err_t livekit_sig_send_add_track(livekit_sig_handle_t handle, livekit_pb_add_track_request_t *add_track_req)
+{
+    if (handle == NULL || add_track_req == NULL) {
+        return LIVEKIT_SIG_ERR_INVALID_ARG;
+    }
+    livekit_sig_t *sg = (livekit_sig_t *)handle;
+    livekit_pb_signal_request_t req = LIVEKIT_PB_SIGNAL_REQUEST_INIT_ZERO;
+    req.which_message = LIVEKIT_PB_SIGNAL_REQUEST_ADD_TRACK_TAG;
+    req.message.add_track = *add_track_req;
+    return send_request(sg, &req);
+}

@@ -43,6 +43,8 @@ livekit_sig_err_t livekit_sig_send_leave(livekit_sig_handle_t handle);
 livekit_sig_err_t livekit_sig_send_offer(livekit_sig_handle_t handle, const char *sdp);
 livekit_sig_err_t livekit_sig_send_answer(livekit_sig_handle_t handle, const char *sdp);
 
+livekit_sig_err_t livekit_sig_send_add_track(livekit_sig_handle_t handle, livekit_pb_add_track_request_t *req);
+
 #ifdef __cplusplus
 }
 #endif
