@@ -26,6 +26,9 @@ typedef struct {
     /// @brief Whether the peer is a publisher or subscriber.
     livekit_pb_signal_target_t target;
 
+    /// @brief Invoked when the peer is connected.
+    void (*on_connected)(void *ctx);
+
     /// @brief Invoked when an SDP message is available. This can be either
     /// an offer or answer depending on target configuration.
     void (*on_sdp)(const char *sdp, void *ctx);
@@ -67,6 +70,14 @@ livekit_peer_err_t livekit_peer_handle_ice_candidate(livekit_peer_handle_t handl
 
 /// @brief Sends a data packet to the remote peer.
 livekit_peer_err_t livekit_peer_send_data_packet(livekit_peer_handle_t handle, livekit_pb_data_packet_t* packet, livekit_pb_data_packet_kind_t kind);
+
+/// @brief Sends an audio frame to the remote peer.
+/// @warning Only use on publisher peer.
+livekit_peer_err_t livekit_peer_send_audio(livekit_peer_handle_t handle, esp_peer_audio_frame_t* frame);
+
+/// @brief Sends a video frame to the remote peer.
+/// @warning Only use on publisher peer.
+livekit_peer_err_t livekit_peer_send_video(livekit_peer_handle_t handle, esp_peer_video_frame_t* frame);
 
 #ifdef __cplusplus
 }

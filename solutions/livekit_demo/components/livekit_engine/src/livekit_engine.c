@@ -1,11 +1,20 @@
 #include "esp_log.h"
 #include "webrtc_utils_time.h"
+#include "media_lib_os.h"
+
 #include "livekit_protocol.h"
 #include "livekit_engine.h"
 #include "livekit_signaling.h"
 #include "livekit_peer.h"
 
 static const char *TAG = "livekit_engine";
+
+#define VIDEO_TRACK_CID "video0"
+#define AUDIO_TRACK_CID "audio0"
+
+#define VIDEO_TRACK_NAME "Video"
+#define AUDIO_TRACK_NAME "Audio"
+#define FRAME_INTERVAL_MS 20
 
 #define SAFE_FREE(ptr) if (ptr != NULL) {   \
     free(ptr);                      \
@@ -21,6 +30,9 @@ typedef struct {
 
     esp_peer_ice_server_cfg_t *ice_servers;
     int ice_server_count;
+
+    esp_capture_path_handle_t capturer_path;
+    bool is_media_streaming;
 } livekit_eng_t;
 
 /// @brief Performs one-time system initialization.
@@ -36,6 +48,192 @@ static void sys_init(void)
         ESP_LOGE(TAG, "System initialization failed");
         return;
     }
+}
+
+static esp_capture_codec_type_t capture_audio_codec_type(esp_peer_audio_codec_t peer_codec)
+{
+    switch (peer_codec) {
+        case ESP_PEER_AUDIO_CODEC_G711A:
+            return ESP_CAPTURE_CODEC_TYPE_G711A;
+        case ESP_PEER_AUDIO_CODEC_G711U:
+            return ESP_CAPTURE_CODEC_TYPE_G711U;
+        case ESP_PEER_AUDIO_CODEC_OPUS:
+            return ESP_CAPTURE_CODEC_TYPE_OPUS;
+        default:
+            return ESP_CAPTURE_CODEC_TYPE_NONE;
+    }
+}
+
+static esp_capture_codec_type_t capture_video_codec_type(esp_peer_video_codec_t peer_codec)
+{
+    switch (peer_codec) {
+        case ESP_PEER_VIDEO_CODEC_H264:
+            return ESP_CAPTURE_CODEC_TYPE_H264;
+        case ESP_PEER_VIDEO_CODEC_MJPEG:
+            return ESP_CAPTURE_CODEC_TYPE_MJPEG;
+        default:
+            return ESP_CAPTURE_CODEC_TYPE_NONE;
+    }
+}
+
+static void _media_stream_send_audio(livekit_eng_t *eng)
+{
+    esp_capture_stream_frame_t audio_frame = {
+        .stream_type = ESP_CAPTURE_STREAM_TYPE_AUDIO,
+    };
+    while (esp_capture_acquire_path_frame(eng->capturer_path, &audio_frame, true) == ESP_CAPTURE_ERR_OK) {
+        esp_peer_audio_frame_t audio_send_frame = {
+            .pts = audio_frame.pts,
+            .data = audio_frame.data,
+            .size = audio_frame.size,
+        };
+        livekit_peer_send_audio(eng->pub_peer, &audio_send_frame);
+        esp_capture_release_path_frame(eng->capturer_path, &audio_frame);
+    }
+}
+
+static void _media_stream_send_video(livekit_eng_t *eng)
+{
+    esp_capture_stream_frame_t video_frame = {
+        .stream_type = ESP_CAPTURE_STREAM_TYPE_VIDEO,
+    };
+    if (esp_capture_acquire_path_frame(eng->capturer_path, &video_frame, true) == ESP_CAPTURE_ERR_OK) {
+        esp_peer_video_frame_t video_send_frame = {
+            .pts = video_frame.pts,
+            .data = video_frame.data,
+            .size = video_frame.size,
+        };
+        livekit_peer_send_video(eng->pub_peer, &video_send_frame);
+        esp_capture_release_path_frame(eng->capturer_path, &video_frame);
+    }
+}
+
+static void media_stream_task(void *arg)
+{
+    livekit_eng_t *eng = (livekit_eng_t *)arg;
+    ESP_LOGI(TAG, "Media stream task started");
+    while (eng->is_media_streaming) {
+        if (eng->options.media.audio_info.codec != ESP_PEER_AUDIO_CODEC_NONE) {
+            _media_stream_send_audio(eng);
+        }
+        if (eng->options.media.video_info.codec != ESP_PEER_VIDEO_CODEC_NONE) {
+            _media_stream_send_video(eng);
+        }
+        media_lib_thread_sleep(FRAME_INTERVAL_MS);
+    }
+    ESP_LOGI(TAG, "Media stream task ended");
+    media_lib_thread_destroy(NULL);
+}
+
+static livekit_eng_err_t media_stream_begin(livekit_eng_t *eng)
+{
+    if (esp_capture_start(eng->options.media.capturer) != ESP_CAPTURE_ERR_OK) {
+        ESP_LOGE(TAG, "Failed to start capture");
+        return LIVEKIT_ENG_ERR_MEDIA;
+    }
+    media_lib_thread_handle_t handle = NULL;
+    eng->is_media_streaming = true;
+    if (media_lib_thread_create_from_scheduler(&handle, "lk_stream", media_stream_task, eng) != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to create media stream thread");
+        eng->is_media_streaming = false;
+        return LIVEKIT_ENG_ERR_MEDIA;
+    }
+    ESP_LOGI(TAG, "Media stream started");
+    return LIVEKIT_ENG_ERR_NONE;
+}
+
+static livekit_eng_err_t media_stream_end(livekit_eng_t *eng)
+{
+    if (!eng->is_media_streaming) {
+        return LIVEKIT_ENG_ERR_NONE;
+    }
+    eng->is_media_streaming = false;
+    if (esp_capture_stop(eng->options.media.capturer) != ESP_CAPTURE_ERR_OK) {
+        ESP_LOGE(TAG, "Failed to stop capture");
+        return LIVEKIT_ENG_ERR_MEDIA;
+    }
+    // TODO: Reset render handle `av_render_reset(rtc->play_handle);`
+    ESP_LOGI(TAG, "Media stream ended");
+    return LIVEKIT_ENG_ERR_NONE;
+}
+
+static livekit_eng_err_t send_add_audio_track(livekit_eng_t *eng)
+{
+    bool is_stereo = eng->options.media.audio_info.channel == 2;
+    livekit_pb_add_track_request_t req = {
+        .cid = AUDIO_TRACK_CID,
+        .name = AUDIO_TRACK_NAME,
+        .type = LIVEKIT_PB_TRACK_TYPE_AUDIO,
+        .source = LIVEKIT_PB_TRACK_SOURCE_MICROPHONE,
+        .muted = false,
+        .audio_features_count = is_stereo ? 1 : 0,
+        .audio_features = { LIVEKIT_PB_AUDIO_TRACK_FEATURE_TF_STEREO },
+        .layers_count = 0
+    };
+
+    if (livekit_sig_send_add_track(eng->sig, &req) != LIVEKIT_SIG_ERR_NONE) {
+        ESP_LOGE(TAG, "Failed to publish audio track");
+        return LIVEKIT_ENG_ERR_SIGNALING;
+    }
+    return LIVEKIT_ENG_ERR_NONE;
+}
+
+static livekit_eng_err_t send_add_video_track(livekit_eng_t *eng)
+{
+    livekit_pb_video_layer_t video_layer = {
+        .quality = LIVEKIT_PB_VIDEO_QUALITY_HIGH,
+        .width = eng->options.media.video_info.width,
+        .height = eng->options.media.video_info.height
+    };
+    livekit_pb_add_track_request_t req = {
+        .cid = VIDEO_TRACK_CID,
+        .name = VIDEO_TRACK_NAME,
+        .type = LIVEKIT_PB_TRACK_TYPE_VIDEO,
+        .source = LIVEKIT_PB_TRACK_SOURCE_CAMERA,
+        .muted = false,
+        .layers_count = 1,
+        .layers = { video_layer },
+        .audio_features_count = 0
+    };
+
+    if (livekit_sig_send_add_track(eng->sig, &req) != LIVEKIT_SIG_ERR_NONE) {
+        ESP_LOGE(TAG, "Failed to publish video track");
+        return LIVEKIT_ENG_ERR_SIGNALING;
+    }
+    return LIVEKIT_ENG_ERR_NONE;
+}
+
+/// @brief Begins media streaming and sends add track requests.
+static livekit_eng_err_t publish_tracks(livekit_eng_t *eng)
+{
+    if (eng->options.media.audio_info.codec == ESP_PEER_AUDIO_CODEC_NONE &&
+        eng->options.media.video_info.codec == ESP_PEER_VIDEO_CODEC_NONE) {
+        ESP_LOGI(TAG, "No media tracks to publish");
+        return LIVEKIT_ENG_ERR_NONE;
+    }
+
+    int ret = LIVEKIT_ENG_ERR_OTHER;
+    do {
+        if (media_stream_begin(eng) != LIVEKIT_ENG_ERR_NONE) {
+            ret = LIVEKIT_ENG_ERR_MEDIA;
+            break;
+        }
+        if (eng->options.media.audio_info.codec != ESP_PEER_AUDIO_CODEC_NONE &&
+            send_add_audio_track(eng) != LIVEKIT_ENG_ERR_NONE) {
+            ret = LIVEKIT_ENG_ERR_SIGNALING;
+            break;
+        }
+        if (eng->options.media.video_info.codec != ESP_PEER_VIDEO_CODEC_NONE &&
+            send_add_video_track(eng) != LIVEKIT_ENG_ERR_NONE) {
+            ret = LIVEKIT_ENG_ERR_SIGNALING;
+            break;
+        }
+        ESP_LOGI(TAG, "Published media tracks");
+        return LIVEKIT_ENG_ERR_NONE;
+    } while (0);
+
+    media_stream_end(eng);
+    return ret;
 }
 
 static void free_ice_servers(livekit_eng_t *eng)
@@ -105,6 +303,19 @@ static livekit_eng_err_t set_ice_servers(livekit_eng_t* eng, livekit_pb_ice_serv
     eng->ice_server_count = cfg_count;
 
     return LIVEKIT_PEER_ERR_NONE;
+}
+
+static void on_peer_pub_connected(void *ctx)
+{
+    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    ESP_LOGI(TAG, "Pub peer connected");
+    publish_tracks(eng);
+}
+
+static void on_peer_sub_connected(void *ctx)
+{
+    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    ESP_LOGI(TAG, "Sub peer connected");
 }
 
 static void on_peer_pub_offer(const char *sdp, void *ctx)
@@ -242,11 +453,13 @@ livekit_eng_err_t livekit_eng_create(livekit_eng_handle_t *handle, livekit_eng_o
     do {
         if (livekit_sig_create(&eng->sig, &sig_options) != LIVEKIT_SIG_ERR_NONE) {
             ESP_LOGE(TAG, "Failed to create signaling client");
+            ret = LIVEKIT_ENG_ERR_SIGNALING;
             break;
         }
 
         livekit_peer_options_t pub_options = {
             .target = LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER,
+            .on_connected = on_peer_pub_connected,
             .on_sdp = on_peer_pub_offer,
             .on_ice_candidate = on_peer_ice_candidate,
             .on_packet_received = on_peer_packet_received,
@@ -254,19 +467,40 @@ livekit_eng_err_t livekit_eng_create(livekit_eng_handle_t *handle, livekit_eng_o
         };
         if (livekit_peer_create(&eng->pub_peer, pub_options) != LIVEKIT_PEER_ERR_NONE) {
             ESP_LOGE(TAG, "Failed to create publisher peer");
+            ret = LIVEKIT_ENG_ERR_RTC;
             break;
         }
 
         livekit_peer_options_t sub_options = {
             .target = LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER,
+            .on_connected = on_peer_sub_connected,
             .on_sdp = on_peer_sub_answer,
             .on_ice_candidate = on_peer_ice_candidate,
             .ctx = eng
         };
         if (livekit_peer_create(&eng->sub_peer, sub_options) != LIVEKIT_PEER_ERR_NONE) {
             ESP_LOGE(TAG, "Failed to create subscriber peer");
+            ret = LIVEKIT_ENG_ERR_RTC;
             break;
         }
+
+        esp_capture_sink_cfg_t sink_cfg = {
+            .audio_info = {
+                .codec = capture_audio_codec_type(eng->options.media.audio_info.codec),
+                .sample_rate = eng->options.media.audio_info.sample_rate,
+                .channel = eng->options.media.audio_info.channel,
+                .bits_per_sample = 16,
+            },
+            .video_info = {
+                .codec = capture_video_codec_type(eng->options.media.video_info.codec),
+                .width = eng->options.media.video_info.width,
+                .height = eng->options.media.video_info.height,
+                .fps = eng->options.media.video_info.fps,
+            },
+        };
+        esp_capture_setup_path(eng->options.media.capturer, ESP_CAPTURE_PATH_PRIMARY, &sink_cfg, &eng->capturer_path);
+        esp_capture_enable_path(eng->capturer_path, ESP_CAPTURE_RUN_TYPE_ALWAYS);
+
         *handle = eng;
         return LIVEKIT_ENG_ERR_NONE;
     } while (0);
@@ -330,6 +564,8 @@ livekit_eng_err_t livekit_eng_close(livekit_eng_handle_t handle)
         return LIVEKIT_ENG_ERR_INVALID_ARG;
     }
     livekit_eng_t *eng = (livekit_eng_t *)handle;
+
+    media_stream_end(eng);
 
     if (eng->sub_peer != NULL) {
         livekit_peer_disconnect(eng->sub_peer);

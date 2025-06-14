@@ -22,7 +22,8 @@ typedef enum {
     LIVEKIT_ENG_ERR_NO_MEM      = -2,
     LIVEKIT_ENG_ERR_SIGNALING   = -3,
     LIVEKIT_ENG_ERR_RTC         = -4,
-    LIVEKIT_ENG_ERR_OTHER       = -5,
+    LIVEKIT_ENG_ERR_MEDIA       = -5,
+    LIVEKIT_ENG_ERR_OTHER       = -6,
     // TODO: Add more error cases as needed
 } livekit_eng_err_t;
 

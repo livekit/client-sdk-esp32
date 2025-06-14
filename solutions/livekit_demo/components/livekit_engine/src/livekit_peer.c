@@ -91,6 +91,7 @@ static int on_state(esp_peer_state_t state, void *ctx)
     switch (state) {
         case ESP_PEER_STATE_CONNECTED:
             create_data_channels(peer);
+            peer->options.on_connected(peer->options.ctx);
             break;
         default:
             break;
@@ -198,7 +199,10 @@ static int on_data(esp_peer_data_frame_t *frame, void *ctx)
 
 livekit_peer_err_t livekit_peer_create(livekit_peer_handle_t *handle, livekit_peer_options_t options)
 {
-    if (handle == NULL || options.on_ice_candidate == NULL || options.on_sdp == NULL) {
+    if (handle == NULL ||
+        options.on_connected == NULL ||
+        options.on_ice_candidate == NULL ||
+        options.on_sdp == NULL) {
         return LIVEKIT_PEER_ERR_INVALID_ARG;
     }
 
@@ -436,4 +440,28 @@ livekit_peer_err_t livekit_peer_send_data_packet(livekit_peer_handle_t handle, l
 
     free(enc_buf);
     return ret;
+}
+
+livekit_peer_err_t livekit_peer_send_audio(livekit_peer_handle_t handle, esp_peer_audio_frame_t* frame)
+{
+    if (handle == NULL) {
+        return LIVEKIT_PEER_ERR_INVALID_ARG;
+    }
+    livekit_peer_t *peer = (livekit_peer_t *)handle;
+    assert(peer->options.target == LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER);
+
+    esp_peer_send_audio(peer->connection, frame);
+    return LIVEKIT_PEER_ERR_NONE;
+}
+
+livekit_peer_err_t livekit_peer_send_video(livekit_peer_handle_t handle, esp_peer_video_frame_t* frame)
+{
+    if (handle == NULL) {
+        return LIVEKIT_PEER_ERR_INVALID_ARG;
+    }
+    livekit_peer_t *peer = (livekit_peer_t *)handle;
+    assert(peer->options.target == LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER);
+
+    esp_peer_send_video(peer->connection, frame);
+    return LIVEKIT_PEER_ERR_NONE;
 }
