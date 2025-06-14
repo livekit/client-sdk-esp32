@@ -12,3 +12,7 @@ When a new protocol version is available, update the generated bindings as follo
 python update.py
 ```
 4. Review and commit changes.
+
+## Generation Options
+
+Nanopb provides a rich set of [generation options](https://jpa.kapsi.fi/nanopb/docs/reference.html#generator-options) for generating  bindings that are suitable for an embedded environment; *.options* files are placed alongside Protobuf files in the [*protobufs*](./protobufs/) directory.
