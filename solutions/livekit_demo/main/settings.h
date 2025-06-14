@@ -47,6 +47,11 @@ extern "C" {
  */
 #define WIFI_PASSWORD "XXXX"
 
+/**
+ * @brief  Set default playback volume
+ */
+#define DEFAULT_PLAYBACK_VOL (85)
+
 #ifdef __cplusplus
 }
 #endif
