@@ -90,8 +90,18 @@ static void thread_scheduler(const char *thread_name, media_lib_thread_cfg_t *th
         thread_cfg->priority = 18;
         thread_cfg->core_id = 1;
     }
+    if (strcmp(thread_name, "lk_stream") == 0) {
+        thread_cfg->stack_size = 4 * 1024;
+        thread_cfg->priority = 15;
+        thread_cfg->core_id = 1;
+    }
     if (strcmp(thread_name, "start") == 0) {
         thread_cfg->stack_size = 6 * 1024;
+    }
+    if (strcmp(thread_name, "Adec") == 0) {
+        thread_cfg->stack_size = 40 * 1024;
+        thread_cfg->priority = 10;
+        thread_cfg->core_id = 1;
     }
     if (strcmp(thread_name, "venc") == 0) {
 #if CONFIG_IDF_TARGET_ESP32S3
@@ -99,12 +109,22 @@ static void thread_scheduler(const char *thread_name, media_lib_thread_cfg_t *th
 #endif
         thread_cfg->priority = 10;
     }
-#ifdef WEBRTC_SUPPORT_OPUS
+
+    // Required for Opus
     if (strcmp(thread_name, "aenc") == 0) {
         thread_cfg->stack_size = 40 * 1024;
         thread_cfg->priority = 10;
     }
-#endif
+    if (strcmp(thread_name, "SrcRead") == 0) {
+        thread_cfg->stack_size = 40 * 1024;
+        thread_cfg->priority = 16;
+        thread_cfg->core_id = 0;
+    }
+    if (strcmp(thread_name, "buffer_in") == 0) {
+        thread_cfg->stack_size = 6 * 1024;
+        thread_cfg->priority = 10;
+        thread_cfg->core_id = 0;
+    }
 }
 
 static int network_event_handler(bool connected)
