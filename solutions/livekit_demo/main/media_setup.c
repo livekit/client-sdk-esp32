@@ -53,16 +53,11 @@ static int build_capture_system(void)
 {
     capture_sys.aud_enc = esp_capture_new_audio_encoder();
     RET_ON_NULL(capture_sys.aud_enc, -1);
-    // For S3 when use ES7210 it use TDM mode second channel is reference data
-    esp_capture_audio_aec_src_cfg_t codec_cfg = {
-        .record_handle = get_record_handle(),
-#if CONFIG_IDF_TARGET_ESP32S3
-        .channel = 4,
-        .channel_mask = 1 | 2,
-#endif
+    // TODO: Enable AEC
+    esp_capture_audio_codec_src_cfg_t codec_cfg = {
+        .record_handle = get_record_handle()
     };
-    // capture_sys.aud_src = esp_capture_new_audio_codec_src(&codec_cfg);
-    capture_sys.aud_src = esp_capture_new_audio_aec_src(&codec_cfg);
+    capture_sys.aud_src = esp_capture_new_audio_codec_src(&codec_cfg);
     RET_ON_NULL(capture_sys.aud_src, -1);
     esp_capture_simple_path_cfg_t simple_cfg = {
         .aenc = capture_sys.aud_enc,
