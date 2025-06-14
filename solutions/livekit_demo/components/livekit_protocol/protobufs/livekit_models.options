@@ -68,3 +68,21 @@ livekit_pb.DataStream.Trailer.reason max_length:15
 livekit_pb.DataStream.Trailer.attributes type:FT_IGNORE
 
 livekit_pb.SipDTMF.digit max_length:1
+
+livekit_pb.TrackInfo.sid type:FT_POINTER
+livekit_pb.TrackInfo.name type:FT_IGNORE
+livekit_pb.TrackInfo.width type:FT_IGNORE
+livekit_pb.TrackInfo.height type:FT_IGNORE
+livekit_pb.TrackInfo.simulcast type:FT_IGNORE
+livekit_pb.TrackInfo.disable_dtx type:FT_IGNORE
+livekit_pb.TrackInfo.source type:FT_IGNORE
+livekit_pb.TrackInfo.layers type:FT_IGNORE
+livekit_pb.TrackInfo.mime_type type:FT_IGNORE
+livekit_pb.TrackInfo.mid type:FT_IGNORE
+livekit_pb.TrackInfo.codecs type:FT_IGNORE
+livekit_pb.TrackInfo.disable_red type:FT_IGNORE
+livekit_pb.TrackInfo.encryption type:FT_IGNORE
+livekit_pb.TrackInfo.stream type:FT_IGNORE
+livekit_pb.TrackInfo.version type:FT_IGNORE
+livekit_pb.TrackInfo.audio_features max_count:8
+livekit_pb.TrackInfo.backup_codec_policy type:FT_IGNORE

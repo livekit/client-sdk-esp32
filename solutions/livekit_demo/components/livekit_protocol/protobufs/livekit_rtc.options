@@ -32,3 +32,6 @@ livekit_pb.AddTrackRequest.encryption type:FT_IGNORE
 livekit_pb.AddTrackRequest.stream type:FT_IGNORE
 livekit_pb.AddTrackRequest.backup_codec_policy type:FT_IGNORE
 livekit_pb.AddTrackRequest.audio_features max_count:8
+
+livekit_pb.TrackPublishedResponse.cid type:FT_POINTER
+livekit_pb.TrackPublishedResponse.track label_override:LABEL_REQUIRED

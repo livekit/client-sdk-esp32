@@ -248,6 +248,15 @@ typedef struct livekit_pb_simulcast_codec_info {
     pb_callback_t layers;
 } livekit_pb_simulcast_codec_info_t;
 
+typedef struct livekit_pb_track_info {
+    char *sid;
+    livekit_pb_track_type_t type;
+    bool muted;
+    bool stereo;
+    pb_size_t audio_features_count;
+    livekit_pb_audio_track_feature_t audio_features[8];
+} livekit_pb_track_info_t;
+
 /* provide information about available spatial layers */
 typedef struct livekit_pb_video_layer {
     /* for tracks with a single layer, this should be HIGH */
@@ -529,38 +538,6 @@ typedef struct livekit_pb_room {
     int64_t creation_time_ms;
 } livekit_pb_room_t;
 
-typedef struct livekit_pb_track_info {
-    pb_callback_t sid;
-    livekit_pb_track_type_t type;
-    pb_callback_t name;
-    bool muted;
-    /* original width of video (unset for audio)
- clients may receive a lower resolution version with simulcast */
-    uint32_t width;
-    /* original height of video (unset for audio) */
-    uint32_t height;
-    /* true if track is simulcasted */
-    bool simulcast;
-    /* true if DTX (Discontinuous Transmission) is disabled for audio */
-    bool disable_dtx;
-    /* source of media */
-    livekit_pb_track_source_t source;
-    pb_callback_t layers;
-    /* mime type of codec */
-    pb_callback_t mime_type;
-    pb_callback_t mid;
-    pb_callback_t codecs;
-    bool stereo;
-    /* true if RED (Redundant Encoding) is disabled for audio */
-    bool disable_red;
-    livekit_pb_encryption_type_t encryption;
-    pb_callback_t stream;
-    bool has_version;
-    livekit_pb_timed_version_t version;
-    pb_callback_t audio_features;
-    livekit_pb_backup_codec_policy_t backup_codec_policy;
-} livekit_pb_track_info_t;
-
 typedef struct livekit_pb_data_stream {
     char dummy_field;
 } livekit_pb_data_stream_t;
@@ -731,10 +708,7 @@ extern "C" {
 
 
 #define livekit_pb_track_info_t_type_ENUMTYPE livekit_pb_track_type_t
-#define livekit_pb_track_info_t_source_ENUMTYPE livekit_pb_track_source_t
-#define livekit_pb_track_info_t_encryption_ENUMTYPE livekit_pb_encryption_type_t
 #define livekit_pb_track_info_t_audio_features_ENUMTYPE livekit_pb_audio_track_feature_t
-#define livekit_pb_track_info_t_backup_codec_policy_ENUMTYPE livekit_pb_backup_codec_policy_t
 
 #define livekit_pb_video_layer_t_quality_ENUMTYPE livekit_pb_video_quality_t
 
@@ -788,7 +762,7 @@ extern "C" {
 #define LIVEKIT_PB_PARTICIPANT_INFO_INIT_DEFAULT {LIVEKIT_PB_PARTICIPANT_PERMISSION_INIT_DEFAULT}
 #define LIVEKIT_PB_ENCRYPTION_INIT_DEFAULT       {0}
 #define LIVEKIT_PB_SIMULCAST_CODEC_INFO_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_PB_TRACK_INFO_INIT_DEFAULT       {{{NULL}, NULL}, _LIVEKIT_PB_TRACK_TYPE_MIN, {{NULL}, NULL}, 0, 0, 0, 0, 0, _LIVEKIT_PB_TRACK_SOURCE_MIN, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0, _LIVEKIT_PB_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, false, LIVEKIT_PB_TIMED_VERSION_INIT_DEFAULT, {{NULL}, NULL}, _LIVEKIT_PB_BACKUP_CODEC_POLICY_MIN}
+#define LIVEKIT_PB_TRACK_INFO_INIT_DEFAULT       {NULL, _LIVEKIT_PB_TRACK_TYPE_MIN, 0, 0, 0, {_LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN}}
 #define LIVEKIT_PB_VIDEO_LAYER_INIT_DEFAULT      {_LIVEKIT_PB_VIDEO_QUALITY_MIN, 0, 0}
 #define LIVEKIT_PB_DATA_PACKET_INIT_DEFAULT      {0, {LIVEKIT_PB_USER_PACKET_INIT_DEFAULT}, NULL, 0, NULL}
 #define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_INIT_DEFAULT {{{NULL}, NULL}}
@@ -832,7 +806,7 @@ extern "C" {
 #define LIVEKIT_PB_PARTICIPANT_INFO_INIT_ZERO    {LIVEKIT_PB_PARTICIPANT_PERMISSION_INIT_ZERO}
 #define LIVEKIT_PB_ENCRYPTION_INIT_ZERO          {0}
 #define LIVEKIT_PB_SIMULCAST_CODEC_INFO_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_PB_TRACK_INFO_INIT_ZERO          {{{NULL}, NULL}, _LIVEKIT_PB_TRACK_TYPE_MIN, {{NULL}, NULL}, 0, 0, 0, 0, 0, _LIVEKIT_PB_TRACK_SOURCE_MIN, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0, _LIVEKIT_PB_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, false, LIVEKIT_PB_TIMED_VERSION_INIT_ZERO, {{NULL}, NULL}, _LIVEKIT_PB_BACKUP_CODEC_POLICY_MIN}
+#define LIVEKIT_PB_TRACK_INFO_INIT_ZERO          {NULL, _LIVEKIT_PB_TRACK_TYPE_MIN, 0, 0, 0, {_LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN}}
 #define LIVEKIT_PB_VIDEO_LAYER_INIT_ZERO         {_LIVEKIT_PB_VIDEO_QUALITY_MIN, 0, 0}
 #define LIVEKIT_PB_DATA_PACKET_INIT_ZERO         {0, {LIVEKIT_PB_USER_PACKET_INIT_ZERO}, NULL, 0, NULL}
 #define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_INIT_ZERO {{{NULL}, NULL}}
@@ -885,6 +859,11 @@ extern "C" {
 #define LIVEKIT_PB_SIMULCAST_CODEC_INFO_MID_TAG  2
 #define LIVEKIT_PB_SIMULCAST_CODEC_INFO_CID_TAG  3
 #define LIVEKIT_PB_SIMULCAST_CODEC_INFO_LAYERS_TAG 4
+#define LIVEKIT_PB_TRACK_INFO_SID_TAG            1
+#define LIVEKIT_PB_TRACK_INFO_TYPE_TAG           2
+#define LIVEKIT_PB_TRACK_INFO_MUTED_TAG          4
+#define LIVEKIT_PB_TRACK_INFO_STEREO_TAG         14
+#define LIVEKIT_PB_TRACK_INFO_AUDIO_FEATURES_TAG 19
 #define LIVEKIT_PB_VIDEO_LAYER_QUALITY_TAG       1
 #define LIVEKIT_PB_VIDEO_LAYER_WIDTH_TAG         2
 #define LIVEKIT_PB_VIDEO_LAYER_HEIGHT_TAG        3
@@ -1047,26 +1026,6 @@ extern "C" {
 #define LIVEKIT_PB_ROOM_VERSION_TAG              13
 #define LIVEKIT_PB_ROOM_DEPARTURE_TIMEOUT_TAG    14
 #define LIVEKIT_PB_ROOM_CREATION_TIME_MS_TAG     15
-#define LIVEKIT_PB_TRACK_INFO_SID_TAG            1
-#define LIVEKIT_PB_TRACK_INFO_TYPE_TAG           2
-#define LIVEKIT_PB_TRACK_INFO_NAME_TAG           3
-#define LIVEKIT_PB_TRACK_INFO_MUTED_TAG          4
-#define LIVEKIT_PB_TRACK_INFO_WIDTH_TAG          5
-#define LIVEKIT_PB_TRACK_INFO_HEIGHT_TAG         6
-#define LIVEKIT_PB_TRACK_INFO_SIMULCAST_TAG      7
-#define LIVEKIT_PB_TRACK_INFO_DISABLE_DTX_TAG    8
-#define LIVEKIT_PB_TRACK_INFO_SOURCE_TAG         9
-#define LIVEKIT_PB_TRACK_INFO_LAYERS_TAG         10
-#define LIVEKIT_PB_TRACK_INFO_MIME_TYPE_TAG      11
-#define LIVEKIT_PB_TRACK_INFO_MID_TAG            12
-#define LIVEKIT_PB_TRACK_INFO_CODECS_TAG         13
-#define LIVEKIT_PB_TRACK_INFO_STEREO_TAG         14
-#define LIVEKIT_PB_TRACK_INFO_DISABLE_RED_TAG    15
-#define LIVEKIT_PB_TRACK_INFO_ENCRYPTION_TAG     16
-#define LIVEKIT_PB_TRACK_INFO_STREAM_TAG         17
-#define LIVEKIT_PB_TRACK_INFO_VERSION_TAG        18
-#define LIVEKIT_PB_TRACK_INFO_AUDIO_FEATURES_TAG 19
-#define LIVEKIT_PB_TRACK_INFO_BACKUP_CODEC_POLICY_TAG 20
 #define LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_OPERATION_TYPE_TAG 1
 #define LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_VERSION_TAG 2
 #define LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_REPLY_TO_STREAM_ID_TAG 3
@@ -1172,31 +1131,13 @@ X(a, CALLBACK, REPEATED, MESSAGE,  layers,            4)
 #define livekit_pb_simulcast_codec_info_t_layers_MSGTYPE livekit_pb_video_layer_t
 
 #define LIVEKIT_PB_TRACK_INFO_FIELDLIST(X, a) \
-X(a, CALLBACK, SINGULAR, STRING,   sid,               1) \
+X(a, POINTER,  SINGULAR, STRING,   sid,               1) \
 X(a, STATIC,   SINGULAR, UENUM,    type,              2) \
-X(a, CALLBACK, SINGULAR, STRING,   name,              3) \
 X(a, STATIC,   SINGULAR, BOOL,     muted,             4) \
-X(a, STATIC,   SINGULAR, UINT32,   width,             5) \
-X(a, STATIC,   SINGULAR, UINT32,   height,            6) \
-X(a, STATIC,   SINGULAR, BOOL,     simulcast,         7) \
-X(a, STATIC,   SINGULAR, BOOL,     disable_dtx,       8) \
-X(a, STATIC,   SINGULAR, UENUM,    source,            9) \
-X(a, CALLBACK, REPEATED, MESSAGE,  layers,           10) \
-X(a, CALLBACK, SINGULAR, STRING,   mime_type,        11) \
-X(a, CALLBACK, SINGULAR, STRING,   mid,              12) \
-X(a, CALLBACK, REPEATED, MESSAGE,  codecs,           13) \
 X(a, STATIC,   SINGULAR, BOOL,     stereo,           14) \
-X(a, STATIC,   SINGULAR, BOOL,     disable_red,      15) \
-X(a, STATIC,   SINGULAR, UENUM,    encryption,       16) \
-X(a, CALLBACK, SINGULAR, STRING,   stream,           17) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  version,          18) \
-X(a, CALLBACK, REPEATED, UENUM,    audio_features,   19) \
-X(a, STATIC,   SINGULAR, UENUM,    backup_codec_policy,  20)
-#define LIVEKIT_PB_TRACK_INFO_CALLBACK pb_default_field_callback
+X(a, STATIC,   REPEATED, UENUM,    audio_features,   19)
+#define LIVEKIT_PB_TRACK_INFO_CALLBACK NULL
 #define LIVEKIT_PB_TRACK_INFO_DEFAULT NULL
-#define livekit_pb_track_info_t_layers_MSGTYPE livekit_pb_video_layer_t
-#define livekit_pb_track_info_t_codecs_MSGTYPE livekit_pb_simulcast_codec_info_t
-#define livekit_pb_track_info_t_version_MSGTYPE livekit_pb_timed_version_t
 
 #define LIVEKIT_PB_VIDEO_LAYER_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UENUM,    quality,           1) \
