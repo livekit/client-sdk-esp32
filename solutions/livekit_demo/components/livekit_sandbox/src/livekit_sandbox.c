@@ -11,6 +11,7 @@ static const char *TAG = "livekit_sandbox";
 static const char *SANDBOX_URL = "http://cloud-api.livekit.io/api/sandbox/connection-details";
 
 #define MAX_HTTP_OUTPUT_BUFFER 2048
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
 static esp_err_t _http_event_handler(esp_http_client_event_t *evt)
 {
