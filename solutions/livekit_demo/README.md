@@ -17,12 +17,17 @@ In production, you are responsible for generating JWT-based access tokens to aut
 To build and run the demo, you will need [IDF](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/index.html) release v5.4 or later installed on your system. Configure required settings and build as follows:
 
 1. Set your Wi-Fi SSID and password in [*settings.h*](main/settings.h).
+
 2. Export your Sandbox Token Server's ID (see above):
 ```sh
 export LK_SANDBOX_ID="your-sandbox-id"
 ```
-3. Build, flash, and monitor:
+3. Set target:
+```sh
+idf.py set-target esp32s3
 ```
+4 . Build, flash, and monitor:
+```sh
 idf.py -p YOUR_SERIAL_DEVICE flash monitor
 ```
 
