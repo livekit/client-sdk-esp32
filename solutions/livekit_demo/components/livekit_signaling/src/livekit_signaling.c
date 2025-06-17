@@ -181,7 +181,7 @@ static void ping_task(void *arg)
     media_lib_thread_destroy(NULL);
 }
 
-static livekit_sig_err_t livekit_sig_start_ping_task(livekit_sig_t *sg)
+static livekit_sig_err_t start_ping_task(livekit_sig_t *sg)
 {
     if (sg->ping_thread != NULL) {
         ESP_LOGW(TAG, "Ping task already running");
@@ -242,7 +242,7 @@ static void handle_res(livekit_sig_t *sg, livekit_pb_signal_response_t *res)
             sg->ping_interval_ms = join_res->ping_interval * 1000;
             sg->ping_timeout_ms = join_res->ping_timeout * 1000;
             ESP_LOGI(TAG, "Join res: subscriber_primary=%d", join_res->subscriber_primary);
-            livekit_sig_start_ping_task(sg);
+            start_ping_task(sg);
             sg->options.on_join(join_res, sg->options.ctx);
             break;
         case LIVEKIT_PB_SIGNAL_RESPONSE_OFFER_TAG:
@@ -302,7 +302,7 @@ static void on_data(livekit_sig_t *sg, const char *data, size_t len)
     handle_res(sg, &res);
 }
 
-void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void *event_data)
+static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void *event_data)
 {
     assert(ctx != NULL);
     livekit_sig_t *sg = (livekit_sig_t *)ctx;
