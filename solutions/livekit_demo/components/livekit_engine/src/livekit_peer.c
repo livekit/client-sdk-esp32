@@ -239,9 +239,7 @@ livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle, livekit_pe
     livekit_peer_t *peer = (livekit_peer_t *)handle;
 
     if (peer->connection != NULL) {
-        if (peer->options.target == LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER) {
-            esp_peer_new_connection(peer->connection);
-        }
+        esp_peer_new_connection(peer->connection);
         return LIVEKIT_PEER_ERR_NONE;
     }
     if (connect_options.media->video_info.codec == ESP_PEER_VIDEO_CODEC_MJPEG) {
@@ -307,11 +305,8 @@ livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle, livekit_pe
         ESP_LOGE(TAG(peer), "Failed to create task");
         return LIVEKIT_PEER_ERR_RTC;
     }
-    // TODO: Media configuration & capture setup
 
-    if (peer->options.target == LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER) {
-        esp_peer_new_connection(peer->connection);
-    }
+    esp_peer_new_connection(peer->connection);
     return LIVEKIT_PEER_ERR_NONE;
 }
 
