@@ -1,4 +1,3 @@
-#include <sys/time.h>
 #include <inttypes.h>
 #include <cJSON.h>
 #include "esp_log.h"
@@ -14,6 +13,7 @@
 
 #include <livekit_protocol.h>
 #include "livekit_signaling.h"
+#include "livekit_utils.h"
 
 static const char *TAG = "livekit_signaling";
 
@@ -48,12 +48,6 @@ static esp_websocket_client_config_t default_ws_cfg = {
     .crt_bundle_attach = esp_crt_bundle_attach
 #endif
 };
-
-static int64_t get_unix_time_ms() {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (int64_t)tv.tv_sec * 1000LL + (tv.tv_usec / 1000LL);
-}
 
 static void log_error_if_nonzero(const char *message, int error_code)
 {
