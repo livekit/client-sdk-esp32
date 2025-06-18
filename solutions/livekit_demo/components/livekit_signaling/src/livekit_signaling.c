@@ -375,11 +375,10 @@ livekit_sig_err_t livekit_sig_close(livekit_sig_handle_t handle)
     livekit_sig_t *sg = (livekit_sig_t *)handle;
 
     esp_timer_stop(sg->ping_timer);
-    if (sg->ws != NULL && esp_websocket_client_is_connected(sg->ws)) {
-        if (esp_websocket_client_close(sg->ws, pdMS_TO_TICKS(LIVEKIT_SIG_WS_CLOSE_TIMEOUT_MS)) != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to close WebSocket");
-            return LIVEKIT_SIG_ERR_WEBSOCKET;
-        }
+    if (esp_websocket_client_is_connected(sg->ws) &&
+        esp_websocket_client_close(sg->ws, pdMS_TO_TICKS(LIVEKIT_SIG_WS_CLOSE_TIMEOUT_MS)) != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to close WebSocket");
+        return LIVEKIT_SIG_ERR_WEBSOCKET;
     }
     if (sg->url != NULL) {
         free(sg->url);
