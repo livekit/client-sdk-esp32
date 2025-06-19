@@ -13,13 +13,10 @@
 
 #include <livekit_protocol.h>
 #include "livekit_signaling.h"
+#include "livekit_url.h"
 #include "livekit_utils.h"
 
 static const char *TAG = "livekit_signaling";
-
-#define LIVEKIT_PROTOCOL_VERSION "15"
-#define LIVEKIT_SDK_ID           "esp32"
-#define LIVEKIT_SDK_VERSION      "alpha"
 
 #define LIVEKIT_SIG_WS_BUFFER_SIZE          2048
 #define LIVEKIT_SIG_WS_SEND_TIMEOUT_MS      5000
@@ -54,54 +51,6 @@ static void log_error_if_nonzero(const char *message, int error_code)
     if (error_code != 0) {
         ESP_LOGE(TAG, "Last error %s: 0x%x", message, error_code);
     }
-}
-
-static livekit_sig_err_t build_url(const char *server_url, const char *token, char **out_url)
-{
-    static const char url_format[] = "%s%srtc?sdk=%s&version=%s&auto_subscribe=true&access_token=%s";
-    // Access token parameter must stay at the end for logging
-
-    if (server_url == NULL || token == NULL || out_url == NULL) {
-        return LIVEKIT_SIG_ERR_INVALID_ARG;
-    }
-    size_t url_len = strlen(server_url);
-    if (url_len < 1) {
-        ESP_LOGE(TAG, "URL cannot be empty");
-        return LIVEKIT_SIG_ERR_INVALID_URL;
-    }
-
-    if (strncmp(server_url, "ws://", 5) != 0 && strncmp(server_url, "wss://", 6) != 0) {
-        ESP_LOGE(TAG, "Unsupported URL scheme");
-        return LIVEKIT_SIG_ERR_INVALID_URL;
-    }
-    // Do not add a trailing slash if the URL already has one
-    const char *separator = server_url[url_len - 1] == '/' ? "" : "/";
-
-    int final_len = snprintf(NULL, 0, url_format,
-        server_url,
-        separator,
-        LIVEKIT_SDK_ID,
-        LIVEKIT_SDK_VERSION,
-        token
-    );
-
-    *out_url = (char *)malloc(final_len + 1);
-    if (*out_url == NULL) {
-        return LIVEKIT_SIG_ERR_NO_MEM;
-    }
-
-    sprintf(*out_url, url_format,
-        server_url,
-        separator,
-        LIVEKIT_SDK_ID,
-        LIVEKIT_SDK_VERSION,
-        token
-    );
-
-    // Token is redacted from logging for security
-    size_t token_len = strlen(token);
-    ESP_LOGI(TAG, "Signaling URL: %.*s[REDACTED]", (int)(final_len - token_len), *out_url);
-    return 0;
 }
 
 static livekit_sig_err_t send_request(livekit_sig_t *sg, livekit_pb_signal_request_t *request)
@@ -347,8 +296,9 @@ livekit_sig_err_t livekit_sig_connect(livekit_sig_handle_t handle, const char* s
     }
     livekit_sig_t *sg = (livekit_sig_t *)handle;
 
-    int ret = build_url(server_url, token, &sg->url);
-    if (ret != LIVEKIT_SIG_ERR_NONE) return ret;
+    if (!livekit_url_build(server_url, token, &sg->url)) {
+        return LIVEKIT_SIG_ERR_INVALID_URL;
+    }
 
     if (esp_websocket_client_set_uri(sg->ws, sg->url) != ESP_OK) {
         ESP_LOGE(TAG, "Failed to set WebSocket URI");
