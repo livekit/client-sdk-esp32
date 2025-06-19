@@ -56,6 +56,7 @@ static void log_error_if_nonzero(const char *message, int error_code)
 static livekit_sig_err_t send_request(livekit_sig_t *sg, livekit_pb_signal_request_t *request)
 {
     // TODO: Optimize (use static buffer for small messages)
+    ESP_LOGI(TAG, "Sending request: type=%d", request->which_message);
 
     size_t encoded_size = 0;
     if (!pb_get_encoded_size(&encoded_size, LIVEKIT_PB_SIGNAL_REQUEST_FIELDS, request)) {
@@ -69,7 +70,7 @@ static livekit_sig_err_t send_request(livekit_sig_t *sg, livekit_pb_signal_reque
     do {
         pb_ostream_t stream = pb_ostream_from_buffer(enc_buf, encoded_size);
         if (!pb_encode(&stream, LIVEKIT_PB_SIGNAL_REQUEST_FIELDS, request)) {
-            ESP_LOGE(TAG, "Failed to encode signal request");
+            ESP_LOGE(TAG, "Failed to encode request");
             ret = LIVEKIT_SIG_ERR_MESSAGE;
             break;
         }
@@ -77,7 +78,7 @@ static livekit_sig_err_t send_request(livekit_sig_t *sg, livekit_pb_signal_reque
                 (const char *)enc_buf,
                 stream.bytes_written,
                 pdMS_TO_TICKS(LIVEKIT_SIG_WS_SEND_TIMEOUT_MS)) < 0) {
-            ESP_LOGE(TAG, "Failed to send signal request");
+            ESP_LOGE(TAG, "Failed to send request");
             ret = LIVEKIT_SIG_ERR_MESSAGE;
             break;
         }
@@ -95,9 +96,7 @@ static void send_ping(void *arg)
     req.message.ping_req.timestamp = get_unix_time_ms();
     req.message.ping_req.rtt = sg->rtt;
 
-    if (send_request(sg, &req) != LIVEKIT_SIG_ERR_NONE) {
-        ESP_LOGE(TAG, "Failed to send ping");
-    }
+    send_request(sg, &req);
 }
 
 static void handle_res(livekit_sig_t *sg, livekit_pb_signal_response_t *res)
@@ -138,18 +137,19 @@ static void handle_res(livekit_sig_t *sg, livekit_pb_signal_response_t *res)
                 if (candidate_init == NULL) {
                     const char *error_ptr = cJSON_GetErrorPtr();
                     if (error_ptr != NULL) {
-                        ESP_LOGE(TAG, "Failed to parse trickle candidate_init: %s", error_ptr);
+                        ESP_LOGE(TAG, "Failed to parse candidate_init: %s", error_ptr);
                     }
                     break;
                 }
                 cJSON *candidate = cJSON_GetObjectItemCaseSensitive(candidate_init, "candidate");
                 if (!cJSON_IsString(candidate) || (candidate->valuestring == NULL)) {
-                    ESP_LOGE(TAG, "Missing candidate in trickle candidate_init");
+                    ESP_LOGE(TAG, "Missing candidate key in candidate_init");
                     break;
                 }
-                ESP_LOGI(TAG, "Received trickle: target=%d, candidate=%s",
+                ESP_LOGI(TAG, "Received trickle: target=%d, candidate=%s, final=%d",
                     trickle->target,
-                    candidate->valuestring
+                    candidate->valuestring,
+                    trickle->final
                 );
                 sg->options.on_trickle(candidate->valuestring, trickle->target, sg->options.ctx);
             } while (0);
@@ -163,15 +163,15 @@ static void handle_res(livekit_sig_t *sg, livekit_pb_signal_response_t *res)
 
 static void on_data(livekit_sig_t *sg, const char *data, size_t len)
 {
-    ESP_LOGI(TAG, "Incoming signal res: %d byte(s)", len);
+    ESP_LOGI(TAG, "Incoming res: %d byte(s)", len);
     livekit_pb_signal_response_t res = {};
     pb_istream_t stream = pb_istream_from_buffer((const pb_byte_t *)data, len);
     if (!pb_decode(&stream, LIVEKIT_PB_SIGNAL_RESPONSE_FIELDS, &res)) {
-        ESP_LOGE(TAG, "Failed to decode signal res: %s", stream.errmsg);
+        ESP_LOGE(TAG, "Failed to decode res: %s", stream.errmsg);
         return;
     }
 
-    ESP_LOGI(TAG, "Decoded signal res: type=%s(%d)",
+    ESP_LOGI(TAG, "Decoded res: type=%s(%d)",
         livekit_protocol_sig_res_name(res.which_message),
         res.which_message);
     handle_res(sg, &res);
