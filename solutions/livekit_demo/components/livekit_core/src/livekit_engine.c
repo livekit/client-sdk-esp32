@@ -525,18 +525,9 @@ livekit_eng_err_t livekit_eng_destroy(livekit_eng_handle_t handle)
     }
     livekit_eng_t *eng = (livekit_eng_t *)handle;
 
-    if (eng->sub_peer != NULL) {
-        livekit_peer_destroy(eng->sub_peer);
-        eng->sub_peer = NULL;
-    }
-    if (eng->pub_peer != NULL) {
-        livekit_peer_destroy(eng->pub_peer);
-        eng->pub_peer = NULL;
-    }
-    if (eng->sig != NULL) {
-        livekit_sig_destroy(eng->sig);
-        eng->sig = NULL;
-    }
+    livekit_peer_destroy(eng->sub_peer);
+    livekit_peer_destroy(eng->pub_peer);
+    livekit_sig_destroy(eng->sig);
     free_ice_servers(eng);
     free(eng);
     return LIVEKIT_ENG_ERR_NONE;
