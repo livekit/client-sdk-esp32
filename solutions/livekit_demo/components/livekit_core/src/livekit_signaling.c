@@ -19,7 +19,6 @@
 static const char *TAG = "livekit_signaling";
 
 #define LIVEKIT_SIG_WS_BUFFER_SIZE          2048
-#define LIVEKIT_SIG_WS_SEND_TIMEOUT_MS      5000
 #define LIVEKIT_SIG_WS_RECONNECT_TIMEOUT_MS 1000
 #define LIVEKIT_SIG_WS_NETWORK_TIMEOUT_MS   1000
 #define LIVEKIT_SIG_WS_CLOSE_CODE           1000
@@ -77,7 +76,7 @@ static livekit_sig_err_t send_request(livekit_sig_t *sg, livekit_pb_signal_reque
         if (esp_websocket_client_send_bin(sg->ws,
                 (const char *)enc_buf,
                 stream.bytes_written,
-                pdMS_TO_TICKS(LIVEKIT_SIG_WS_SEND_TIMEOUT_MS)) < 0) {
+                portMAX_DELAY) < 0) {
             ESP_LOGE(TAG, "Failed to send request");
             ret = LIVEKIT_SIG_ERR_MESSAGE;
             break;
