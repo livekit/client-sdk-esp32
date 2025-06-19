@@ -22,14 +22,6 @@ if(NOT DEFINED ENV{WIFI_PASSWORD})
   message(FATAL_ERROR "WiFi password not set in env variable WIFI_PASSWORD")
 endif()
 
-if(NOT DEFINED ENV{ROOM_NAME})
-  message(FATAL_ERROR "Room name not set in env variable ROOM_NAME")
-endif()
-
-if(NOT DEFINED ENV{PARTICIPANT_NAME})
-  message(FATAL_ERROR "Participant name not set in env variable PARTICIPANT_NAME")
-endif()
-
 # Check for token configuration - either sandbox or direct token
 if(DEFINED ENV{LK_TOKEN})
   # Using direct token approach
@@ -45,6 +37,12 @@ else()
     message(FATAL_ERROR "LiveKit sandbox ID not set in env variable LK_SANDBOX_ID (or set LK_TOKEN for direct token approach)")
   endif()
   message(STATUS "Using sandbox approach with LK_SANDBOX_ID")
+  if(NOT DEFINED ENV{ROOM_NAME})
+    message(FATAL_ERROR "Room name not set in env variable ROOM_NAME")
+  endif()
+  if(NOT DEFINED ENV{PARTICIPANT_NAME})
+    message(FATAL_ERROR "Participant name not set in env variable PARTICIPANT_NAME")
+  endif()
   add_compile_definitions(LK_SANDBOX_ID="$ENV{LK_SANDBOX_ID}")
 endif()
 
