@@ -37,15 +37,7 @@ extern "C" {
 #define VIDEO_FPS    10
 #endif
 
-/**
- * @brief  Set for wifi ssid
- */
-#define WIFI_SSID     "XXXX"
 
-/**
- * @brief  Set for wifi password
- */
-#define WIFI_PASSWORD "XXXX"
 
 /**
  * @brief  Set default playback volume

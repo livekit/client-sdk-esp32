@@ -48,19 +48,45 @@ static esp_err_t _http_event_handler(esp_http_client_event_t *evt)
     return ESP_OK;
 }
 
-bool livekit_sandbox_generate(const char *sandbox_id, livekit_sandbox_res_t *res)
+bool livekit_sandbox_generate(const char *sandbox_id, const char *room_name, const char *participant_name, livekit_sandbox_res_t *res)
 {
     if (sandbox_id == NULL) {
         ESP_LOGE(TAG, "Missing sandbox ID");
         return false;
     }
-    ESP_LOGI(TAG, "Generating sandbox token");
+    if (room_name == NULL) {
+        ESP_LOGE(TAG, "Missing room name");
+        return false;
+    }
+    if (participant_name == NULL) {
+        ESP_LOGE(TAG, "Missing participant name");
+        return false;
+    }
+    ESP_LOGI(TAG, "Generating sandbox token for room: %s, participant: %s", room_name, participant_name);
 
     char* res_buffer = calloc(MAX_HTTP_OUTPUT_BUFFER + 1, sizeof(char));
     if (res_buffer == NULL) {
         ESP_LOGE(TAG, "Failed to allocate response buffer");
         return false;
     }
+
+    // Create JSON payload
+    cJSON *json_payload = cJSON_CreateObject();
+    if (json_payload == NULL) {
+        ESP_LOGE(TAG, "Failed to create JSON payload");
+        free(res_buffer);
+        return false;
+    }
+    cJSON_AddStringToObject(json_payload, "roomName", room_name);
+    cJSON_AddStringToObject(json_payload, "participantName", participant_name);
+    char *json_string = cJSON_Print(json_payload);
+    if (json_string == NULL) {
+        ESP_LOGE(TAG, "Failed to serialize JSON payload");
+        cJSON_Delete(json_payload);
+        free(res_buffer);
+        return false;
+    }
+
     esp_http_client_config_t http_config = {
         .url = SANDBOX_URL,
         .method = HTTP_METHOD_POST,
@@ -75,13 +101,16 @@ bool livekit_sandbox_generate(const char *sandbox_id, livekit_sandbox_res_t *res
     esp_http_client_handle_t client = esp_http_client_init(&http_config);
     if (client == NULL) {
         ESP_LOGE(TAG, "Failed to create HTTP client");
+        free(json_string);
+        cJSON_Delete(json_payload);
         free(res_buffer);
         return false;
     }
 
-    // Room and participant name can be specified as query parameters.
+    // Set headers and POST data
     esp_http_client_set_header(client, "Content-Type", "application/json");
     esp_http_client_set_header(client, "X-Sandbox-ID", sandbox_id);
+    esp_http_client_set_post_field(client, json_string, strlen(json_string));
 
     bool success = false;
     cJSON *res_json = NULL;
@@ -119,26 +148,28 @@ bool livekit_sandbox_generate(const char *sandbox_id, livekit_sandbox_res_t *res
             ESP_LOGE(TAG, "Missing token in response");
             break;
         }
-        cJSON *room_name = cJSON_GetObjectItemCaseSensitive(res_json, "roomName");
-        if (!cJSON_IsString(room_name) || (room_name->valuestring == NULL)) {
+        cJSON *room_name_resp = cJSON_GetObjectItemCaseSensitive(res_json, "roomName");
+        if (!cJSON_IsString(room_name_resp) || (room_name_resp->valuestring == NULL)) {
             ESP_LOGE(TAG, "Missing room name in response");
             break;
         }
-        cJSON *participant_name = cJSON_GetObjectItemCaseSensitive(res_json, "participantName");
-        if (!cJSON_IsString(participant_name) || (participant_name->valuestring == NULL)) {
+        cJSON *participant_name_resp = cJSON_GetObjectItemCaseSensitive(res_json, "participantName");
+        if (!cJSON_IsString(participant_name_resp) || (participant_name_resp->valuestring == NULL)) {
             ESP_LOGE(TAG, "Missing participant name in response");
             break;
         }
 
         res->server_url = strdup(server_url->valuestring);
         res->token = strdup(token->valuestring);
-        res->room_name = strdup(room_name->valuestring);
-        res->participant_name = strdup(participant_name->valuestring);
+        res->room_name = strdup(room_name_resp->valuestring);
+        res->participant_name = strdup(participant_name_resp->valuestring);
         success = true;
     } while (0);
 
     esp_http_client_cleanup(client);
     cJSON_Delete(res_json);
+    cJSON_Delete(json_payload);
+    free(json_string);
     free(res_buffer);
     return success;
 }

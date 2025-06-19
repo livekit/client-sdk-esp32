@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include <stdbool.h>
@@ -24,10 +23,12 @@ typedef struct {
 
 /// @brief Generate a sandbox token.
 /// @param sandbox_id The ID of your sandbox.
+/// @param room_name The name of the room to join.
+/// @param participant_name The name of the participant.
 /// @param res The result to store the sandbox details.
 /// @return True if the sandbox token was generated successfully, false otherwise.
 /// @note If successful, the result must be freed using livekit_sandbox_res_free.
-bool livekit_sandbox_generate(const char* sandbox_id, livekit_sandbox_res_t* res);
+bool livekit_sandbox_generate(const char* sandbox_id, const char* room_name, const char* participant_name, livekit_sandbox_res_t* res);
 
 /// @brief Frees a sandbox result.
 void livekit_sandbox_res_free(livekit_sandbox_res_t *result);
