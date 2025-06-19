@@ -274,7 +274,12 @@ message DataPacket {
     DataStream.Chunk stream_chunk = 14;
     DataStream.Trailer stream_trailer = 15;
   }
-  // NEXT_ID: 16
+  // sequence number of reliable packet
+  uint32 sequence = 16;
+  // sid of the user that sent the message
+  string participant_sid = 17;
+
+  // NEXT_ID: 18
 }
 
 message ActiveSpeakerUpdate {
@@ -491,6 +496,8 @@ enum DisconnectReason {
   SIP_TRUNK_FAILURE = 13;
   // server timed out a participant session
   CONNECTION_TIMEOUT = 14;
+  // media stream failure or media timeout
+  MEDIA_FAILURE = 15;
 }
 
 message RTPDrift {

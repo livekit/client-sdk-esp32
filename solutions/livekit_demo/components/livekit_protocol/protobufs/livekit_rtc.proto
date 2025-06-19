@@ -194,6 +194,10 @@ message JoinResponse {
 message ReconnectResponse {
   repeated ICEServer ice_servers = 1;
   ClientConfiguration client_configuration = 2;
+  ServerInfo server_info = 3;
+
+  // last sequence number of reliable message received before resuming
+  uint32 last_message_seq = 4;
 }
 
 message TrackPublishedResponse {
@@ -208,6 +212,7 @@ message TrackUnpublishedResponse {
 message SessionDescription {
   string type = 1; // "answer" | "offer" | "pranswer" | "rollback"
   string sdp = 2;
+  uint32 id = 3;
 }
 
 message ParticipantUpdate {
@@ -338,7 +343,7 @@ message SubscribedCodec {
 
 message SubscribedQualityUpdate {
   string track_sid = 1;
-  repeated SubscribedQuality subscribed_qualities = 2;
+  repeated SubscribedQuality subscribed_qualities = 2 [deprecated = true];
   repeated SubscribedCodec subscribed_codecs = 3;
 }
 
@@ -379,6 +384,12 @@ message SyncState {
   // last received server side offer before reconnecting
   SessionDescription offer = 5;
   repeated string track_sids_disabled = 6;
+  repeated DataChannelReceiveState datachannel_receive_states = 7;
+}
+
+message DataChannelReceiveState {
+  string publisher_sid = 1;
+  uint32 last_seq = 2;
 }
 
 message DataChannelInfo {

@@ -108,6 +108,9 @@ PB_BIND(LIVEKIT_PB_ROOM_MOVED_RESPONSE, livekit_pb_room_moved_response_t, AUTO)
 PB_BIND(LIVEKIT_PB_SYNC_STATE, livekit_pb_sync_state_t, AUTO)
 
 
+PB_BIND(LIVEKIT_PB_DATA_CHANNEL_RECEIVE_STATE, livekit_pb_data_channel_receive_state_t, AUTO)
+
+
 PB_BIND(LIVEKIT_PB_DATA_CHANNEL_INFO, livekit_pb_data_channel_info_t, AUTO)
 
 
