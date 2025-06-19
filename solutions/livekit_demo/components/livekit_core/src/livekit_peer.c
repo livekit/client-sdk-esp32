@@ -104,9 +104,13 @@ static int on_msg(esp_peer_msg_t *info, void *ctx)
     livekit_peer_t *peer = (livekit_peer_t *)ctx;
     switch (info->type) {
         case ESP_PEER_MSG_TYPE_SDP:
+            ESP_LOGI(TAG(peer), "Generated %s:\n%s",
+                peer->options.target == LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER ? "offer" : "answer",
+                (char *)info->data);
             peer->options.on_sdp((char *)info->data, peer->options.ctx);
             break;
         case ESP_PEER_MSG_TYPE_CANDIDATE:
+            ESP_LOGI(TAG(peer), "Generated candidate: %s", (char *)info->data);
             peer->options.on_ice_candidate((char *)info->data, peer->options.ctx);
             break;
         default:

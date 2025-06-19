@@ -119,10 +119,14 @@ static void handle_res(livekit_sig_t *sg, livekit_pb_signal_response_t *res)
             sg->options.on_join(join_res, sg->options.ctx);
             break;
         case LIVEKIT_PB_SIGNAL_RESPONSE_OFFER_TAG:
-            sg->options.on_offer(res->message.offer.sdp, sg->options.ctx);
+            livekit_pb_session_description_t *offer = &res->message.offer;
+            ESP_LOGI(TAG, "Offer: id=%" PRIu32 "\n%s", offer->id, offer->sdp);
+            sg->options.on_offer(offer->sdp, sg->options.ctx);
             break;
         case LIVEKIT_PB_SIGNAL_RESPONSE_ANSWER_TAG:
-            sg->options.on_answer(res->message.answer.sdp, sg->options.ctx);
+            livekit_pb_session_description_t *answer = &res->message.answer;
+            ESP_LOGI(TAG, "Answer: id=%" PRIu32 "\n%s", answer->id, answer->sdp);
+            sg->options.on_answer(answer->sdp, sg->options.ctx);
             break;
         case LIVEKIT_PB_SIGNAL_RESPONSE_TRICKLE_TAG:
             livekit_pb_trickle_request_t *trickle = &res->message.trickle;
