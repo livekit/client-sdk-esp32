@@ -214,6 +214,7 @@ livekit_peer_err_t livekit_peer_create(livekit_peer_handle_t *handle, livekit_pe
     peer->ice_role = options.target == LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER ?
             ESP_PEER_ROLE_CONTROLLED : ESP_PEER_ROLE_CONTROLLING;
 
+    // Set to invalid IDs to indicate that the data channels are not connected yet
     peer->reliable_stream_id = STREAM_ID_INVALID;
     peer->lossy_stream_id = STREAM_ID_INVALID;
 
