@@ -149,10 +149,10 @@ static void handle_res(livekit_sig_t *sg, livekit_pb_signal_response_t *res)
                     ESP_LOGE(TAG, "Missing candidate key in candidate_init");
                     break;
                 }
-                ESP_LOGI(TAG, "Received trickle: target=%d, candidate=%s, final=%d",
+                ESP_LOGI(TAG, "Trickle: target=%d, final=%d\n%s",
                     trickle->target,
-                    candidate->valuestring,
-                    trickle->final
+                    trickle->final,
+                    candidate->valuestring
                 );
                 sg->options.on_trickle(candidate->valuestring, trickle->target, sg->options.ctx);
             } while (0);
