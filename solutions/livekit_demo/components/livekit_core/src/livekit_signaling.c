@@ -362,7 +362,7 @@ livekit_sig_err_t livekit_sig_send_answer(livekit_sig_handle_t handle, const cha
 
     livekit_pb_session_description_t desc = {
         .type = "answer",
-        .sdp = sdp
+        .sdp = (char *)sdp
     };
     req.which_message = LIVEKIT_PB_SIGNAL_REQUEST_ANSWER_TAG;
     req.message.answer = desc;
@@ -379,7 +379,7 @@ livekit_sig_err_t livekit_sig_send_offer(livekit_sig_handle_t handle, const char
 
     livekit_pb_session_description_t desc = {
         .type = "offer",
-        .sdp = sdp
+        .sdp = (char *)sdp
     };
     req.which_message = LIVEKIT_PB_SIGNAL_REQUEST_OFFER_TAG;
     req.message.offer = desc;
