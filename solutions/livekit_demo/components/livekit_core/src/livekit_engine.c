@@ -294,10 +294,6 @@ static livekit_eng_err_t set_ice_servers(livekit_eng_t* eng, livekit_pb_ice_serv
         }
     }
 
-    // Set ICE servers for both peers (owned by engine)
-    livekit_peer_set_ice_servers(eng->pub_peer, cfgs, cfg_count);
-    livekit_peer_set_ice_servers(eng->sub_peer, cfgs, cfg_count);
-
     free_ice_servers(eng);
     eng->ice_servers = cfgs;
     eng->ice_server_count = cfg_count;
@@ -337,60 +333,6 @@ static void on_peer_ice_candidate(const char *candidate, void *ctx)
     ESP_LOGI(TAG, "Peer generated ice candidate: %s", candidate);
 }
 
-static void on_sig_connect(void *ctx)
-{
-    livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    ESP_LOGI(TAG, "Signaling connected");
-    // TODO: Implement
-}
-
-static void on_sig_disconnect(void *ctx)
-{
-    livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    ESP_LOGI(TAG, "Signaling disconnected");
-    // TODO: Implement
-}
-
-static void on_sig_error(void *ctx)
-{
-    livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    ESP_LOGI(TAG, "Signaling error");
-    // TODO: Implement
-}
-
-static void on_sig_join(livekit_pb_join_response_t *join_res, void *ctx)
-{
-    livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    set_ice_servers(eng, join_res->ice_servers, join_res->ice_servers_count);
-
-    // if (join_res->subscriber_primary) {
-    //     ESP_LOGE(TAG, "Subscriber primary is not supported yet");
-    //     return;
-    // }
-    livekit_peer_connect_options_t connect_options = {
-        .force_relay = join_res->has_client_configuration &&
-                       join_res->client_configuration.force_relay == LIVEKIT_PB_CLIENT_CONFIG_SETTING_ENABLED,
-        .media = &eng->options.media
-    };
-    // connect_options.is_primary = !join_res->subscriber_primary;
-    // livekit_peer_connect(eng->pub_peer, connect_options);
-
-    connect_options.is_primary = join_res->subscriber_primary;
-    livekit_peer_connect(eng->sub_peer, connect_options);
-}
-
-static void on_sig_answer(const char *sdp, void *ctx)
-{
-    livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    livekit_peer_handle_sdp(eng->pub_peer, sdp);
-}
-
-static void on_sig_offer(const char *sdp, void *ctx)
-{
-    livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    livekit_peer_handle_sdp(eng->sub_peer, sdp);
-}
-
 static void on_peer_packet_received(livekit_pb_data_packet_t* packet, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
@@ -421,6 +363,95 @@ static void on_peer_packet_received(livekit_pb_data_packet_t* packet, void *ctx)
     }
 }
 
+static void on_sig_connect(void *ctx)
+{
+    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    ESP_LOGI(TAG, "Signaling connected");
+    // TODO: Implement
+}
+
+static void on_sig_disconnect(void *ctx)
+{
+    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    ESP_LOGI(TAG, "Signaling disconnected");
+    // TODO: Implement
+}
+
+static void on_sig_error(void *ctx)
+{
+    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    ESP_LOGI(TAG, "Signaling error");
+    // TODO: Implement
+}
+
+static bool connect_peer(livekit_eng_t *eng, livekit_peer_options_t *options, livekit_peer_handle_t *peer)
+{
+    assert(eng != NULL);
+    assert(options != NULL);
+    assert(peer != NULL);
+
+    if (*peer != NULL) {
+        ESP_LOGI(TAG, "Disconnecting existing peer");
+        if (livekit_peer_disconnect(*peer) != LIVEKIT_PEER_ERR_NONE) return false;
+        if (livekit_peer_destroy(*peer) != LIVEKIT_PEER_ERR_NONE) return false;
+    }
+    if (livekit_peer_create(peer, options) != LIVEKIT_PEER_ERR_NONE) return false;
+    if (livekit_peer_connect(*peer) != LIVEKIT_PEER_ERR_NONE) return false;
+    return true;
+}
+
+static void on_sig_join(livekit_pb_join_response_t *join_res, void *ctx)
+{
+    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    set_ice_servers(eng, join_res->ice_servers, join_res->ice_servers_count);
+
+    livekit_peer_options_t options = {
+        // Options common to both peers
+        .force_relay = join_res->has_client_configuration &&
+                       join_res->client_configuration.force_relay == LIVEKIT_PB_CLIENT_CONFIG_SETTING_ENABLED,
+        .media = &eng->options.media,
+        .server_list = eng->ice_servers,
+        .server_count = eng->ice_server_count,
+        .on_ice_candidate = on_peer_ice_candidate,
+        .on_packet_received = on_peer_packet_received,
+        .ctx = eng
+    };
+
+    // 1. Publisher peer
+    // options.is_primary = !join_res->subscriber_primary;
+    // options.target = LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER;
+    // options.on_connected = on_peer_pub_connected;
+    // options.on_sdp = on_peer_pub_offer;
+
+    // if (!connect_peer(eng, &options, &eng->pub_peer)) {
+    //    ESP_LOGE(TAG, "Failed to connect publisher peer");
+    //    return;
+    // }
+
+    // 2. Subscriber peer
+    options.is_primary = join_res->subscriber_primary;
+    options.target = LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER;
+    options.on_connected = on_peer_sub_connected;
+    options.on_sdp = on_peer_sub_answer;
+
+    if (!connect_peer(eng, &options, &eng->sub_peer)) {
+        ESP_LOGE(TAG, "Failed to connect subscriber peer");
+        return;
+    }
+}
+
+static void on_sig_answer(const char *sdp, void *ctx)
+{
+    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    livekit_peer_handle_sdp(eng->pub_peer, sdp);
+}
+
+static void on_sig_offer(const char *sdp, void *ctx)
+{
+    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    livekit_peer_handle_sdp(eng->sub_peer, sdp);
+}
+
 static void on_sig_trickle(const char *ice_candidate, livekit_pb_signal_target_t target, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
@@ -447,75 +478,36 @@ livekit_eng_err_t livekit_eng_create(livekit_eng_handle_t *handle, livekit_eng_o
         .on_join = on_sig_join,
         .on_answer = on_sig_answer,
         .on_offer = on_sig_offer,
-        .on_trickle = on_sig_trickle,
+        .on_trickle = on_sig_trickle
     };
-    int ret = LIVEKIT_ENG_ERR_OTHER;
-    do {
-        if (livekit_sig_create(&eng->sig, &sig_options) != LIVEKIT_SIG_ERR_NONE) {
-            ESP_LOGE(TAG, "Failed to create signaling client");
-            ret = LIVEKIT_ENG_ERR_SIGNALING;
-            break;
-        }
 
-        livekit_peer_options_t pub_options = {
-            .target = LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER,
-            .on_connected = on_peer_pub_connected,
-            .on_sdp = on_peer_pub_offer,
-            .on_ice_candidate = on_peer_ice_candidate,
-            .on_packet_received = on_peer_packet_received,
-            .ctx = eng
-        };
-        if (livekit_peer_create(&eng->pub_peer, pub_options) != LIVEKIT_PEER_ERR_NONE) {
-            ESP_LOGE(TAG, "Failed to create publisher peer");
-            ret = LIVEKIT_ENG_ERR_RTC;
-            break;
-        }
-
-        livekit_peer_options_t sub_options = {
-            .target = LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER,
-            .on_connected = on_peer_sub_connected,
-            .on_sdp = on_peer_sub_answer,
-            .on_ice_candidate = on_peer_ice_candidate,
-            .ctx = eng
-        };
-        if (livekit_peer_create(&eng->sub_peer, sub_options) != LIVEKIT_PEER_ERR_NONE) {
-            ESP_LOGE(TAG, "Failed to create subscriber peer");
-            ret = LIVEKIT_ENG_ERR_RTC;
-            break;
-        }
-
-        esp_capture_sink_cfg_t sink_cfg = {
-            .audio_info = {
-                .codec = capture_audio_codec_type(eng->options.media.audio_info.codec),
-                .sample_rate = eng->options.media.audio_info.sample_rate,
-                .channel = eng->options.media.audio_info.channel,
-                .bits_per_sample = 16,
-            },
-            .video_info = {
-                .codec = capture_video_codec_type(eng->options.media.video_info.codec),
-                .width = eng->options.media.video_info.width,
-                .height = eng->options.media.video_info.height,
-                .fps = eng->options.media.video_info.fps,
-            },
-        };
-        esp_capture_setup_path(eng->options.media.capturer, ESP_CAPTURE_PATH_PRIMARY, &sink_cfg, &eng->capturer_path);
-        esp_capture_enable_path(eng->capturer_path, ESP_CAPTURE_RUN_TYPE_ALWAYS);
-
-        *handle = eng;
-        return LIVEKIT_ENG_ERR_NONE;
-    } while (0);
-
-    if (eng->sub_peer != NULL) {
-        livekit_peer_destroy(eng->sub_peer);
+     if (livekit_sig_create(&eng->sig, &sig_options) != LIVEKIT_SIG_ERR_NONE) {
+        ESP_LOGE(TAG, "Failed to create signaling client");
+        free(eng);
+        return LIVEKIT_ENG_ERR_SIGNALING;
     }
-    if (eng->pub_peer != NULL) {
-        livekit_peer_destroy(eng->pub_peer);
-    }
-    if (eng->sig != NULL) {
-        livekit_sig_destroy(eng->sig);
-    }
-    free(eng);
-    return ret;
+
+     esp_capture_sink_cfg_t sink_cfg = {
+        .audio_info = {
+            .codec = capture_audio_codec_type(eng->options.media.audio_info.codec),
+            .sample_rate = eng->options.media.audio_info.sample_rate,
+            .channel = eng->options.media.audio_info.channel,
+            .bits_per_sample = 16,
+        },
+        .video_info = {
+            .codec = capture_video_codec_type(eng->options.media.video_info.codec),
+            .width = eng->options.media.video_info.width,
+            .height = eng->options.media.video_info.height,
+            .fps = eng->options.media.video_info.fps,
+        },
+    };
+
+    // TODO: Handle capturer error
+    esp_capture_setup_path(eng->options.media.capturer, ESP_CAPTURE_PATH_PRIMARY, &sink_cfg, &eng->capturer_path);
+    esp_capture_enable_path(eng->capturer_path, ESP_CAPTURE_RUN_TYPE_ALWAYS);
+
+    *handle = eng;
+    return LIVEKIT_ENG_ERR_NONE;
 }
 
 livekit_eng_err_t livekit_eng_destroy(livekit_eng_handle_t handle)
@@ -525,8 +517,12 @@ livekit_eng_err_t livekit_eng_destroy(livekit_eng_handle_t handle)
     }
     livekit_eng_t *eng = (livekit_eng_t *)handle;
 
-    livekit_peer_destroy(eng->sub_peer);
-    livekit_peer_destroy(eng->pub_peer);
+    if (eng->pub_peer != NULL) {
+        livekit_peer_destroy(eng->pub_peer);
+    }
+    if (eng->sub_peer != NULL) {
+        livekit_peer_destroy(eng->sub_peer);
+    }
     livekit_sig_destroy(eng->sig);
     free_ice_servers(eng);
     free(eng);

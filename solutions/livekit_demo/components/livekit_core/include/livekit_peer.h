@@ -26,6 +26,22 @@ typedef struct {
     /// @brief Whether the peer is a publisher or subscriber.
     livekit_pb_signal_target_t target;
 
+    /// @brief ICE server list.
+    esp_peer_ice_server_cfg_t* server_list;
+
+    /// @brief Number of servers in the list.
+    int server_count;
+
+    /// @brief Weather to force the use of relay ICE candidates.
+    bool force_relay;
+
+    /// @brief Whether the peer is the primary peer.
+    /// @note This determines which peer controls the data channels.
+    bool is_primary;
+
+    /// @brief Media options used for creating SDP messages.
+    livekit_eng_media_options_t* media;
+
     /// @brief Invoked when the peer is connected.
     void (*on_connected)(void *ctx);
 
@@ -43,28 +59,11 @@ typedef struct {
     void *ctx;
 } livekit_peer_options_t;
 
-/// @brief Options for connecting a peer.
-typedef struct {
-    /// @brief Weather to force the use of relay ICE candidates.
-    bool force_relay;
-
-    /// @brief Whether the peer is the primary peer.
-    /// @note This determines which peer controls the data channels.
-    bool is_primary;
-
-    /// @brief Media options used for creating SDP messages.
-    livekit_eng_media_options_t* media;
-} livekit_peer_connect_options_t;
-
-livekit_peer_err_t livekit_peer_create(livekit_peer_handle_t *handle, livekit_peer_options_t options);
+livekit_peer_err_t livekit_peer_create(livekit_peer_handle_t *handle, livekit_peer_options_t *options);
 livekit_peer_err_t livekit_peer_destroy(livekit_peer_handle_t handle);
 
-livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle, livekit_peer_connect_options_t options);
+livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle);
 livekit_peer_err_t livekit_peer_disconnect(livekit_peer_handle_t handle);
-
-/// @brief Sets the ICE server to use for the connection
-/// @note Must be called prior to establishing the connection.
-livekit_peer_err_t livekit_peer_set_ice_servers(livekit_peer_handle_t handle, esp_peer_ice_server_cfg_t *servers, int count);
 
 /// @brief Handles an SDP message from the remote peer.
 livekit_peer_err_t livekit_peer_handle_sdp(livekit_peer_handle_t handle, const char *sdp);

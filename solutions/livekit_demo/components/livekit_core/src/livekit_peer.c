@@ -203,12 +203,16 @@ static int on_data(esp_peer_data_frame_t *frame, void *ctx)
     return 0;
 }
 
-livekit_peer_err_t livekit_peer_create(livekit_peer_handle_t *handle, livekit_peer_options_t options)
+livekit_peer_err_t livekit_peer_create(livekit_peer_handle_t *handle, livekit_peer_options_t *options)
 {
     if (handle == NULL ||
-        options.on_connected == NULL ||
-        options.on_ice_candidate == NULL ||
-        options.on_sdp == NULL) {
+        options->on_connected == NULL ||
+        options->on_ice_candidate == NULL ||
+        options->on_sdp == NULL) {
+        return LIVEKIT_PEER_ERR_INVALID_ARG;
+    }
+    if (options->media->video_info.codec == ESP_PEER_VIDEO_CODEC_MJPEG) {
+        // MJPEG over data channel is not supported yet
         return LIVEKIT_PEER_ERR_INVALID_ARG;
     }
 
@@ -216,46 +220,21 @@ livekit_peer_err_t livekit_peer_create(livekit_peer_handle_t *handle, livekit_pe
     if (peer == NULL) {
         return LIVEKIT_PEER_ERR_NO_MEM;
     }
-    peer->options = options;
-    peer->ice_role = options.target == LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER ?
-            ESP_PEER_ROLE_CONTROLLED : ESP_PEER_ROLE_CONTROLLING;
+    media_lib_event_group_create(&peer->wait_event);
+    if (peer->wait_event == NULL) {
+        free(peer);
+        return LIVEKIT_PEER_ERR_NO_MEM;
+    }
+
+    peer->options = *options;
+    peer->ice_role = options->target == LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER ?
+        ESP_PEER_ROLE_CONTROLLED : ESP_PEER_ROLE_CONTROLLING;
 
     // Set to invalid IDs to indicate that the data channels are not connected yet
     peer->reliable_stream_id = STREAM_ID_INVALID;
     peer->lossy_stream_id = STREAM_ID_INVALID;
 
-    *handle = (livekit_peer_handle_t)peer;
-    return LIVEKIT_PEER_ERR_NONE;
-}
-
-livekit_peer_err_t livekit_peer_destroy(livekit_peer_handle_t handle)
-{
-    if (handle == NULL) {
-        return LIVEKIT_PEER_ERR_INVALID_ARG;
-    }
-    livekit_peer_t *peer = (livekit_peer_t *)handle;
-    free(peer);
-    return LIVEKIT_PEER_ERR_NONE;
-}
-
-livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle, livekit_peer_connect_options_t connect_options)
-{
-    if (handle == NULL) {
-        return LIVEKIT_PEER_ERR_INVALID_ARG;
-    }
-    livekit_peer_t *peer = (livekit_peer_t *)handle;
-
-    if (peer->connection != NULL) {
-        esp_peer_new_connection(peer->connection);
-        return LIVEKIT_PEER_ERR_NONE;
-    }
-    if (connect_options.media->video_info.codec == ESP_PEER_VIDEO_CODEC_MJPEG) {
-        ESP_LOGE(TAG(peer), "MJPEG over data channel is not supported yet");
-        return LIVEKIT_PEER_ERR_INVALID_ARG;
-    }
-    peer->is_primary = connect_options.is_primary;
-
-    // Configuration for the default peer implementation.
+     // Configuration for the default peer implementation
     esp_peer_default_cfg_t default_peer_cfg = {
         .agent_recv_timeout = 10000,
         .data_ch_cfg = {
@@ -263,20 +242,22 @@ livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle, livekit_pe
             .send_cache_size = 100 * 1024,
             .recv_cache_size = 100 * 1024
         }
+        // TODO: Set options
     };
-
-    esp_peer_media_dir_t audio_dir = get_media_direction(connect_options.media->audio_dir, peer->options.target);
-    esp_peer_media_dir_t video_dir = get_media_direction(connect_options.media->video_dir, peer->options.target);
+    esp_peer_media_dir_t audio_dir = get_media_direction(options->media->audio_dir, peer->options.target);
+    esp_peer_media_dir_t video_dir = get_media_direction(options->media->video_dir, peer->options.target);
     ESP_LOGI(TAG(peer), "Audio dir: %d, Video dir: %d", audio_dir, video_dir);
 
     esp_peer_cfg_t peer_cfg = {
-        .ice_trans_policy = connect_options.force_relay ?
+        .server_lists = options->server_list,
+        .server_num = options->server_count,
+        .ice_trans_policy = options->force_relay ?
             ESP_PEER_ICE_TRANS_POLICY_RELAY : ESP_PEER_ICE_TRANS_POLICY_ALL,
         .audio_dir = audio_dir,
         .video_dir = video_dir,
-        .audio_info = connect_options.media->audio_info,
-        .video_info = connect_options.media->video_info,
-        .enable_data_channel = peer->options.target == LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER,
+        .audio_info = options->media->audio_info,
+        .video_info = options->media->video_info,
+        .enable_data_channel = true,
         .manual_ch_create = true,
         .no_auto_reconnect = false,
         .extra_cfg = &default_peer_cfg,
@@ -293,17 +274,32 @@ livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle, livekit_pe
         .role = peer->ice_role,
         .ctx = peer
     };
-
-    int ret = esp_peer_open(&peer_cfg, esp_peer_get_default_impl(), &peer->connection);
-    if (ret != ESP_PEER_ERR_NONE) {
-        ESP_LOGE(TAG(peer), "Failed to open peer connection: %d", ret);
+    if (esp_peer_open(&peer_cfg, esp_peer_get_default_impl(), &peer->connection) != ESP_PEER_ERR_NONE) {
+        ESP_LOGE(TAG(peer), "Failed to open peer");
+        media_lib_event_group_destroy(peer->wait_event);
+        free(peer);
         return LIVEKIT_PEER_ERR_RTC;
     }
+    *handle = (livekit_peer_handle_t)peer;
+    return LIVEKIT_PEER_ERR_NONE;
+}
 
-    media_lib_event_group_create(&peer->wait_event);
-    if (peer->wait_event == NULL) {
-        return LIVEKIT_PEER_ERR_NO_MEM;
+livekit_peer_err_t livekit_peer_destroy(livekit_peer_handle_t handle)
+{
+    if (handle == NULL) {
+        return LIVEKIT_PEER_ERR_INVALID_ARG;
     }
+    livekit_peer_t *peer = (livekit_peer_t *)handle;
+    free(peer);
+    return LIVEKIT_PEER_ERR_NONE;
+}
+
+livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle)
+{
+    if (handle == NULL) {
+        return LIVEKIT_PEER_ERR_INVALID_ARG;
+    }
+    livekit_peer_t *peer = (livekit_peer_t *)handle;
 
     peer->running = true;
     media_lib_thread_handle_t thread;
@@ -314,7 +310,10 @@ livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle, livekit_pe
         return LIVEKIT_PEER_ERR_RTC;
     }
 
-    esp_peer_new_connection(peer->connection);
+    if (esp_peer_new_connection(peer->connection) != ESP_PEER_ERR_NONE) {
+        ESP_LOGE(TAG(peer), "Failed to start connection");
+        return LIVEKIT_PEER_ERR_RTC;
+    }
     return LIVEKIT_PEER_ERR_NONE;
 }
 
@@ -344,16 +343,6 @@ livekit_peer_err_t livekit_peer_disconnect(livekit_peer_handle_t handle)
         media_lib_event_group_destroy(peer->wait_event);
         peer->wait_event = NULL;
     }
-    return LIVEKIT_PEER_ERR_NONE;
-}
-
-livekit_peer_err_t livekit_peer_set_ice_servers(livekit_peer_handle_t handle, esp_peer_ice_server_cfg_t *servers, int count)
-{
-    if (handle == NULL) {
-        return LIVEKIT_PEER_ERR_INVALID_ARG;
-    }
-    livekit_peer_t *peer = (livekit_peer_t *)handle;
-    esp_peer_update_ice_info(peer->connection, peer->ice_role, servers, count);
     return LIVEKIT_PEER_ERR_NONE;
 }
 
