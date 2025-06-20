@@ -21,6 +21,7 @@ static const char *TAG = "livekit_url";
     "&os_version=%s" \
     "&device_model=%d" \
     "&auto_subscribe=false" \
+    "&protocol=" URL_PARAM_PROTOCOL \
     "&access_token=%s" // Keep at the end for log redaction
 
 bool livekit_url_build(const char *server_url, const char *token, char **out_url)

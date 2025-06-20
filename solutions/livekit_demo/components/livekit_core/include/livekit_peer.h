@@ -48,6 +48,10 @@ typedef struct {
     /// @brief Weather to force the use of relay ICE candidates.
     bool force_relay;
 
+    /// @brief Whether the peer is the primary peer.
+    /// @note This determines which peer controls the data channels.
+    bool is_primary;
+
     /// @brief Media options used for creating SDP messages.
     livekit_eng_media_options_t* media;
 } livekit_peer_connect_options_t;

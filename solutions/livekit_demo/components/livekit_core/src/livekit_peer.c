@@ -24,6 +24,7 @@ static const char *PUB_TAG = "livekit_peer.pub";
 
 typedef struct {
     livekit_peer_options_t options;
+    bool is_primary;
     esp_peer_role_t ice_role;
     esp_peer_handle_t connection;
     esp_peer_state_t state;
@@ -68,8 +69,9 @@ static void peer_task(void *ctx)
 
 static void create_data_channels(livekit_peer_t *peer)
 {
-    if (peer->options.target != LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER) return;
+    if (peer->options.target != LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER || !peer->is_primary) return;
     esp_peer_data_channel_cfg_t channel_cfg = {};
+    ESP_LOGI(TAG(peer), "Creating data channels");
 
     // TODO: This is a temporary solution to create data channels. This is NOT
     // actually reliable. Update once necessary options are exposed.
@@ -251,6 +253,7 @@ livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle, livekit_pe
         ESP_LOGE(TAG(peer), "MJPEG over data channel is not supported yet");
         return LIVEKIT_PEER_ERR_INVALID_ARG;
     }
+    peer->is_primary = connect_options.is_primary;
 
     // Configuration for the default peer implementation.
     esp_peer_default_cfg_t default_peer_cfg = {

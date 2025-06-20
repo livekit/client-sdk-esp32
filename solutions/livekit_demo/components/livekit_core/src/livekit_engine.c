@@ -316,19 +316,18 @@ static void on_peer_sub_connected(void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
     ESP_LOGI(TAG, "Sub peer connected");
+    // TODO: Subscribe
 }
 
 static void on_peer_pub_offer(const char *sdp, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    ESP_LOGI(TAG, "Pub peer generated offer: %s", sdp);
     livekit_sig_send_offer(eng->sig, sdp);
 }
 
 static void on_peer_sub_answer(const char *sdp, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    ESP_LOGI(TAG, "Sub peer generated answer: %s", sdp);
     livekit_sig_send_answer(eng->sig, sdp);
 }
 
@@ -364,30 +363,31 @@ static void on_sig_join(livekit_pb_join_response_t *join_res, void *ctx)
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
     set_ice_servers(eng, join_res->ice_servers, join_res->ice_servers_count);
 
-    if (join_res->subscriber_primary) {
-        ESP_LOGE(TAG, "Subscriber primary is not supported yet");
-        return;
-    }
+    // if (join_res->subscriber_primary) {
+    //     ESP_LOGE(TAG, "Subscriber primary is not supported yet");
+    //     return;
+    // }
     livekit_peer_connect_options_t connect_options = {
         .force_relay = join_res->has_client_configuration &&
                        join_res->client_configuration.force_relay == LIVEKIT_PB_CLIENT_CONFIG_SETTING_ENABLED,
-        .media = &eng->options.media,
+        .media = &eng->options.media
     };
-    livekit_peer_connect(eng->pub_peer, connect_options);
-    // livekit_peer_connect(connection_options, eng->sub_peer);
+    // connect_options.is_primary = !join_res->subscriber_primary;
+    // livekit_peer_connect(eng->pub_peer, connect_options);
+
+    connect_options.is_primary = join_res->subscriber_primary;
+    livekit_peer_connect(eng->sub_peer, connect_options);
 }
 
 static void on_sig_answer(const char *sdp, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    ESP_LOGI(TAG, "Received answer: \n%s", sdp);
     livekit_peer_handle_sdp(eng->pub_peer, sdp);
 }
 
 static void on_sig_offer(const char *sdp, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    ESP_LOGI(TAG, "Received offer: \n%s", sdp);
     livekit_peer_handle_sdp(eng->sub_peer, sdp);
 }
 
