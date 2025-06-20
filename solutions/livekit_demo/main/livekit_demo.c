@@ -17,6 +17,10 @@ int join_room()
                 .channel_count = 1
             },
             .capturer = media_setup_get_capturer()
+        },
+        .subscribe = {
+            .kind = LIVEKIT_MEDIA_TYPE_AUDIO,
+            .renderer = media_setup_get_renderer()
         }
     };
 
