@@ -386,10 +386,6 @@ static void on_sig_error(void *ctx)
 
 static bool connect_peer(livekit_eng_t *eng, livekit_peer_options_t *options, livekit_peer_handle_t *peer)
 {
-    assert(eng != NULL);
-    assert(options != NULL);
-    assert(peer != NULL);
-
     if (*peer != NULL) {
         ESP_LOGI(TAG, "Disconnecting existing peer");
         if (livekit_peer_disconnect(*peer) != LIVEKIT_PEER_ERR_NONE) return false;
