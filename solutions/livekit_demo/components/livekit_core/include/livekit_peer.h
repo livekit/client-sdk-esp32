@@ -55,6 +55,18 @@ typedef struct {
     /// @brief Invoked when a data packet is received over the data channel.
     void (*on_packet_received)(livekit_pb_data_packet_t* packet, void *ctx);
 
+    /// @brief Invoked when information about an incoming audio stream is available.
+    void (*on_audio_info)(esp_peer_audio_stream_info_t* info, void *ctx);
+
+    /// @brief Invoked when an audio frame is received.
+    void (*on_audio_frame)(esp_peer_audio_frame_t* frame, void *ctx);
+
+    /// @brief Invoked when information about an incoming video stream is available.
+    void (*on_video_info)(esp_peer_video_stream_info_t* info, void *ctx);
+
+    /// @brief Invoked when a video frame is received.
+    void (*on_video_frame)(esp_peer_video_frame_t* frame, void *ctx);
+
     /// @brief Context pointer passed to the handlers.
     void *ctx;
 } livekit_peer_options_t;

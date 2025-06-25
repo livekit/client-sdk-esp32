@@ -363,6 +363,20 @@ static void on_peer_packet_received(livekit_pb_data_packet_t* packet, void *ctx)
     }
 }
 
+static void on_peer_sub_audio_info(esp_peer_audio_stream_info_t* info, void *ctx)
+{
+    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    ESP_LOGI(TAG, "Received sub audio info");
+     // TODO: Implement
+}
+
+static void on_peer_sub_audio_frame(esp_peer_audio_frame_t* frame, void *ctx)
+{
+    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    ESP_LOGI(TAG, "Received sub audio frame");
+    // TODO: Implement
+}
+
 static void on_sig_connect(void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
@@ -429,6 +443,8 @@ static void on_sig_join(livekit_pb_join_response_t *join_res, void *ctx)
     options.target = LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER;
     options.on_connected = on_peer_sub_connected;
     options.on_sdp = on_peer_sub_answer;
+    options.on_audio_info = on_peer_sub_audio_info;
+    options.on_audio_frame = on_peer_sub_audio_frame;
 
     if (!connect_peer(eng, &options, &eng->sub_peer)) {
         ESP_LOGE(TAG, "Failed to connect subscriber peer");

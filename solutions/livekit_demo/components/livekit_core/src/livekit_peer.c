@@ -122,31 +122,39 @@ static int on_msg(esp_peer_msg_t *info, void *ctx)
     return 0;
 }
 
-static int on_video_info(esp_peer_video_stream_info_t *info, void *ctx)
-{
-    livekit_peer_t *peer = (livekit_peer_t *)ctx;
-    ESP_LOGI(TAG(peer), "Video info received: %d", info->codec);
-    return 0;
-}
-
 static int on_audio_info(esp_peer_audio_stream_info_t *info, void *ctx)
 {
     livekit_peer_t *peer = (livekit_peer_t *)ctx;
-    ESP_LOGI(TAG(peer), "Audio info received: %d", info->codec);
-    return 0;
-}
-
-static int on_video_data(esp_peer_video_frame_t *info, void *ctx)
-{
-    livekit_peer_t *peer = (livekit_peer_t *)ctx;
-    ESP_LOGI(TAG(peer), "Video data received: size=%d", info->size);
+    if (peer->options.on_audio_info != NULL) {
+        peer->options.on_audio_info(info, peer->options.ctx);
+    }
     return 0;
 }
 
 static int on_audio_data(esp_peer_audio_frame_t *info, void *ctx)
 {
     livekit_peer_t *peer = (livekit_peer_t *)ctx;
-    ESP_LOGI(TAG(peer), "Audio data received: size=%d", info->size);
+    if (peer->options.on_audio_frame != NULL) {
+        peer->options.on_audio_frame(info, peer->options.ctx);
+    }
+    return 0;
+}
+
+static int on_video_info(esp_peer_video_stream_info_t *info, void *ctx)
+{
+    livekit_peer_t *peer = (livekit_peer_t *)ctx;
+    if (peer->options.on_video_info != NULL) {
+        peer->options.on_video_info(info, peer->options.ctx);
+    }
+    return 0;
+}
+
+static int on_video_data(esp_peer_video_frame_t *info, void *ctx)
+{
+    livekit_peer_t *peer = (livekit_peer_t *)ctx;
+    if (peer->options.on_video_frame != NULL) {
+        peer->options.on_video_frame(info, peer->options.ctx);
+    }
     return 0;
 }
 
