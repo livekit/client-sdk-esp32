@@ -154,10 +154,6 @@ static void handle_res(livekit_sig_t *sg, livekit_pb_signal_response_t *res)
                     trickle->final,
                     candidate->valuestring
                 );
-                if (strstr(candidate->valuestring, "tcp") != NULL) {
-                    ESP_LOGI(TAG, "Skipping candidate containing 'tcp'");
-                    break;
-                }
                 sg->options.on_trickle(candidate->valuestring, trickle->target, sg->options.ctx);
             } while (0);
             cJSON_Delete(candidate_init);
