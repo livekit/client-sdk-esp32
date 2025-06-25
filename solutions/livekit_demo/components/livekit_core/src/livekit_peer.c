@@ -69,7 +69,7 @@ static void peer_task(void *ctx)
 
 static void create_data_channels(livekit_peer_t *peer)
 {
-    if (peer->options.target != LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER || !peer->is_primary) return;
+    if (peer->options.target != LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER) return;
     esp_peer_data_channel_cfg_t channel_cfg = {};
     ESP_LOGI(TAG(peer), "Creating data channels");
 
