@@ -12,7 +12,6 @@ static const char *TAG = "livekit_url";
 #define URL_PARAM_VERSION  LIVEKIT_SDK_VERSION
 #define URL_PARAM_OS       "idf"
 #define URL_PARAM_PROTOCOL "15"
-// TODO: Add protocol version parameter to URL
 
 #define URL_FORMAT "%s%srtc?" \
     "sdk=" URL_PARAM_SDK \
