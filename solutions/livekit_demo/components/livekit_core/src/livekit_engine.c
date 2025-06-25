@@ -418,15 +418,15 @@ static void on_sig_join(livekit_pb_join_response_t *join_res, void *ctx)
     };
 
     // 1. Publisher peer
-    // options.is_primary = !join_res->subscriber_primary;
-    // options.target = LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER;
-    // options.on_connected = on_peer_pub_connected;
-    // options.on_sdp = on_peer_pub_offer;
+    options.is_primary = !join_res->subscriber_primary;
+    options.target = LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER;
+    options.on_connected = on_peer_pub_connected;
+    options.on_sdp = on_peer_pub_offer;
 
-    // if (!connect_peer(eng, &options, &eng->pub_peer)) {
-    //    ESP_LOGE(TAG, "Failed to connect publisher peer");
-    //    return;
-    // }
+    if (!connect_peer(eng, &options, &eng->pub_peer)) {
+       ESP_LOGE(TAG, "Failed to connect publisher peer");
+       return;
+    }
 
     // 2. Subscriber peer
     options.is_primary = join_res->subscriber_primary;
