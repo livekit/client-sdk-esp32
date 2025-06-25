@@ -1,6 +1,7 @@
 #include "esp_log.h"
 #include "webrtc_utils_time.h"
 #include "media_lib_os.h"
+#include "esp_codec_dev.h"
 
 #include "livekit_protocol.h"
 #include "livekit_engine.h"
@@ -33,6 +34,9 @@ typedef struct {
 
     esp_capture_path_handle_t capturer_path;
     bool is_media_streaming;
+
+    esp_codec_dev_handle_t        renderer_handle;
+    esp_peer_audio_stream_info_t  sub_audio_info;
 } livekit_eng_t;
 
 /// @brief Performs one-time system initialization.
@@ -74,6 +78,33 @@ static esp_capture_codec_type_t capture_video_codec_type(esp_peer_video_codec_t 
         default:
             return ESP_CAPTURE_CODEC_TYPE_NONE;
     }
+}
+
+static av_render_audio_codec_t get_dec_codec(esp_peer_audio_codec_t codec)
+{
+    switch (codec) {
+        case ESP_PEER_AUDIO_CODEC_G711A:
+            return AV_RENDER_AUDIO_CODEC_G711A;
+        case ESP_PEER_AUDIO_CODEC_G711U:
+            return AV_RENDER_AUDIO_CODEC_G711U;
+        case ESP_PEER_AUDIO_CODEC_OPUS:
+            return AV_RENDER_AUDIO_CODEC_OPUS;
+        default:
+            return AV_RENDER_AUDIO_CODEC_NONE;
+    }
+}
+
+static void convert_dec_aud_info(esp_peer_audio_stream_info_t *info, av_render_audio_info_t *dec_info)
+{
+    dec_info->codec = get_dec_codec(info->codec);
+    if (info->codec == ESP_PEER_AUDIO_CODEC_G711A || info->codec == ESP_PEER_AUDIO_CODEC_G711U) {
+        dec_info->sample_rate = 8000;
+        dec_info->channel = 1;
+    } else {
+        dec_info->sample_rate = info->sample_rate;
+        dec_info->channel = info->channel;
+    }
+    dec_info->bits_per_sample = 16;
 }
 
 static void _media_stream_send_audio(livekit_eng_t *eng)
@@ -148,11 +179,7 @@ static livekit_eng_err_t media_stream_end(livekit_eng_t *eng)
         return LIVEKIT_ENG_ERR_NONE;
     }
     eng->is_media_streaming = false;
-    if (esp_capture_stop(eng->options.media.capturer) != ESP_CAPTURE_ERR_OK) {
-        ESP_LOGE(TAG, "Failed to stop capture");
-        return LIVEKIT_ENG_ERR_MEDIA;
-    }
-    // TODO: Reset render handle `av_render_reset(rtc->play_handle);`
+    esp_capture_stop(eng->options.media.capturer);
     ESP_LOGI(TAG, "Media stream ended");
     return LIVEKIT_ENG_ERR_NONE;
 }
@@ -366,15 +393,31 @@ static void on_peer_packet_received(livekit_pb_data_packet_t* packet, void *ctx)
 static void on_peer_sub_audio_info(esp_peer_audio_stream_info_t* info, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    ESP_LOGI(TAG, "Received sub audio info");
-     // TODO: Implement
+
+    av_render_audio_info_t render_info = {};
+    convert_dec_aud_info(info, &render_info);
+    ESP_LOGI(TAG, "Audio render info: codec=%d, sample_rate=%" PRIu32 ", channels=%" PRIu8,
+        render_info.codec, render_info.sample_rate, render_info.channel);
+
+    if (av_render_add_audio_stream(eng->renderer_handle, &render_info) != ESP_MEDIA_ERR_OK) {
+        ESP_LOGE(TAG, "Failed to add audio stream to renderer");
+        return;
+    }
+    eng->sub_audio_info = *info;
 }
 
 static void on_peer_sub_audio_frame(esp_peer_audio_frame_t* frame, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    ESP_LOGI(TAG, "Received sub audio frame");
-    // TODO: Implement
+    if (eng->sub_audio_info.codec == ESP_PEER_AUDIO_CODEC_NONE) return;
+    // TODO: Check engine state before rendering
+
+     av_render_audio_data_t audio_data = {
+        .pts = frame->pts,
+        .data = frame->data,
+        .size = frame->size,
+    };
+    av_render_add_audio_data(eng->renderer_handle, &audio_data);
 }
 
 static void on_sig_connect(void *ctx)
@@ -514,9 +557,13 @@ livekit_eng_err_t livekit_eng_create(livekit_eng_handle_t *handle, livekit_eng_o
         },
     };
 
-    // TODO: Handle capturer error
+    if (options->media.audio_info.codec != ESP_PEER_AUDIO_CODEC_NONE) {
+        // TODO: Can we ensure the renderer is valid? If not, return error.
+        eng->renderer_handle = options->media.renderer;
+    }
     esp_capture_setup_path(eng->options.media.capturer, ESP_CAPTURE_PATH_PRIMARY, &sink_cfg, &eng->capturer_path);
     esp_capture_enable_path(eng->capturer_path, ESP_CAPTURE_RUN_TYPE_ALWAYS);
+    // TODO: Handle capturer error
 
     *handle = eng;
     return LIVEKIT_ENG_ERR_NONE;
@@ -565,6 +612,8 @@ livekit_eng_err_t livekit_eng_close(livekit_eng_handle_t handle)
     livekit_eng_t *eng = (livekit_eng_t *)handle;
 
     media_stream_end(eng);
+    // TODO: Reset just the stream that was added in case users added their own streams?
+    av_render_reset(eng->renderer_handle);
 
     if (eng->sub_peer != NULL) {
         livekit_peer_disconnect(eng->sub_peer);
