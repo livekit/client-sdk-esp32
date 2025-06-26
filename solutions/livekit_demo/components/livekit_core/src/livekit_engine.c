@@ -462,7 +462,7 @@ static void on_sig_join(livekit_pb_join_response_t *join_res, void *ctx)
         return;
     }
 
-    set_ice_servers(eng, join_res->ice_servers, join_res->ice_servers_count);
+    // set_ice_servers(eng, join_res->ice_servers, join_res->ice_servers_count);
 
     livekit_peer_options_t options = {
         // Options common to both peers
