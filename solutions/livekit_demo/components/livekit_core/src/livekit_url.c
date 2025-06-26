@@ -11,7 +11,10 @@ static const char *TAG = "livekit_url";
 #define URL_PARAM_SDK      "esp32"
 #define URL_PARAM_VERSION  LIVEKIT_SDK_VERSION
 #define URL_PARAM_OS       "idf"
-#define URL_PARAM_PROTOCOL "15"
+#define URL_PARAM_PROTOCOL "1"
+
+// TODO: For now, we use a protocol version that does not support subscriber primary.
+// This is to get around a limitation with re-negotiation.
 
 #define URL_FORMAT "%s%srtc?" \
     "sdk=" URL_PARAM_SDK \
@@ -19,7 +22,7 @@ static const char *TAG = "livekit_url";
     "&os=" URL_PARAM_OS \
     "&os_version=%s" \
     "&device_model=%d" \
-    "&auto_subscribe=false" \
+    "&auto_subscribe=true" \
     "&protocol=" URL_PARAM_PROTOCOL \
     "&access_token=%s" // Keep at the end for log redaction
 
