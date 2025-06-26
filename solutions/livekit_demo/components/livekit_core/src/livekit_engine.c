@@ -456,6 +456,12 @@ static bool connect_peer(livekit_eng_t *eng, livekit_peer_options_t *options, li
 static void on_sig_join(livekit_pb_join_response_t *join_res, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
+
+    if (join_res->subscriber_primary) {
+        ESP_LOGE(TAG, "Subscriber primary is not supported yet");
+        return;
+    }
+
     set_ice_servers(eng, join_res->ice_servers, join_res->ice_servers_count);
 
     livekit_peer_options_t options = {
