@@ -23,7 +23,7 @@ if(NOT DEFINED ENV{WIFI_PASSWORD})
 endif()
 
 # Check for token configuration - either sandbox or direct token
-if(DEFINED ENV{LK_TOKEN})
+if(DEFINED ENV{LK_TOKEN} AND NOT "$ENV{LK_TOKEN}" STREQUAL "")
   # Using direct token approach
   if(NOT DEFINED ENV{LK_SERVER_URL})
     message(FATAL_ERROR "LK_TOKEN is set but LK_SERVER_URL is not set in env variable LK_SERVER_URL")
