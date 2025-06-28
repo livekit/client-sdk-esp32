@@ -33,8 +33,6 @@ typedef struct {
     bool pause;
     media_lib_event_grp_handle_t wait_event;
 
-    esp_codec_dev_handle_t        play_handle;
-
     uint16_t reliable_stream_id;
     uint16_t lossy_stream_id;
 } livekit_peer_t;
