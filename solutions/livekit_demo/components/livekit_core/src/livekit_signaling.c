@@ -35,16 +35,6 @@ typedef struct {
     int64_t                       rtt;
 } livekit_sig_t;
 
-static esp_websocket_client_config_t default_ws_cfg = {
-    .buffer_size = LIVEKIT_SIG_WS_BUFFER_SIZE,
-    .disable_pingpong_discon = true,
-    .reconnect_timeout_ms = LIVEKIT_SIG_WS_RECONNECT_TIMEOUT_MS,
-    .network_timeout_ms = LIVEKIT_SIG_WS_NETWORK_TIMEOUT_MS,
-#ifdef CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
-    .crt_bundle_attach = esp_crt_bundle_attach
-#endif
-};
-
 static void log_error_if_nonzero(const char *message, int error_code)
 {
     if (error_code != 0) {
@@ -273,7 +263,16 @@ livekit_sig_err_t livekit_sig_create(livekit_sig_handle_t *handle, livekit_sig_o
     }
 
     // URL will be set on connect
-    sg->ws = esp_websocket_client_init(&default_ws_cfg);
+    static esp_websocket_client_config_t ws_config = {
+        .buffer_size = LIVEKIT_SIG_WS_BUFFER_SIZE,
+        .disable_pingpong_discon = true,
+        .reconnect_timeout_ms = LIVEKIT_SIG_WS_RECONNECT_TIMEOUT_MS,
+        .network_timeout_ms = LIVEKIT_SIG_WS_NETWORK_TIMEOUT_MS,
+#ifdef CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
+        .crt_bundle_attach = esp_crt_bundle_attach
+#endif
+    };
+    sg->ws = esp_websocket_client_init(&ws_config);
     if (sg->ws == NULL) {
         ESP_LOGE(TAG, "Failed to initialize WebSocket client");
         esp_timer_delete(sg->ping_timer);
