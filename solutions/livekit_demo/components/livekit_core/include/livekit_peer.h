@@ -20,6 +20,12 @@ typedef enum {
     LIVEKIT_PEER_ERR_MESSAGE        = -5
 } livekit_peer_err_t;
 
+typedef enum {
+    LIVEKIT_PEER_STATE_DISCONNECTED = 0, /*!< Disconnected */
+    LIVEKIT_PEER_STATE_CONNECTING   = 1, /*!< Establishing peer connection */
+    LIVEKIT_PEER_STATE_CONNECTED    = 2, /*!< Connected to peer & data channels open */
+    LIVEKIT_PEER_STATE_FAILED       = 3  /*!< Connection failed */
+} livekit_peer_state_t;
 
 /// @brief Options for creating a peer.
 typedef struct {
@@ -42,8 +48,8 @@ typedef struct {
     /// @brief Media options used for creating SDP messages.
     livekit_eng_media_options_t* media;
 
-    /// @brief Invoked when the peer is connected.
-    void (*on_connected)(void *ctx);
+    /// @brief Invoked when the peer's connection state changes.
+    void (*on_state_changed)(livekit_peer_state_t state, void *ctx);
 
     /// @brief Invoked when an SDP message is available. This can be either
     /// an offer or answer depending on target configuration.

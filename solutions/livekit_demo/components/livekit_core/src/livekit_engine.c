@@ -328,18 +328,20 @@ static livekit_eng_err_t set_ice_servers(livekit_eng_t* eng, livekit_pb_ice_serv
     return LIVEKIT_PEER_ERR_NONE;
 }
 
-static void on_peer_pub_connected(void *ctx)
+static void on_peer_pub_state_changed(livekit_peer_state_t state, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    ESP_LOGI(TAG, "Pub peer connected");
-    publish_tracks(eng);
+    if (state == LIVEKIT_PEER_STATE_CONNECTED) {
+        publish_tracks(eng);
+    }
 }
 
-static void on_peer_sub_connected(void *ctx)
+static void on_peer_sub_state_changed(livekit_peer_state_t state, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    ESP_LOGI(TAG, "Sub peer connected");
-    // TODO: Subscribe
+    if (state == LIVEKIT_PEER_STATE_CONNECTED) {
+        // TODO: Subscribe
+    }
 }
 
 static void on_peer_pub_offer(const char *sdp, void *ctx)
@@ -484,7 +486,7 @@ static void on_sig_join(livekit_pb_join_response_t *join_res, void *ctx)
     // 1. Publisher peer
     options.is_primary = !join_res->subscriber_primary;
     options.target = LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER;
-    options.on_connected = on_peer_pub_connected;
+    options.on_state_changed = on_peer_pub_state_changed;
     options.on_sdp = on_peer_pub_offer;
 
     if (!connect_peer(eng, &options, &eng->pub_peer)) {
@@ -495,7 +497,7 @@ static void on_sig_join(livekit_pb_join_response_t *join_res, void *ctx)
     // 2. Subscriber peer
     options.is_primary = join_res->subscriber_primary;
     options.target = LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER;
-    options.on_connected = on_peer_sub_connected;
+    options.on_state_changed = on_peer_sub_state_changed;
     options.on_sdp = on_peer_sub_answer;
     options.on_audio_info = on_peer_sub_audio_info;
     options.on_audio_frame = on_peer_sub_audio_frame;

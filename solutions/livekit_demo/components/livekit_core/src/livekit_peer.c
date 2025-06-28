@@ -27,7 +27,8 @@ typedef struct {
     bool is_primary;
     esp_peer_role_t ice_role;
     esp_peer_handle_t connection;
-    esp_peer_state_t state;
+
+    livekit_peer_state_t state;
 
     bool running;
     bool pause;
@@ -83,18 +84,38 @@ static void create_data_channels(livekit_peer_t *peer)
     }
 }
 
-static int on_state(esp_peer_state_t state, void *ctx)
+static int on_state(esp_peer_state_t rtc_state, void *ctx)
 {
     livekit_peer_t *peer = (livekit_peer_t *)ctx;
-    ESP_LOGI(TAG(peer), "State changed to %d", state);
+    ESP_LOGI(TAG(peer), "RTC state changed to %d", rtc_state);
 
-    switch (state) {
+    livekit_peer_state_t state = peer->state;
+    switch (rtc_state) {
+        case ESP_PEER_STATE_CONNECT_FAILED:
+            state = LIVEKIT_PEER_STATE_FAILED;
+            break;
+        case ESP_PEER_STATE_DISCONNECTED:
+            state = LIVEKIT_PEER_STATE_DISCONNECTED;
+            break;
+        case ESP_PEER_STATE_PAIRING:
+            state = LIVEKIT_PEER_STATE_CONNECTING;
+            break;
         case ESP_PEER_STATE_CONNECTED:
             create_data_channels(peer);
-            peer->options.on_connected(peer->options.ctx);
+            break;
+        case ESP_PEER_STATE_DATA_CHANNEL_OPENED:
+            // Don't enter the connected state until both data channels are opened.
+            if (peer->reliable_stream_id == STREAM_ID_INVALID ||
+                peer->lossy_stream_id    == STREAM_ID_INVALID ) break;
+            state = LIVEKIT_PEER_STATE_CONNECTED;
             break;
         default:
             break;
+    }
+    if (state != peer->state) {
+        ESP_LOGI(TAG(peer), "State changed to %d", state);
+        peer->state = state;
+        peer->options.on_state_changed(state, peer->options.ctx);
     }
     return 0;
 }
@@ -212,7 +233,7 @@ static int on_data(esp_peer_data_frame_t *frame, void *ctx)
 livekit_peer_err_t livekit_peer_create(livekit_peer_handle_t *handle, livekit_peer_options_t *options)
 {
     if (handle == NULL ||
-        options->on_connected == NULL ||
+        options->on_state_changed == NULL ||
         options->on_ice_candidate == NULL ||
         options->on_sdp == NULL) {
         return LIVEKIT_PEER_ERR_INVALID_ARG;
@@ -235,6 +256,7 @@ livekit_peer_err_t livekit_peer_create(livekit_peer_handle_t *handle, livekit_pe
     peer->options = *options;
     peer->ice_role = options->target == LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER ?
         ESP_PEER_ROLE_CONTROLLED : ESP_PEER_ROLE_CONTROLLING;
+    peer->state = LIVEKIT_PEER_STATE_DISCONNECTED;
 
     // Set to invalid IDs to indicate that the data channels are not connected yet
     peer->reliable_stream_id = STREAM_ID_INVALID;
