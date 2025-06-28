@@ -139,6 +139,11 @@ typedef struct livekit_pb_update_local_video_track {
     uint32_t height;
 } livekit_pb_update_local_video_track_t;
 
+typedef struct livekit_pb_leave_request {
+    livekit_pb_disconnect_reason_t reason;
+    livekit_pb_leave_request_action_t action;
+} livekit_pb_leave_request_t;
+
 typedef struct livekit_pb_update_participant_metadata {
     pb_callback_t metadata;
     pb_callback_t name;
@@ -303,27 +308,6 @@ typedef struct livekit_pb_ping {
     int64_t rtt;
 } livekit_pb_ping_t;
 
-typedef struct livekit_pb_pong {
-    /* timestamp field of last received ping request */
-    int64_t last_ping_timestamp;
-    int64_t timestamp;
-} livekit_pb_pong_t;
-
-typedef struct livekit_pb_region_settings {
-    pb_callback_t regions;
-} livekit_pb_region_settings_t;
-
-typedef struct livekit_pb_leave_request {
-    /* sent when server initiates the disconnect due to server-restart
- indicates clients should attempt full-reconnect sequence
- NOTE: `can_reconnect` obsoleted by `action` starting in protocol version 13 */
-    bool can_reconnect;
-    livekit_pb_disconnect_reason_t reason;
-    livekit_pb_leave_request_action_t action;
-    bool has_regions;
-    livekit_pb_region_settings_t regions;
-} livekit_pb_leave_request_t;
-
 typedef struct livekit_pb_signal_request {
     pb_size_t which_message;
     union {
@@ -359,6 +343,16 @@ typedef struct livekit_pb_signal_request {
         livekit_pb_update_local_video_track_t update_video_track;
     } message;
 } livekit_pb_signal_request_t;
+
+typedef struct livekit_pb_pong {
+    /* timestamp field of last received ping request */
+    int64_t last_ping_timestamp;
+    int64_t timestamp;
+} livekit_pb_pong_t;
+
+typedef struct livekit_pb_region_settings {
+    pb_callback_t regions;
+} livekit_pb_region_settings_t;
 
 typedef struct livekit_pb_region_info {
     pb_callback_t region;
@@ -537,7 +531,7 @@ extern "C" {
 #define LIVEKIT_PB_UPDATE_TRACK_SETTINGS_INIT_DEFAULT {{{NULL}, NULL}, 0, _LIVEKIT_PB_VIDEO_QUALITY_MIN, 0, 0, 0, 0}
 #define LIVEKIT_PB_UPDATE_LOCAL_AUDIO_TRACK_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_UPDATE_LOCAL_VIDEO_TRACK_INIT_DEFAULT {{{NULL}, NULL}, 0, 0}
-#define LIVEKIT_PB_LEAVE_REQUEST_INIT_DEFAULT    {0, _LIVEKIT_PB_DISCONNECT_REASON_MIN, _LIVEKIT_PB_LEAVE_REQUEST_ACTION_MIN, false, LIVEKIT_PB_REGION_SETTINGS_INIT_DEFAULT}
+#define LIVEKIT_PB_LEAVE_REQUEST_INIT_DEFAULT    {_LIVEKIT_PB_DISCONNECT_REASON_MIN, _LIVEKIT_PB_LEAVE_REQUEST_ACTION_MIN}
 #define LIVEKIT_PB_UPDATE_PARTICIPANT_METADATA_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0}
 #define LIVEKIT_PB_UPDATE_PARTICIPANT_METADATA_ATTRIBUTES_ENTRY_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_ICE_SERVER_INIT_DEFAULT       {0, NULL, NULL, NULL}
@@ -581,7 +575,7 @@ extern "C" {
 #define LIVEKIT_PB_UPDATE_TRACK_SETTINGS_INIT_ZERO {{{NULL}, NULL}, 0, _LIVEKIT_PB_VIDEO_QUALITY_MIN, 0, 0, 0, 0}
 #define LIVEKIT_PB_UPDATE_LOCAL_AUDIO_TRACK_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_UPDATE_LOCAL_VIDEO_TRACK_INIT_ZERO {{{NULL}, NULL}, 0, 0}
-#define LIVEKIT_PB_LEAVE_REQUEST_INIT_ZERO       {0, _LIVEKIT_PB_DISCONNECT_REASON_MIN, _LIVEKIT_PB_LEAVE_REQUEST_ACTION_MIN, false, LIVEKIT_PB_REGION_SETTINGS_INIT_ZERO}
+#define LIVEKIT_PB_LEAVE_REQUEST_INIT_ZERO       {_LIVEKIT_PB_DISCONNECT_REASON_MIN, _LIVEKIT_PB_LEAVE_REQUEST_ACTION_MIN}
 #define LIVEKIT_PB_UPDATE_PARTICIPANT_METADATA_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0}
 #define LIVEKIT_PB_UPDATE_PARTICIPANT_METADATA_ATTRIBUTES_ENTRY_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_ICE_SERVER_INIT_ZERO          {0, NULL, NULL, NULL}
@@ -651,6 +645,8 @@ extern "C" {
 #define LIVEKIT_PB_UPDATE_LOCAL_VIDEO_TRACK_TRACK_SID_TAG 1
 #define LIVEKIT_PB_UPDATE_LOCAL_VIDEO_TRACK_WIDTH_TAG 2
 #define LIVEKIT_PB_UPDATE_LOCAL_VIDEO_TRACK_HEIGHT_TAG 3
+#define LIVEKIT_PB_LEAVE_REQUEST_REASON_TAG      2
+#define LIVEKIT_PB_LEAVE_REQUEST_ACTION_TAG      3
 #define LIVEKIT_PB_UPDATE_PARTICIPANT_METADATA_METADATA_TAG 1
 #define LIVEKIT_PB_UPDATE_PARTICIPANT_METADATA_NAME_TAG 2
 #define LIVEKIT_PB_UPDATE_PARTICIPANT_METADATA_ATTRIBUTES_TAG 3
@@ -718,13 +714,6 @@ extern "C" {
 #define LIVEKIT_PB_SIMULATE_SCENARIO_LEAVE_REQUEST_FULL_RECONNECT_TAG 9
 #define LIVEKIT_PB_PING_TIMESTAMP_TAG            1
 #define LIVEKIT_PB_PING_RTT_TAG                  2
-#define LIVEKIT_PB_PONG_LAST_PING_TIMESTAMP_TAG  1
-#define LIVEKIT_PB_PONG_TIMESTAMP_TAG            2
-#define LIVEKIT_PB_REGION_SETTINGS_REGIONS_TAG   1
-#define LIVEKIT_PB_LEAVE_REQUEST_CAN_RECONNECT_TAG 1
-#define LIVEKIT_PB_LEAVE_REQUEST_REASON_TAG      2
-#define LIVEKIT_PB_LEAVE_REQUEST_ACTION_TAG      3
-#define LIVEKIT_PB_LEAVE_REQUEST_REGIONS_TAG     4
 #define LIVEKIT_PB_SIGNAL_REQUEST_OFFER_TAG      1
 #define LIVEKIT_PB_SIGNAL_REQUEST_ANSWER_TAG     2
 #define LIVEKIT_PB_SIGNAL_REQUEST_TRICKLE_TAG    3
@@ -741,6 +730,9 @@ extern "C" {
 #define LIVEKIT_PB_SIGNAL_REQUEST_PING_REQ_TAG   16
 #define LIVEKIT_PB_SIGNAL_REQUEST_UPDATE_AUDIO_TRACK_TAG 17
 #define LIVEKIT_PB_SIGNAL_REQUEST_UPDATE_VIDEO_TRACK_TAG 18
+#define LIVEKIT_PB_PONG_LAST_PING_TIMESTAMP_TAG  1
+#define LIVEKIT_PB_PONG_TIMESTAMP_TAG            2
+#define LIVEKIT_PB_REGION_SETTINGS_REGIONS_TAG   1
 #define LIVEKIT_PB_REGION_INFO_REGION_TAG        1
 #define LIVEKIT_PB_REGION_INFO_URL_TAG           2
 #define LIVEKIT_PB_REGION_INFO_DISTANCE_TAG      3
@@ -971,13 +963,10 @@ X(a, STATIC,   SINGULAR, UINT32,   height,            3)
 #define LIVEKIT_PB_UPDATE_LOCAL_VIDEO_TRACK_DEFAULT NULL
 
 #define LIVEKIT_PB_LEAVE_REQUEST_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, BOOL,     can_reconnect,     1) \
 X(a, STATIC,   SINGULAR, UENUM,    reason,            2) \
-X(a, STATIC,   SINGULAR, UENUM,    action,            3) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  regions,           4)
+X(a, STATIC,   SINGULAR, UENUM,    action,            3)
 #define LIVEKIT_PB_LEAVE_REQUEST_CALLBACK NULL
 #define LIVEKIT_PB_LEAVE_REQUEST_DEFAULT NULL
-#define livekit_pb_leave_request_t_regions_MSGTYPE livekit_pb_region_settings_t
 
 #define LIVEKIT_PB_UPDATE_PARTICIPANT_METADATA_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   metadata,          1) \
@@ -1285,7 +1274,6 @@ extern const pb_msgdesc_t livekit_pb_track_subscribed_t_msg;
 /* livekit_pb_UpdateTrackSettings_size depends on runtime parameters */
 /* livekit_pb_UpdateLocalAudioTrack_size depends on runtime parameters */
 /* livekit_pb_UpdateLocalVideoTrack_size depends on runtime parameters */
-/* livekit_pb_LeaveRequest_size depends on runtime parameters */
 /* livekit_pb_UpdateParticipantMetadata_size depends on runtime parameters */
 /* livekit_pb_UpdateParticipantMetadata_AttributesEntry_size depends on runtime parameters */
 /* livekit_pb_ICEServer_size depends on runtime parameters */
@@ -1310,6 +1298,7 @@ extern const pb_msgdesc_t livekit_pb_track_subscribed_t_msg;
 /* livekit_pb_TrackSubscribed_size depends on runtime parameters */
 #define LIVEKIT_LIVEKIT_RTC_PB_H_MAX_SIZE        LIVEKIT_PB_ADD_TRACK_REQUEST_SIZE
 #define LIVEKIT_PB_ADD_TRACK_REQUEST_SIZE        81
+#define LIVEKIT_PB_LEAVE_REQUEST_SIZE            4
 #define LIVEKIT_PB_PING_SIZE                     22
 #define LIVEKIT_PB_PONG_SIZE                     22
 #define LIVEKIT_PB_SIMULATE_SCENARIO_SIZE        11

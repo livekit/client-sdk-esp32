@@ -441,13 +441,18 @@ static void on_sig_error(void *ctx)
     // TODO: Implement
 }
 
+static bool disconnect_peer(livekit_peer_handle_t *peer)
+{
+    if (*peer == NULL) return false;
+    if (livekit_peer_disconnect(*peer) != LIVEKIT_PEER_ERR_NONE) return false;
+    if (livekit_peer_destroy(*peer) != LIVEKIT_PEER_ERR_NONE) return false;
+    *peer = NULL;
+    return true;
+}
+
 static bool connect_peer(livekit_eng_t *eng, livekit_peer_options_t *options, livekit_peer_handle_t *peer)
 {
-    if (*peer != NULL) {
-        ESP_LOGI(TAG, "Disconnecting existing peer");
-        if (livekit_peer_disconnect(*peer) != LIVEKIT_PEER_ERR_NONE) return false;
-        if (livekit_peer_destroy(*peer) != LIVEKIT_PEER_ERR_NONE) return false;
-    }
+    disconnect_peer(peer);
     if (livekit_peer_create(peer, options) != LIVEKIT_PEER_ERR_NONE) return false;
     if (livekit_peer_connect(*peer) != LIVEKIT_PEER_ERR_NONE) return false;
     return true;
@@ -501,6 +506,14 @@ static void on_sig_join(livekit_pb_join_response_t *join_res, void *ctx)
     }
 }
 
+static void on_sig_leave(livekit_pb_disconnect_reason_t reason, livekit_pb_leave_request_action_t action, void *ctx)
+{
+    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    // TODO: Handle reconnect, update engine state
+    disconnect_peer(&eng->pub_peer);
+    disconnect_peer(&eng->sub_peer);
+}
+
 static void on_sig_answer(const char *sdp, void *ctx)
 {
     livekit_eng_t *eng = (livekit_eng_t *)ctx;
@@ -537,6 +550,7 @@ livekit_eng_err_t livekit_eng_create(livekit_eng_handle_t *handle, livekit_eng_o
         .on_disconnect = on_sig_disconnect,
         .on_error = on_sig_error,
         .on_join = on_sig_join,
+        .on_leave = on_sig_leave,
         .on_answer = on_sig_answer,
         .on_offer = on_sig_offer,
         .on_trickle = on_sig_trickle

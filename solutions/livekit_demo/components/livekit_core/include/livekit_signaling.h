@@ -24,6 +24,7 @@ typedef struct {
     void (*on_disconnect)(void *ctx);
     void (*on_error)(void *ctx);
     void (*on_join)(livekit_pb_join_response_t *join_res, void *ctx);
+    void (*on_leave)(livekit_pb_disconnect_reason_t reason, livekit_pb_leave_request_action_t action, void *ctx);
     void (*on_answer)(const char *sdp, void *ctx);
     void (*on_offer)(const char *sdp, void *ctx);
     void (*on_trickle)(const char *ice_candidate, livekit_pb_signal_target_t target, void *ctx);

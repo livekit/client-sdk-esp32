@@ -111,12 +111,19 @@ static void handle_res(livekit_sig_t *sg, livekit_pb_signal_response_t *res)
             break;
         case LIVEKIT_PB_SIGNAL_RESPONSE_JOIN_TAG:
             livekit_pb_join_response_t *join_res = &res->message.join;
+            ESP_LOGI(TAG, "Join: subscriber_primary=%d", join_res->subscriber_primary);
+
             sg->ping_interval_ms = join_res->ping_interval * 1000;
             sg->ping_timeout_ms = join_res->ping_timeout * 1000;
-            ESP_LOGI(TAG, "Join res: subscriber_primary=%d", join_res->subscriber_primary);
-
             esp_timer_start_periodic(sg->ping_timer, sg->ping_interval_ms * 1000);
+
             sg->options.on_join(join_res, sg->options.ctx);
+            break;
+        case LIVEKIT_PB_SIGNAL_RESPONSE_LEAVE_TAG:
+            livekit_pb_leave_request_t *leave_res = &res->message.leave;
+            ESP_LOGI(TAG, "Leave: reason=%d, action=%d", leave_res->reason, leave_res->action);
+            esp_timer_stop(sg->ping_timer);
+            sg->options.on_leave(leave_res->reason, leave_res->action, sg->options.ctx);
             break;
         case LIVEKIT_PB_SIGNAL_RESPONSE_OFFER_TAG:
             livekit_pb_session_description_t *offer = &res->message.offer;
@@ -192,6 +199,9 @@ static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void
             break;
         case WEBSOCKET_EVENT_DISCONNECTED:
             ESP_LOGI(TAG, "Signaling disconnected");
+
+            // In the normal case, this timer will be stopped when the leave message is received.
+            // However, if the connection is lost, we need to stop the timer manually.
             esp_timer_stop(sg->ping_timer);
 
             log_error_if_nonzero("HTTP status code", data->error_handle.esp_ws_handshake_status_code);
@@ -236,6 +246,7 @@ livekit_sig_err_t livekit_sig_create(livekit_sig_handle_t *handle, livekit_sig_o
         options->on_disconnect == NULL ||
         options->on_error      == NULL ||
         options->on_join       == NULL ||
+        options->on_leave      == NULL ||
         options->on_offer      == NULL ||
         options->on_answer     == NULL ||
         options->on_trickle    == NULL
@@ -345,8 +356,7 @@ livekit_sig_err_t livekit_sig_send_leave(livekit_sig_handle_t handle)
 
     livekit_pb_leave_request_t leave = {
         .reason = LIVEKIT_PB_DISCONNECT_REASON_CLIENT_INITIATED,
-        .action = LIVEKIT_PB_LEAVE_REQUEST_ACTION_DISCONNECT,
-        .can_reconnect = false
+        .action = LIVEKIT_PB_LEAVE_REQUEST_ACTION_DISCONNECT
     };
     req.message.leave = leave;
     return send_request(sg, &req);

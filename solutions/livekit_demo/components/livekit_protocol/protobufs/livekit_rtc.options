@@ -10,6 +10,9 @@ livekit_pb.JoinResponse.enabled_publish_codecs type:FT_IGNORE
 livekit_pb.JoinResponse.fast_publish type:FT_IGNORE
 livekit_pb.JoinResponse.ice_servers max_count:4
 
+livekit_pb.LeaveRequest.can_reconnect type:FT_IGNORE
+livekit_pb.LeaveRequest.regions type:FT_IGNORE
+
 livekit_pb.ICEServer.urls type:FT_POINTER
 livekit_pb.ICEServer.username type:FT_POINTER
 livekit_pb.ICEServer.credential type:FT_POINTER
