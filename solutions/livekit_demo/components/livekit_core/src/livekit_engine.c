@@ -647,8 +647,8 @@ livekit_eng_err_t livekit_eng_send_data_packet(livekit_eng_handle_t handle, live
     }
     livekit_eng_t *eng = (livekit_eng_t *)handle;
 
-    // TODO: Once subscriber primary is supported, dynamically switch between pub and sub peers
-    if (livekit_peer_send_data_packet(eng->pub_peer, packet, kind) != LIVEKIT_PEER_ERR_NONE) {
+    if (eng->pub_peer == NULL ||
+        livekit_peer_send_data_packet(eng->pub_peer, packet, kind) != LIVEKIT_PEER_ERR_NONE) {
         return LIVEKIT_ENG_ERR_RTC;
     }
     return LIVEKIT_ENG_ERR_NONE;
