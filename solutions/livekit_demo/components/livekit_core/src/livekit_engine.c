@@ -57,40 +57,29 @@ static void sys_init(void)
 static esp_capture_codec_type_t capture_audio_codec_type(esp_peer_audio_codec_t peer_codec)
 {
     switch (peer_codec) {
-        case ESP_PEER_AUDIO_CODEC_G711A:
-            return ESP_CAPTURE_CODEC_TYPE_G711A;
-        case ESP_PEER_AUDIO_CODEC_G711U:
-            return ESP_CAPTURE_CODEC_TYPE_G711U;
-        case ESP_PEER_AUDIO_CODEC_OPUS:
-            return ESP_CAPTURE_CODEC_TYPE_OPUS;
-        default:
-            return ESP_CAPTURE_CODEC_TYPE_NONE;
+        case ESP_PEER_AUDIO_CODEC_G711A: return ESP_CAPTURE_CODEC_TYPE_G711A;
+        case ESP_PEER_AUDIO_CODEC_G711U: return ESP_CAPTURE_CODEC_TYPE_G711U;
+        case ESP_PEER_AUDIO_CODEC_OPUS:  return ESP_CAPTURE_CODEC_TYPE_OPUS;
+        default:                         return ESP_CAPTURE_CODEC_TYPE_NONE;
     }
 }
 
 static esp_capture_codec_type_t capture_video_codec_type(esp_peer_video_codec_t peer_codec)
 {
     switch (peer_codec) {
-        case ESP_PEER_VIDEO_CODEC_H264:
-            return ESP_CAPTURE_CODEC_TYPE_H264;
-        case ESP_PEER_VIDEO_CODEC_MJPEG:
-            return ESP_CAPTURE_CODEC_TYPE_MJPEG;
-        default:
-            return ESP_CAPTURE_CODEC_TYPE_NONE;
+        case ESP_PEER_VIDEO_CODEC_H264:  return ESP_CAPTURE_CODEC_TYPE_H264;
+        case ESP_PEER_VIDEO_CODEC_MJPEG: return ESP_CAPTURE_CODEC_TYPE_MJPEG;
+        default:                         return ESP_CAPTURE_CODEC_TYPE_NONE;
     }
 }
 
 static av_render_audio_codec_t get_dec_codec(esp_peer_audio_codec_t codec)
 {
     switch (codec) {
-        case ESP_PEER_AUDIO_CODEC_G711A:
-            return AV_RENDER_AUDIO_CODEC_G711A;
-        case ESP_PEER_AUDIO_CODEC_G711U:
-            return AV_RENDER_AUDIO_CODEC_G711U;
-        case ESP_PEER_AUDIO_CODEC_OPUS:
-            return AV_RENDER_AUDIO_CODEC_OPUS;
-        default:
-            return AV_RENDER_AUDIO_CODEC_NONE;
+        case ESP_PEER_AUDIO_CODEC_G711A: return AV_RENDER_AUDIO_CODEC_G711A;
+        case ESP_PEER_AUDIO_CODEC_G711U: return AV_RENDER_AUDIO_CODEC_G711U;
+        case ESP_PEER_AUDIO_CODEC_OPUS:  return AV_RENDER_AUDIO_CODEC_OPUS;
+        default:                         return AV_RENDER_AUDIO_CODEC_NONE;
     }
 }
 
