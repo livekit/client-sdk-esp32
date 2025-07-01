@@ -4,7 +4,7 @@
 #include "esp_idf_version.h"
 #include "esp_chip_info.h"
 
-#include "livekit_url.h"
+#include "url.h"
 
 static const char *TAG = "livekit_url";
 

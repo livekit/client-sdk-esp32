@@ -1,9 +1,9 @@
 
 #pragma once
 
-#include "livekit_common.h"
-#include "livekit_engine.h"
-#include "livekit_protocol.h"
+#include "common.h"
+#include "engine.h"
+#include "protocol.h"
 
 #ifdef __cplusplus
 extern "C" {

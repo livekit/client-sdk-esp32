@@ -1,4 +1,4 @@
-#include "livekit_protocol.h"
+#include "protocol.h"
 
 const char* livekit_protocol_sig_res_name(pb_size_t which_message)
 {

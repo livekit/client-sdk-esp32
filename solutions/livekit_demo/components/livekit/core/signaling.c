@@ -11,10 +11,10 @@
 #include "esp_tls.h"
 #include "esp_timer.h"
 
-#include <livekit_protocol.h>
-#include "livekit_signaling.h"
-#include "livekit_url.h"
-#include "livekit_utils.h"
+#include "protocol.h"
+#include "signaling.h"
+#include "url.h"
+#include "utils.h"
 
 static const char *TAG = "livekit_signaling";
 

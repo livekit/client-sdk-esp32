@@ -7,7 +7,7 @@
 #include "media_lib_os.h"
 #include "esp_codec_dev.h"
 
-#include "livekit_peer.h"
+#include "peer.h"
 
 static const char *SUB_TAG = "livekit_peer.sub";
 static const char *PUB_TAG = "livekit_peer.pub";

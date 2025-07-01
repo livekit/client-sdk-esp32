@@ -3,10 +3,10 @@
 #include "media_lib_os.h"
 #include "esp_codec_dev.h"
 
-#include "livekit_protocol.h"
-#include "livekit_engine.h"
-#include "livekit_signaling.h"
-#include "livekit_peer.h"
+#include "protocol.h"
+#include "engine.h"
+#include "signaling.h"
+#include "peer.h"
 
 static const char *TAG = "livekit_engine";
 

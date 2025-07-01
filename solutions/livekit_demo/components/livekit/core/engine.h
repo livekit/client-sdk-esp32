@@ -6,8 +6,8 @@
 #include "esp_capture.h"
 #include "av_render.h"
 
-#include "livekit_common.h"
-#include "livekit_protocol.h"
+#include "common.h"
+#include "protocol.h"
 
 #ifdef __cplusplus
 extern "C" {
