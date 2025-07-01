@@ -47,21 +47,12 @@ static esp_err_t _http_event_handler(esp_http_client_event_t *evt)
     return ESP_OK;
 }
 
-bool livekit_sandbox_generate(const char *sandbox_id, const char *room_name, const char *participant_name, livekit_sandbox_res_t *res)
+bool livekit_sandbox_generate(const livekit_sandbox_options_t *options, livekit_sandbox_res_t *res)
 {
-    if (sandbox_id == NULL) {
-        ESP_LOGE(TAG, "Missing sandbox ID");
+    if (options == NULL || options->sandbox_id == NULL) {
+        ESP_LOGE(TAG, "Missing required options");
         return false;
     }
-    if (room_name == NULL) {
-        ESP_LOGE(TAG, "Missing room name");
-        return false;
-    }
-    if (participant_name == NULL) {
-        ESP_LOGE(TAG, "Missing participant name");
-        return false;
-    }
-    ESP_LOGI(TAG, "Generating sandbox token for room: %s, participant: %s", room_name, participant_name);
 
     char* res_buffer = calloc(MAX_HTTP_OUTPUT_BUFFER + 1, sizeof(char));
     if (res_buffer == NULL) {
@@ -76,8 +67,12 @@ bool livekit_sandbox_generate(const char *sandbox_id, const char *room_name, con
         free(res_buffer);
         return false;
     }
-    cJSON_AddStringToObject(json_payload, "roomName", room_name);
-    cJSON_AddStringToObject(json_payload, "participantName", participant_name);
+    if (options->room_name != NULL) {
+        cJSON_AddStringToObject(json_payload, "roomName", options->room_name);
+    }
+    if (options->participant_name != NULL) {
+        cJSON_AddStringToObject(json_payload, "participantName", options->participant_name);
+    }
     char *json_string = cJSON_Print(json_payload);
     if (json_string == NULL) {
         ESP_LOGE(TAG, "Failed to serialize JSON payload");
@@ -108,7 +103,7 @@ bool livekit_sandbox_generate(const char *sandbox_id, const char *room_name, con
 
     // Set headers and POST data
     esp_http_client_set_header(client, "Content-Type", "application/json");
-    esp_http_client_set_header(client, "X-Sandbox-ID", sandbox_id);
+    esp_http_client_set_header(client, "X-Sandbox-ID", options->sandbox_id);
     esp_http_client_set_post_field(client, json_string, strlen(json_string));
 
     bool success = false;
@@ -163,6 +158,9 @@ bool livekit_sandbox_generate(const char *sandbox_id, const char *room_name, con
         res->room_name = strdup(room_name_resp->valuestring);
         res->participant_name = strdup(participant_name_resp->valuestring);
         success = true;
+
+        ESP_LOGI(TAG, "Generated sandbox token\nroom_name=%s\nparticipant_name=%s",
+            res->room_name, res->participant_name);
     } while (0);
 
     esp_http_client_cleanup(client);

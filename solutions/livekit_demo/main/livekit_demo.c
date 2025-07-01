@@ -33,28 +33,25 @@ int join_room()
         return -1;
     }
 
-    // In a real application, you would fetch a token from your own server
-    // and pass it to the room_connect function. To create a sandbox to easily run
-    // this demo, see this guide: https://docs.livekit.io/home/cloud/sandbox/
-    livekit_sandbox_res_t details;
-
-#ifdef LK_TOKEN
-    ESP_LOGI(TAG, "Using pre-defined LK_TOKEN");
-    details.token = strdup(LK_TOKEN);
-    details.server_url = strdup(LK_SERVER_URL);
-    details.room_name = strdup(ROOM_NAME);
-    details.participant_name = strdup(PARTICIPANT_NAME);
-    ESP_LOGI(TAG, "LK_TOKEN: %s", details.token);
-    ESP_LOGI(TAG, "LK_SERVER_URL: %s", details.server_url);
-#else
-    if (!livekit_sandbox_generate(LK_SANDBOX_ID, ROOM_NAME, PARTICIPANT_NAME, &details)) {
+    livekit_err_t connect_res;
+#ifdef LK_SANDBOX_ID
+    // Option A: Sandbox token server.
+    livekit_sandbox_res_t res = {};
+    livekit_sandbox_options_t gen_options = {
+        .sandbox_id = LK_SANDBOX_ID,
+        .room_name = LK_SANDBOX_ROOM_NAME,
+        .participant_name = LK_SANDBOX_PARTICIPANT_NAME
+    };
+    if (!livekit_sandbox_generate(&gen_options, &res)) {
         ESP_LOGE(TAG, "Failed to generate sandbox token");
         return -1;
     }
+    connect_res = livekit_room_connect(room_handle, res.server_url, res.token);
+    livekit_sandbox_res_free(&res);
+#else
+    // Option B: Pre-generated token.
+    connect_res = livekit_room_connect(room_handle, LK_SERVER_URL, LK_TOKEN);
 #endif
-
-    int connect_res = livekit_room_connect(room_handle, details.server_url, details.token);
-    livekit_sandbox_res_free(&details);
 
     if (connect_res != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to connect to room");
