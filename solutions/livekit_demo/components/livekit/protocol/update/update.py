@@ -8,8 +8,7 @@ import configparser
 
 required_files = ["livekit_rtc.proto", "livekit_models.proto", "livekit_metrics.proto"]
 protobuf_location = "../protobufs"
-bindings_src_dest = "../src"
-bindings_header_dest = "../include"
+bindings_src_dest = "../"
 
 def main():
     version = read_version()
@@ -94,13 +93,6 @@ def generate_bindings(verbose = False):
         print(result.stderr)
     if result.returncode != 0:
         raise RuntimeError(f"protoc failed: {result.stderr}")
-
-    # Move headers
-    for fname in os.listdir(bindings_src_dest):
-        if fname.endswith(".h"):
-            src = os.path.join(bindings_src_dest, fname)
-            dst = os.path.join(bindings_header_dest, fname)
-            shutil.move(src, dst)
 
 if __name__ == "__main__":
     main()
