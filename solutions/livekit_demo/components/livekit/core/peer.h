@@ -9,23 +9,23 @@
 extern "C" {
 #endif
 
-typedef void *livekit_peer_handle_t;
+typedef void *peer_handle_t;
 
 typedef enum {
-    LIVEKIT_PEER_ERR_NONE           =  0,
-    LIVEKIT_PEER_ERR_INVALID_ARG    = -1,
-    LIVEKIT_PEER_ERR_NO_MEM         = -2,
-    LIVEKIT_PEER_ERR_INVALID_STATE  = -3,
-    LIVEKIT_PEER_ERR_RTC            = -4,
-    LIVEKIT_PEER_ERR_MESSAGE        = -5
-} livekit_peer_err_t;
+    PEER_ERR_NONE           =  0,
+    PEER_ERR_INVALID_ARG    = -1,
+    PEER_ERR_NO_MEM         = -2,
+    PEER_ERR_INVALID_STATE  = -3,
+    PEER_ERR_RTC            = -4,
+    PEER_ERR_MESSAGE        = -5
+} peer_err_t;
 
 typedef enum {
-    LIVEKIT_PEER_STATE_DISCONNECTED = 0, /*!< Disconnected */
-    LIVEKIT_PEER_STATE_CONNECTING   = 1, /*!< Establishing peer connection */
-    LIVEKIT_PEER_STATE_CONNECTED    = 2, /*!< Connected to peer & data channels open */
-    LIVEKIT_PEER_STATE_FAILED       = 3  /*!< Connection failed */
-} livekit_peer_state_t;
+    PEER_STATE_DISCONNECTED = 0, /*!< Disconnected */
+    PEER_STATE_CONNECTING   = 1, /*!< Establishing peer connection */
+    PEER_STATE_CONNECTED    = 2, /*!< Connected to peer & data channels open */
+    PEER_STATE_FAILED       = 3  /*!< Connection failed */
+} peer_state_t;
 
 /// @brief Options for creating a peer.
 typedef struct {
@@ -46,10 +46,10 @@ typedef struct {
     bool is_primary;
 
     /// @brief Media options used for creating SDP messages.
-    livekit_eng_media_options_t* media;
+    engine_media_options_t* media;
 
     /// @brief Invoked when the peer's connection state changes.
-    void (*on_state_changed)(livekit_peer_state_t state, void *ctx);
+    void (*on_state_changed)(peer_state_t state, void *ctx);
 
     /// @brief Invoked when an SDP message is available. This can be either
     /// an offer or answer depending on target configuration.
@@ -75,30 +75,30 @@ typedef struct {
 
     /// @brief Context pointer passed to the handlers.
     void *ctx;
-} livekit_peer_options_t;
+} peer_options_t;
 
-livekit_peer_err_t livekit_peer_create(livekit_peer_handle_t *handle, livekit_peer_options_t *options);
-livekit_peer_err_t livekit_peer_destroy(livekit_peer_handle_t handle);
+peer_err_t peer_create(peer_handle_t *handle, peer_options_t *options);
+peer_err_t peer_destroy(peer_handle_t handle);
 
-livekit_peer_err_t livekit_peer_connect(livekit_peer_handle_t handle);
-livekit_peer_err_t livekit_peer_disconnect(livekit_peer_handle_t handle);
+peer_err_t peer_connect(peer_handle_t handle);
+peer_err_t peer_disconnect(peer_handle_t handle);
 
 /// @brief Handles an SDP message from the remote peer.
-livekit_peer_err_t livekit_peer_handle_sdp(livekit_peer_handle_t handle, const char *sdp);
+peer_err_t peer_handle_sdp(peer_handle_t handle, const char *sdp);
 
 /// @brief Handles an ICE candidate from the remote peer.
-livekit_peer_err_t livekit_peer_handle_ice_candidate(livekit_peer_handle_t handle, const char *candidate);
+peer_err_t peer_handle_ice_candidate(peer_handle_t handle, const char *candidate);
 
 /// @brief Sends a data packet to the remote peer.
-livekit_peer_err_t livekit_peer_send_data_packet(livekit_peer_handle_t handle, livekit_pb_data_packet_t* packet, livekit_pb_data_packet_kind_t kind);
+peer_err_t peer_send_data_packet(peer_handle_t handle, livekit_pb_data_packet_t* packet, livekit_pb_data_packet_kind_t kind);
 
 /// @brief Sends an audio frame to the remote peer.
 /// @warning Only use on publisher peer.
-livekit_peer_err_t livekit_peer_send_audio(livekit_peer_handle_t handle, esp_peer_audio_frame_t* frame);
+peer_err_t peer_send_audio(peer_handle_t handle, esp_peer_audio_frame_t* frame);
 
 /// @brief Sends a video frame to the remote peer.
 /// @warning Only use on publisher peer.
-livekit_peer_err_t livekit_peer_send_video(livekit_peer_handle_t handle, esp_peer_video_frame_t* frame);
+peer_err_t peer_send_video(peer_handle_t handle, esp_peer_video_frame_t* frame);
 
 #ifdef __cplusplus
 }

@@ -23,11 +23,11 @@ static const char *TAG = "livekit_engine";
 }
 
 typedef struct {
-    livekit_eng_options_t options;
-    livekit_sig_handle_t  sig;
+    engine_options_t options;
+    signal_handle_t  sig;
 
-    livekit_peer_handle_t pub_peer;
-    livekit_peer_handle_t sub_peer;
+    peer_handle_t pub_peer;
+    peer_handle_t sub_peer;
 
     esp_peer_ice_server_cfg_t *ice_servers;
     int ice_server_count;
@@ -37,7 +37,7 @@ typedef struct {
 
     esp_codec_dev_handle_t        renderer_handle;
     esp_peer_audio_stream_info_t  sub_audio_info;
-} livekit_eng_t;
+} engine_t;
 
 /// @brief Performs one-time system initialization.
 static void sys_init(void)
@@ -96,7 +96,7 @@ static void convert_dec_aud_info(esp_peer_audio_stream_info_t *info, av_render_a
     dec_info->bits_per_sample = 16;
 }
 
-static void _media_stream_send_audio(livekit_eng_t *eng)
+static void _media_stream_send_audio(engine_t *eng)
 {
     esp_capture_stream_frame_t audio_frame = {
         .stream_type = ESP_CAPTURE_STREAM_TYPE_AUDIO,
@@ -107,12 +107,12 @@ static void _media_stream_send_audio(livekit_eng_t *eng)
             .data = audio_frame.data,
             .size = audio_frame.size,
         };
-        livekit_peer_send_audio(eng->pub_peer, &audio_send_frame);
+        peer_send_audio(eng->pub_peer, &audio_send_frame);
         esp_capture_release_path_frame(eng->capturer_path, &audio_frame);
     }
 }
 
-static void _media_stream_send_video(livekit_eng_t *eng)
+static void _media_stream_send_video(engine_t *eng)
 {
     esp_capture_stream_frame_t video_frame = {
         .stream_type = ESP_CAPTURE_STREAM_TYPE_VIDEO,
@@ -123,14 +123,14 @@ static void _media_stream_send_video(livekit_eng_t *eng)
             .data = video_frame.data,
             .size = video_frame.size,
         };
-        livekit_peer_send_video(eng->pub_peer, &video_send_frame);
+        peer_send_video(eng->pub_peer, &video_send_frame);
         esp_capture_release_path_frame(eng->capturer_path, &video_frame);
     }
 }
 
 static void media_stream_task(void *arg)
 {
-    livekit_eng_t *eng = (livekit_eng_t *)arg;
+    engine_t *eng = (engine_t *)arg;
     ESP_LOGI(TAG, "Media stream task started");
     while (eng->is_media_streaming) {
         if (eng->options.media.audio_info.codec != ESP_PEER_AUDIO_CODEC_NONE) {
@@ -145,35 +145,35 @@ static void media_stream_task(void *arg)
     media_lib_thread_destroy(NULL);
 }
 
-static livekit_eng_err_t media_stream_begin(livekit_eng_t *eng)
+static engine_err_t media_stream_begin(engine_t *eng)
 {
     if (esp_capture_start(eng->options.media.capturer) != ESP_CAPTURE_ERR_OK) {
         ESP_LOGE(TAG, "Failed to start capture");
-        return LIVEKIT_ENG_ERR_MEDIA;
+        return ENGINE_ERR_MEDIA;
     }
     media_lib_thread_handle_t handle = NULL;
     eng->is_media_streaming = true;
     if (media_lib_thread_create_from_scheduler(&handle, "lk_stream", media_stream_task, eng) != ESP_OK) {
         ESP_LOGE(TAG, "Failed to create media stream thread");
         eng->is_media_streaming = false;
-        return LIVEKIT_ENG_ERR_MEDIA;
+        return ENGINE_ERR_MEDIA;
     }
     ESP_LOGI(TAG, "Media stream started");
-    return LIVEKIT_ENG_ERR_NONE;
+    return ENGINE_ERR_NONE;
 }
 
-static livekit_eng_err_t media_stream_end(livekit_eng_t *eng)
+static engine_err_t media_stream_end(engine_t *eng)
 {
     if (!eng->is_media_streaming) {
-        return LIVEKIT_ENG_ERR_NONE;
+        return ENGINE_ERR_NONE;
     }
     eng->is_media_streaming = false;
     esp_capture_stop(eng->options.media.capturer);
     ESP_LOGI(TAG, "Media stream ended");
-    return LIVEKIT_ENG_ERR_NONE;
+    return ENGINE_ERR_NONE;
 }
 
-static livekit_eng_err_t send_add_audio_track(livekit_eng_t *eng)
+static engine_err_t send_add_audio_track(engine_t *eng)
 {
     bool is_stereo = eng->options.media.audio_info.channel == 2;
     livekit_pb_add_track_request_t req = {
@@ -187,14 +187,14 @@ static livekit_eng_err_t send_add_audio_track(livekit_eng_t *eng)
         .layers_count = 0
     };
 
-    if (livekit_sig_send_add_track(eng->sig, &req) != LIVEKIT_SIG_ERR_NONE) {
+    if (signal_send_add_track(eng->sig, &req) != SIGNAL_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to publish audio track");
-        return LIVEKIT_ENG_ERR_SIGNALING;
+        return ENGINE_ERR_SIGNALING;
     }
-    return LIVEKIT_ENG_ERR_NONE;
+    return ENGINE_ERR_NONE;
 }
 
-static livekit_eng_err_t send_add_video_track(livekit_eng_t *eng)
+static engine_err_t send_add_video_track(engine_t *eng)
 {
     livekit_pb_video_layer_t video_layer = {
         .quality = LIVEKIT_PB_VIDEO_QUALITY_HIGH,
@@ -212,47 +212,47 @@ static livekit_eng_err_t send_add_video_track(livekit_eng_t *eng)
         .audio_features_count = 0
     };
 
-    if (livekit_sig_send_add_track(eng->sig, &req) != LIVEKIT_SIG_ERR_NONE) {
+    if (signal_send_add_track(eng->sig, &req) != SIGNAL_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to publish video track");
-        return LIVEKIT_ENG_ERR_SIGNALING;
+        return ENGINE_ERR_SIGNALING;
     }
-    return LIVEKIT_ENG_ERR_NONE;
+    return ENGINE_ERR_NONE;
 }
 
 /// @brief Begins media streaming and sends add track requests.
-static livekit_eng_err_t publish_tracks(livekit_eng_t *eng)
+static engine_err_t publish_tracks(engine_t *eng)
 {
     if (eng->options.media.audio_info.codec == ESP_PEER_AUDIO_CODEC_NONE &&
         eng->options.media.video_info.codec == ESP_PEER_VIDEO_CODEC_NONE) {
         ESP_LOGI(TAG, "No media tracks to publish");
-        return LIVEKIT_ENG_ERR_NONE;
+        return ENGINE_ERR_NONE;
     }
 
-    int ret = LIVEKIT_ENG_ERR_OTHER;
+    int ret = ENGINE_ERR_OTHER;
     do {
-        if (media_stream_begin(eng) != LIVEKIT_ENG_ERR_NONE) {
-            ret = LIVEKIT_ENG_ERR_MEDIA;
+        if (media_stream_begin(eng) != ENGINE_ERR_NONE) {
+            ret = ENGINE_ERR_MEDIA;
             break;
         }
         if (eng->options.media.audio_info.codec != ESP_PEER_AUDIO_CODEC_NONE &&
-            send_add_audio_track(eng) != LIVEKIT_ENG_ERR_NONE) {
-            ret = LIVEKIT_ENG_ERR_SIGNALING;
+            send_add_audio_track(eng) != ENGINE_ERR_NONE) {
+            ret = ENGINE_ERR_SIGNALING;
             break;
         }
         if (eng->options.media.video_info.codec != ESP_PEER_VIDEO_CODEC_NONE &&
-            send_add_video_track(eng) != LIVEKIT_ENG_ERR_NONE) {
-            ret = LIVEKIT_ENG_ERR_SIGNALING;
+            send_add_video_track(eng) != ENGINE_ERR_NONE) {
+            ret = ENGINE_ERR_SIGNALING;
             break;
         }
         ESP_LOGI(TAG, "Published media tracks");
-        return LIVEKIT_ENG_ERR_NONE;
+        return ENGINE_ERR_NONE;
     } while (0);
 
     media_stream_end(eng);
     return ret;
 }
 
-static void free_ice_servers(livekit_eng_t *eng)
+static void free_ice_servers(engine_t *eng)
 {
     if (eng == NULL || eng->ice_servers == NULL) {
         return;
@@ -267,21 +267,21 @@ static void free_ice_servers(livekit_eng_t *eng)
     eng->ice_server_count = 0;
 }
 
-static livekit_eng_err_t set_ice_servers(livekit_eng_t* eng, livekit_pb_ice_server_t *servers, int count)
+static engine_err_t set_ice_servers(engine_t* eng, livekit_pb_ice_server_t *servers, int count)
 {
     if (eng == NULL || servers == NULL || count <= 0) {
-        return LIVEKIT_ENG_ERR_INVALID_ARG;
+        return ENGINE_ERR_INVALID_ARG;
     }
     // A single livekit_ice_server_t can contain multiple URLs, which
     // will map to multiple esp_peer_ice_server_cfg_t entries.
     size_t cfg_count = 0;
     for (int i = 0; i < count; i++) {
         if (servers[i].urls_count <= 0) {
-            return LIVEKIT_PEER_ERR_INVALID_ARG;
+            return ENGINE_ERR_INVALID_ARG;
         }
         for (int j = 0; j < servers[i].urls_count; j++) {
             if (servers[i].urls[j] == NULL) {
-                return LIVEKIT_PEER_ERR_INVALID_ARG;
+                return ENGINE_ERR_INVALID_ARG;
             }
             cfg_count++;
         }
@@ -289,7 +289,7 @@ static livekit_eng_err_t set_ice_servers(livekit_eng_t* eng, livekit_pb_ice_serv
 
     esp_peer_ice_server_cfg_t *cfgs = calloc(cfg_count, sizeof(esp_peer_ice_server_cfg_t));
     if (cfgs == NULL) {
-        return LIVEKIT_PEER_ERR_NO_MEM;
+        return ENGINE_ERR_NO_MEM;
     }
 
     int cfg_idx = 0;
@@ -314,46 +314,46 @@ static livekit_eng_err_t set_ice_servers(livekit_eng_t* eng, livekit_pb_ice_serv
     eng->ice_servers = cfgs;
     eng->ice_server_count = cfg_count;
 
-    return LIVEKIT_PEER_ERR_NONE;
+    return ENGINE_ERR_NONE;
 }
 
-static void on_peer_pub_state_changed(livekit_peer_state_t state, void *ctx)
+static void on_peer_pub_state_changed(peer_state_t state, void *ctx)
 {
-    livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    if (state == LIVEKIT_PEER_STATE_CONNECTED) {
+    engine_t *eng = (engine_t *)ctx;
+    if (state == PEER_STATE_CONNECTED) {
         publish_tracks(eng);
     }
 }
 
-static void on_peer_sub_state_changed(livekit_peer_state_t state, void *ctx)
+static void on_peer_sub_state_changed(peer_state_t state, void *ctx)
 {
-    livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    if (state == LIVEKIT_PEER_STATE_CONNECTED) {
+    engine_t *eng = (engine_t *)ctx;
+    if (state == PEER_STATE_CONNECTED) {
         // TODO: Subscribe
     }
 }
 
 static void on_peer_pub_offer(const char *sdp, void *ctx)
 {
-    livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    livekit_sig_send_offer(eng->sig, sdp);
+    engine_t *eng = (engine_t *)ctx;
+    signal_send_offer(eng->sig, sdp);
 }
 
 static void on_peer_sub_answer(const char *sdp, void *ctx)
 {
-    livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    livekit_sig_send_answer(eng->sig, sdp);
+    engine_t *eng = (engine_t *)ctx;
+    signal_send_answer(eng->sig, sdp);
 }
 
 static void on_peer_ice_candidate(const char *candidate, void *ctx)
 {
-    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    engine_t *eng = (engine_t *)ctx;
     ESP_LOGI(TAG, "Peer generated ice candidate: %s", candidate);
 }
 
 static void on_peer_packet_received(livekit_pb_data_packet_t* packet, void *ctx)
 {
-    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    engine_t *eng = (engine_t *)ctx;
     switch (packet->which_value) {
         case LIVEKIT_PB_DATA_PACKET_USER_TAG:
             eng->options.on_user_packet(&packet->value.user, eng->options.ctx);
@@ -383,7 +383,7 @@ static void on_peer_packet_received(livekit_pb_data_packet_t* packet, void *ctx)
 
 static void on_peer_sub_audio_info(esp_peer_audio_stream_info_t* info, void *ctx)
 {
-    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    engine_t *eng = (engine_t *)ctx;
 
     av_render_audio_info_t render_info = {};
     convert_dec_aud_info(info, &render_info);
@@ -399,7 +399,7 @@ static void on_peer_sub_audio_info(esp_peer_audio_stream_info_t* info, void *ctx
 
 static void on_peer_sub_audio_frame(esp_peer_audio_frame_t* frame, void *ctx)
 {
-    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    engine_t *eng = (engine_t *)ctx;
     if (eng->sub_audio_info.codec == ESP_PEER_AUDIO_CODEC_NONE) return;
     // TODO: Check engine state before rendering
 
@@ -413,45 +413,45 @@ static void on_peer_sub_audio_frame(esp_peer_audio_frame_t* frame, void *ctx)
 
 static void on_sig_connect(void *ctx)
 {
-    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    engine_t *eng = (engine_t *)ctx;
     ESP_LOGI(TAG, "Signaling connected");
     // TODO: Implement
 }
 
 static void on_sig_disconnect(void *ctx)
 {
-    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    engine_t *eng = (engine_t *)ctx;
     ESP_LOGI(TAG, "Signaling disconnected");
     // TODO: Implement
 }
 
 static void on_sig_error(void *ctx)
 {
-    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    engine_t *eng = (engine_t *)ctx;
     ESP_LOGI(TAG, "Signaling error");
     // TODO: Implement
 }
 
-static bool disconnect_peer(livekit_peer_handle_t *peer)
+static bool disconnect_peer(peer_handle_t *peer)
 {
     if (*peer == NULL) return false;
-    if (livekit_peer_disconnect(*peer) != LIVEKIT_PEER_ERR_NONE) return false;
-    if (livekit_peer_destroy(*peer) != LIVEKIT_PEER_ERR_NONE) return false;
+    if (peer_disconnect(*peer) != PEER_ERR_NONE) return false;
+    if (peer_destroy(*peer) != PEER_ERR_NONE) return false;
     *peer = NULL;
     return true;
 }
 
-static bool connect_peer(livekit_eng_t *eng, livekit_peer_options_t *options, livekit_peer_handle_t *peer)
+static bool connect_peer(engine_t *eng, peer_options_t *options, peer_handle_t *peer)
 {
     disconnect_peer(peer);
-    if (livekit_peer_create(peer, options) != LIVEKIT_PEER_ERR_NONE) return false;
-    if (livekit_peer_connect(*peer) != LIVEKIT_PEER_ERR_NONE) return false;
+    if (peer_create(peer, options) != PEER_ERR_NONE) return false;
+    if (peer_connect(*peer) != PEER_ERR_NONE) return false;
     return true;
 }
 
 static void on_sig_join(livekit_pb_join_response_t *join_res, void *ctx)
 {
-    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    engine_t *eng = (engine_t *)ctx;
 
     if (join_res->subscriber_primary) {
         ESP_LOGE(TAG, "Subscriber primary is not supported yet");
@@ -460,7 +460,7 @@ static void on_sig_join(livekit_pb_join_response_t *join_res, void *ctx)
 
     // set_ice_servers(eng, join_res->ice_servers, join_res->ice_servers_count);
 
-    livekit_peer_options_t options = {
+    peer_options_t options = {
         // Options common to both peers
         .force_relay = join_res->has_client_configuration &&
                        join_res->client_configuration.force_relay == LIVEKIT_PB_CLIENT_CONFIG_SETTING_ENABLED,
@@ -499,7 +499,7 @@ static void on_sig_join(livekit_pb_join_response_t *join_res, void *ctx)
 
 static void on_sig_leave(livekit_pb_disconnect_reason_t reason, livekit_pb_leave_request_action_t action, void *ctx)
 {
-    livekit_eng_t *eng = (livekit_eng_t *)ctx;
+    engine_t *eng = (engine_t *)ctx;
     // TODO: Handle reconnect, update engine state
     disconnect_peer(&eng->pub_peer);
     disconnect_peer(&eng->sub_peer);
@@ -507,35 +507,35 @@ static void on_sig_leave(livekit_pb_disconnect_reason_t reason, livekit_pb_leave
 
 static void on_sig_answer(const char *sdp, void *ctx)
 {
-    livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    livekit_peer_handle_sdp(eng->pub_peer, sdp);
+    engine_t *eng = (engine_t *)ctx;
+    peer_handle_sdp(eng->pub_peer, sdp);
 }
 
 static void on_sig_offer(const char *sdp, void *ctx)
 {
-    livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    livekit_peer_handle_sdp(eng->sub_peer, sdp);
+    engine_t *eng = (engine_t *)ctx;
+    peer_handle_sdp(eng->sub_peer, sdp);
 }
 
 static void on_sig_trickle(const char *ice_candidate, livekit_pb_signal_target_t target, void *ctx)
 {
-    livekit_eng_t *eng = (livekit_eng_t *)ctx;
-    livekit_peer_handle_t target_peer = target == LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER ?
+    engine_t *eng = (engine_t *)ctx;
+    peer_handle_t target_peer = target == LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER ?
         eng->sub_peer : eng->pub_peer;
-    livekit_peer_handle_ice_candidate(target_peer, ice_candidate);
+    peer_handle_ice_candidate(target_peer, ice_candidate);
 }
 
-livekit_eng_err_t livekit_eng_create(livekit_eng_handle_t *handle, livekit_eng_options_t *options)
+engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options)
 {
     if (handle == NULL || options == NULL) {
-        return LIVEKIT_ENG_ERR_INVALID_ARG;
+        return ENGINE_ERR_INVALID_ARG;
     }
-    livekit_eng_t *eng = (livekit_eng_t *)calloc(1, sizeof(livekit_eng_t));
+    engine_t *eng = (engine_t *)calloc(1, sizeof(engine_t));
     if (eng == NULL) {
-        return LIVEKIT_ENG_ERR_NO_MEM;
+        return ENGINE_ERR_NO_MEM;
     }
     eng->options = *options;
-    livekit_sig_options_t sig_options = {
+    signal_options_t sig_options = {
         .ctx = eng,
         .on_connect = on_sig_connect,
         .on_disconnect = on_sig_disconnect,
@@ -547,10 +547,10 @@ livekit_eng_err_t livekit_eng_create(livekit_eng_handle_t *handle, livekit_eng_o
         .on_trickle = on_sig_trickle
     };
 
-     if (livekit_sig_create(&eng->sig, &sig_options) != LIVEKIT_SIG_ERR_NONE) {
+     if (signal_create(&eng->sig, &sig_options) != SIGNAL_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to create signaling client");
         free(eng);
-        return LIVEKIT_ENG_ERR_SIGNALING;
+        return ENGINE_ERR_SIGNALING;
     }
 
      esp_capture_sink_cfg_t sink_cfg = {
@@ -577,79 +577,79 @@ livekit_eng_err_t livekit_eng_create(livekit_eng_handle_t *handle, livekit_eng_o
     // TODO: Handle capturer error
 
     *handle = eng;
-    return LIVEKIT_ENG_ERR_NONE;
+    return ENGINE_ERR_NONE;
 }
 
-livekit_eng_err_t livekit_eng_destroy(livekit_eng_handle_t handle)
+engine_err_t engine_destroy(engine_handle_t handle)
 {
     if (handle == NULL) {
-        return LIVEKIT_ENG_ERR_INVALID_ARG;
+        return ENGINE_ERR_INVALID_ARG;
     }
-    livekit_eng_t *eng = (livekit_eng_t *)handle;
+    engine_t *eng = (engine_t *)handle;
 
     if (eng->pub_peer != NULL) {
-        livekit_peer_destroy(eng->pub_peer);
+        peer_destroy(eng->pub_peer);
     }
     if (eng->sub_peer != NULL) {
-        livekit_peer_destroy(eng->sub_peer);
+        peer_destroy(eng->sub_peer);
     }
-    livekit_sig_destroy(eng->sig);
+    signal_destroy(eng->sig);
     free_ice_servers(eng);
     free(eng);
-    return LIVEKIT_ENG_ERR_NONE;
+    return ENGINE_ERR_NONE;
 }
 
-livekit_eng_err_t livekit_eng_connect(livekit_eng_handle_t handle, const char* server_url, const char* token)
+engine_err_t engine_connect(engine_handle_t handle, const char* server_url, const char* token)
 {
     if (handle == NULL || server_url == NULL || token == NULL) {
-        return LIVEKIT_ENG_ERR_INVALID_ARG;
+        return ENGINE_ERR_INVALID_ARG;
     }
-    livekit_eng_t *eng = (livekit_eng_t *)handle;
+    engine_t *eng = (engine_t *)handle;
 
     sys_init();
 
-    if (livekit_sig_connect(eng->sig, server_url, token) != LIVEKIT_SIG_ERR_NONE) {
+    if (signal_connect(eng->sig, server_url, token) != SIGNAL_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to connect signaling client");
-        return LIVEKIT_ENG_ERR_SIGNALING;
+        return ENGINE_ERR_SIGNALING;
     }
-    return LIVEKIT_ENG_ERR_NONE;
+    return ENGINE_ERR_NONE;
 }
 
-livekit_eng_err_t livekit_eng_close(livekit_eng_handle_t handle)
+engine_err_t engine_close(engine_handle_t handle)
 {
     if (handle == NULL) {
-        return LIVEKIT_ENG_ERR_INVALID_ARG;
+        return ENGINE_ERR_INVALID_ARG;
     }
-    livekit_eng_t *eng = (livekit_eng_t *)handle;
+    engine_t *eng = (engine_t *)handle;
 
     media_stream_end(eng);
     // TODO: Reset just the stream that was added in case users added their own streams?
     av_render_reset(eng->renderer_handle);
 
     if (eng->sub_peer != NULL) {
-        livekit_peer_disconnect(eng->sub_peer);
+        peer_disconnect(eng->sub_peer);
     }
     if (eng->pub_peer != NULL) {
-        livekit_peer_disconnect(eng->pub_peer);
+        peer_disconnect(eng->pub_peer);
     }
     if (eng->sig != NULL) {
         // TODO: Ensure the WebSocket stays open long enough for the leave message to be sent
-        livekit_sig_send_leave(eng->sig);
-        livekit_sig_close(eng->sig);
+        signal_send_leave(eng->sig);
+        signal_close(eng->sig);
     }
-    return LIVEKIT_ENG_ERR_NONE;
+    return ENGINE_ERR_NONE;
 }
 
-livekit_eng_err_t livekit_eng_send_data_packet(livekit_eng_handle_t handle, livekit_pb_data_packet_t* packet, livekit_pb_data_packet_kind_t kind)
+engine_err_t engine_send_data_packet(engine_handle_t handle, livekit_pb_data_packet_t* packet, livekit_pb_data_packet_kind_t kind)
 {
     if (handle == NULL || packet == NULL) {
-        return LIVEKIT_ENG_ERR_INVALID_ARG;
+        return ENGINE_ERR_INVALID_ARG;
     }
-    livekit_eng_t *eng = (livekit_eng_t *)handle;
+    engine_t *eng = (engine_t *)handle;
 
     if (eng->pub_peer == NULL ||
-        livekit_peer_send_data_packet(eng->pub_peer, packet, kind) != LIVEKIT_PEER_ERR_NONE) {
-        return LIVEKIT_ENG_ERR_RTC;
+        peer_send_data_packet(eng->pub_peer, packet, kind) != PEER_ERR_NONE) {
+        return ENGINE_ERR_RTC;
     }
-    return LIVEKIT_ENG_ERR_NONE;
+    return ENGINE_ERR_NONE;
 }

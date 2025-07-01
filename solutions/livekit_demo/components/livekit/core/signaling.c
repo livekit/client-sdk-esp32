@@ -18,22 +18,22 @@
 
 static const char *TAG = "livekit_signaling";
 
-#define LIVEKIT_SIG_WS_BUFFER_SIZE          20 * 1024
-#define LIVEKIT_SIG_WS_RECONNECT_TIMEOUT_MS 1000
-#define LIVEKIT_SIG_WS_NETWORK_TIMEOUT_MS   10000
-#define LIVEKIT_SIG_WS_CLOSE_CODE           1000
-#define LIVEKIT_SIG_WS_CLOSE_TIMEOUT_MS     250
+#define SIGNAL_WS_BUFFER_SIZE          20 * 1024
+#define SIGNAL_WS_RECONNECT_TIMEOUT_MS 1000
+#define SIGNAL_WS_NETWORK_TIMEOUT_MS   10000
+#define SIGNAL_WS_CLOSE_CODE           1000
+#define SIGNAL_WS_CLOSE_TIMEOUT_MS     250
 
 typedef struct {
     char* url;
     esp_websocket_client_handle_t ws;
-    livekit_sig_options_t         options;
+    signal_options_t         options;
     esp_timer_handle_t            ping_timer;
 
     int32_t                       ping_interval_ms;
     int32_t                       ping_timeout_ms;
     int64_t                       rtt;
-} livekit_sig_t;
+} signal_t;
 
 static void log_error_if_nonzero(const char *message, int error_code)
 {
@@ -42,25 +42,25 @@ static void log_error_if_nonzero(const char *message, int error_code)
     }
 }
 
-static livekit_sig_err_t send_request(livekit_sig_t *sg, livekit_pb_signal_request_t *request)
+static signal_err_t send_request(signal_t *sg, livekit_pb_signal_request_t *request)
 {
     // TODO: Optimize (use static buffer for small messages)
     ESP_LOGI(TAG, "Sending request: type=%d", request->which_message);
 
     size_t encoded_size = 0;
     if (!pb_get_encoded_size(&encoded_size, LIVEKIT_PB_SIGNAL_REQUEST_FIELDS, request)) {
-        return LIVEKIT_SIG_ERR_MESSAGE;
+        return SIGNAL_ERR_MESSAGE;
     }
     uint8_t *enc_buf = (uint8_t *)malloc(encoded_size);
     if (enc_buf == NULL) {
-        return LIVEKIT_SIG_ERR_NO_MEM;
+        return SIGNAL_ERR_NO_MEM;
     }
-    int ret = LIVEKIT_SIG_ERR_NONE;
+    int ret = SIGNAL_ERR_NONE;
     do {
         pb_ostream_t stream = pb_ostream_from_buffer(enc_buf, encoded_size);
         if (!pb_encode(&stream, LIVEKIT_PB_SIGNAL_REQUEST_FIELDS, request)) {
             ESP_LOGE(TAG, "Failed to encode request");
-            ret = LIVEKIT_SIG_ERR_MESSAGE;
+            ret = SIGNAL_ERR_MESSAGE;
             break;
         }
         if (esp_websocket_client_send_bin(sg->ws,
@@ -68,7 +68,7 @@ static livekit_sig_err_t send_request(livekit_sig_t *sg, livekit_pb_signal_reque
                 stream.bytes_written,
                 portMAX_DELAY) < 0) {
             ESP_LOGE(TAG, "Failed to send request");
-            ret = LIVEKIT_SIG_ERR_MESSAGE;
+            ret = SIGNAL_ERR_MESSAGE;
             break;
         }
     } while (0);
@@ -78,7 +78,7 @@ static livekit_sig_err_t send_request(livekit_sig_t *sg, livekit_pb_signal_reque
 
 static void send_ping(void *arg)
 {
-    livekit_sig_t *sg = (livekit_sig_t *)arg;
+    signal_t *sg = (signal_t *)arg;
 
     livekit_pb_signal_request_t req = LIVEKIT_PB_SIGNAL_REQUEST_INIT_DEFAULT;
     req.which_message = LIVEKIT_PB_SIGNAL_REQUEST_PING_REQ_TAG;
@@ -88,7 +88,7 @@ static void send_ping(void *arg)
     send_request(sg, &req);
 }
 
-static void handle_res(livekit_sig_t *sg, livekit_pb_signal_response_t *res)
+static void handle_res(signal_t *sg, livekit_pb_signal_response_t *res)
 {
     switch (res->which_message) {
         case LIVEKIT_PB_SIGNAL_RESPONSE_PONG_RESP_TAG:
@@ -161,7 +161,7 @@ static void handle_res(livekit_sig_t *sg, livekit_pb_signal_response_t *res)
     pb_release(LIVEKIT_PB_SIGNAL_RESPONSE_FIELDS, res);
 }
 
-static void on_data(livekit_sig_t *sg, const char *data, size_t len)
+static void on_data(signal_t *sg, const char *data, size_t len)
 {
     ESP_LOGI(TAG, "Incoming res: %d byte(s)", len);
     livekit_pb_signal_response_t res = {};
@@ -180,7 +180,7 @@ static void on_data(livekit_sig_t *sg, const char *data, size_t len)
 static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void *event_data)
 {
     assert(ctx != NULL);
-    livekit_sig_t *sg = (livekit_sig_t *)ctx;
+    signal_t *sg = (signal_t *)ctx;
     esp_websocket_event_data_t *data = (esp_websocket_event_data_t *)event_data;
     switch (event_id) {
                 case WEBSOCKET_EVENT_CONNECTED:
@@ -226,10 +226,10 @@ static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void
     }
 }
 
-livekit_sig_err_t livekit_sig_create(livekit_sig_handle_t *handle, livekit_sig_options_t *options)
+signal_err_t signal_create(signal_handle_t *handle, signal_options_t *options)
 {
     if (options == NULL || handle == NULL) {
-        return LIVEKIT_SIG_ERR_INVALID_ARG;
+        return SIGNAL_ERR_INVALID_ARG;
     }
 
     if (options->on_connect    == NULL ||
@@ -242,12 +242,12 @@ livekit_sig_err_t livekit_sig_create(livekit_sig_handle_t *handle, livekit_sig_o
         options->on_trickle    == NULL
     ) {
         ESP_LOGE(TAG, "Missing required event handlers");
-        return LIVEKIT_SIG_ERR_INVALID_ARG;
+        return SIGNAL_ERR_INVALID_ARG;
     }
 
-    livekit_sig_t *sg = calloc(1, sizeof(livekit_sig_t));
+    signal_t *sg = calloc(1, sizeof(signal_t));
     if (sg == NULL) {
-        return LIVEKIT_SIG_ERR_NO_MEM;
+        return SIGNAL_ERR_NO_MEM;
     }
     sg->options = *options;
 
@@ -259,15 +259,15 @@ livekit_sig_err_t livekit_sig_create(livekit_sig_handle_t *handle, livekit_sig_o
     if (esp_timer_create(&timer_args, &sg->ping_timer) != ESP_OK) {
         ESP_LOGE(TAG, "Failed to create ping timer");
         free(sg);
-        return LIVEKIT_SIG_ERR_OTHER;
+        return SIGNAL_ERR_OTHER;
     }
 
     // URL will be set on connect
     static esp_websocket_client_config_t ws_config = {
-        .buffer_size = LIVEKIT_SIG_WS_BUFFER_SIZE,
+        .buffer_size = SIGNAL_WS_BUFFER_SIZE,
         .disable_pingpong_discon = true,
-        .reconnect_timeout_ms = LIVEKIT_SIG_WS_RECONNECT_TIMEOUT_MS,
-        .network_timeout_ms = LIVEKIT_SIG_WS_NETWORK_TIMEOUT_MS,
+        .reconnect_timeout_ms = SIGNAL_WS_RECONNECT_TIMEOUT_MS,
+        .network_timeout_ms = SIGNAL_WS_NETWORK_TIMEOUT_MS,
 #ifdef CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
         .crt_bundle_attach = esp_crt_bundle_attach
 #endif
@@ -277,7 +277,7 @@ livekit_sig_err_t livekit_sig_create(livekit_sig_handle_t *handle, livekit_sig_o
         ESP_LOGE(TAG, "Failed to initialize WebSocket client");
         esp_timer_delete(sg->ping_timer);
         free(sg);
-        return LIVEKIT_SIG_ERR_WEBSOCKET;
+        return SIGNAL_ERR_WEBSOCKET;
     }
     esp_websocket_register_events(
         sg->ws,
@@ -286,70 +286,70 @@ livekit_sig_err_t livekit_sig_create(livekit_sig_handle_t *handle, livekit_sig_o
         (void *)sg
     );
     *handle = sg;
-    return LIVEKIT_SIG_ERR_NONE;
+    return SIGNAL_ERR_NONE;
 }
 
-livekit_sig_err_t livekit_sig_destroy(livekit_sig_handle_t handle)
+signal_err_t signal_destroy(signal_handle_t handle)
 {
     if (handle == NULL) {
-        return LIVEKIT_SIG_ERR_INVALID_ARG;
+        return SIGNAL_ERR_INVALID_ARG;
     }
-    livekit_sig_t *sg = (livekit_sig_t *)handle;
+    signal_t *sg = (signal_t *)handle;
     esp_timer_delete(sg->ping_timer);
-    livekit_sig_close(handle);
+    signal_close(handle);
     esp_websocket_client_destroy(sg->ws);
     free(sg);
-    return LIVEKIT_SIG_ERR_NONE;
+    return SIGNAL_ERR_NONE;
 }
 
-livekit_sig_err_t livekit_sig_connect(livekit_sig_handle_t handle, const char* server_url, const char* token)
+signal_err_t signal_connect(signal_handle_t handle, const char* server_url, const char* token)
 {
     if (server_url == NULL || token == NULL || handle == NULL) {
-        return LIVEKIT_SIG_ERR_INVALID_ARG;
+        return SIGNAL_ERR_INVALID_ARG;
     }
-    livekit_sig_t *sg = (livekit_sig_t *)handle;
+    signal_t *sg = (signal_t *)handle;
 
-    if (!livekit_url_build(server_url, token, &sg->url)) {
-        return LIVEKIT_SIG_ERR_INVALID_URL;
+    if (!url_build(server_url, token, &sg->url)) {
+        return SIGNAL_ERR_INVALID_URL;
     }
 
     if (esp_websocket_client_set_uri(sg->ws, sg->url) != ESP_OK) {
         ESP_LOGE(TAG, "Failed to set WebSocket URI");
-        return LIVEKIT_SIG_ERR_WEBSOCKET;
+        return SIGNAL_ERR_WEBSOCKET;
     }
     if (esp_websocket_client_start(sg->ws) != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start WebSocket");
-        return LIVEKIT_SIG_ERR_WEBSOCKET;
+        return SIGNAL_ERR_WEBSOCKET;
     }
-    return LIVEKIT_SIG_ERR_NONE;
+    return SIGNAL_ERR_NONE;
 }
 
-livekit_sig_err_t livekit_sig_close(livekit_sig_handle_t handle)
+signal_err_t signal_close(signal_handle_t handle)
 {
     if (handle == NULL) {
-        return LIVEKIT_SIG_ERR_INVALID_ARG;
+        return SIGNAL_ERR_INVALID_ARG;
     }
-    livekit_sig_t *sg = (livekit_sig_t *)handle;
+    signal_t *sg = (signal_t *)handle;
 
     esp_timer_stop(sg->ping_timer);
     if (esp_websocket_client_is_connected(sg->ws) &&
-        esp_websocket_client_close(sg->ws, pdMS_TO_TICKS(LIVEKIT_SIG_WS_CLOSE_TIMEOUT_MS)) != ESP_OK) {
+        esp_websocket_client_close(sg->ws, pdMS_TO_TICKS(SIGNAL_WS_CLOSE_TIMEOUT_MS)) != ESP_OK) {
         ESP_LOGE(TAG, "Failed to close WebSocket");
-        return LIVEKIT_SIG_ERR_WEBSOCKET;
+        return SIGNAL_ERR_WEBSOCKET;
     }
     if (sg->url != NULL) {
         free(sg->url);
         sg->url = NULL;
     }
-    return LIVEKIT_SIG_ERR_NONE;
+    return SIGNAL_ERR_NONE;
 }
 
-livekit_sig_err_t livekit_sig_send_leave(livekit_sig_handle_t handle)
+signal_err_t signal_send_leave(signal_handle_t handle)
 {
     if (handle == NULL) {
-        return LIVEKIT_SIG_ERR_INVALID_ARG;
+        return SIGNAL_ERR_INVALID_ARG;
     }
-    livekit_sig_t *sg = (livekit_sig_t *)handle;
+    signal_t *sg = (signal_t *)handle;
     livekit_pb_signal_request_t req = LIVEKIT_PB_SIGNAL_REQUEST_INIT_ZERO;
     req.which_message = LIVEKIT_PB_SIGNAL_REQUEST_LEAVE_TAG;
 
@@ -361,12 +361,12 @@ livekit_sig_err_t livekit_sig_send_leave(livekit_sig_handle_t handle)
     return send_request(sg, &req);
 }
 
-livekit_sig_err_t livekit_sig_send_answer(livekit_sig_handle_t handle, const char *sdp)
+signal_err_t signal_send_answer(signal_handle_t handle, const char *sdp)
 {
     if (sdp == NULL || handle == NULL) {
-        return LIVEKIT_SIG_ERR_INVALID_ARG;
+        return SIGNAL_ERR_INVALID_ARG;
     }
-    livekit_sig_t *sg = (livekit_sig_t *)handle;
+    signal_t *sg = (signal_t *)handle;
     livekit_pb_signal_request_t req = LIVEKIT_PB_SIGNAL_REQUEST_INIT_ZERO;
 
     livekit_pb_session_description_t desc = {
@@ -378,12 +378,12 @@ livekit_sig_err_t livekit_sig_send_answer(livekit_sig_handle_t handle, const cha
     return send_request(sg, &req);
 }
 
-livekit_sig_err_t livekit_sig_send_offer(livekit_sig_handle_t handle, const char *sdp)
+signal_err_t signal_send_offer(signal_handle_t handle, const char *sdp)
 {
     if (sdp == NULL || handle == NULL) {
-        return LIVEKIT_SIG_ERR_INVALID_ARG;
+        return SIGNAL_ERR_INVALID_ARG;
     }
-    livekit_sig_t *sg = (livekit_sig_t *)handle;
+    signal_t *sg = (signal_t *)handle;
     livekit_pb_signal_request_t req = LIVEKIT_PB_SIGNAL_REQUEST_INIT_ZERO;
 
     livekit_pb_session_description_t desc = {
@@ -395,12 +395,12 @@ livekit_sig_err_t livekit_sig_send_offer(livekit_sig_handle_t handle, const char
     return send_request(sg, &req);
 }
 
-livekit_sig_err_t livekit_sig_send_add_track(livekit_sig_handle_t handle, livekit_pb_add_track_request_t *add_track_req)
+signal_err_t signal_send_add_track(signal_handle_t handle, livekit_pb_add_track_request_t *add_track_req)
 {
     if (handle == NULL || add_track_req == NULL) {
-        return LIVEKIT_SIG_ERR_INVALID_ARG;
+        return SIGNAL_ERR_INVALID_ARG;
     }
-    livekit_sig_t *sg = (livekit_sig_t *)handle;
+    signal_t *sg = (signal_t *)handle;
     livekit_pb_signal_request_t req = LIVEKIT_PB_SIGNAL_REQUEST_INIT_ZERO;
     req.which_message = LIVEKIT_PB_SIGNAL_REQUEST_ADD_TRACK_TAG;
     req.message.add_track = *add_track_req;

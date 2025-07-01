@@ -26,7 +26,7 @@ static const char *TAG = "livekit_url";
     "&protocol=" URL_PARAM_PROTOCOL \
     "&access_token=%s" // Keep at the end for log redaction
 
-bool livekit_url_build(const char *server_url, const char *token, char **out_url)
+bool url_build(const char *server_url, const char *token, char **out_url)
 {
     if (server_url == NULL || token == NULL || out_url == NULL) {
         return false;

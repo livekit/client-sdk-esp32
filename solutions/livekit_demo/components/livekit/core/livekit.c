@@ -8,11 +8,11 @@
 static const char *TAG = "livekit";
 
 typedef struct {
-    livekit_eng_handle_t engine;
+    engine_handle_t engine;
 } livekit_room_t;
 
 static void populate_media_options(
-    livekit_eng_media_options_t *media_options,
+    engine_media_options_t *media_options,
     const livekit_pub_options_t *pub_options,
     const livekit_sub_options_t *sub_options)
 {
@@ -64,19 +64,19 @@ static void populate_media_options(
     media_options->renderer = sub_options->renderer;
 }
 
-static void on_eng_connected(livekit_eng_event_connected_t detail, void *ctx)
+static void on_eng_connected(engine_event_connected_t detail, void *ctx)
 {
     ESP_LOGI(TAG, "Received engine connected event");
     // TODO: Implement
 }
 
-static void on_eng_disconnected(livekit_eng_event_disconnected_t detail, void *ctx)
+static void on_eng_disconnected(engine_event_disconnected_t detail, void *ctx)
 {
     ESP_LOGI(TAG, "Received engine disconnected event");
     // TODO: Implement
 }
 
-static void on_eng_error(livekit_eng_event_error_t detail, void *ctx)
+static void on_eng_error(engine_event_error_t detail, void *ctx)
 {
     ESP_LOGE(TAG, "Received engine error event");
     // TODO: Implement
@@ -157,10 +157,10 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_r
         return LIVEKIT_ERR_NO_MEM;
     }
 
-    livekit_eng_media_options_t media_options = {};
+    engine_media_options_t media_options = {};
     populate_media_options(&media_options, &options->publish, &options->subscribe);
 
-    livekit_eng_options_t eng_options = {
+    engine_options_t eng_options = {
         .media = media_options,
         .on_connected = on_eng_connected,
         .on_disconnected = on_eng_disconnected,
@@ -176,7 +176,7 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_r
 
     int ret = LIVEKIT_ERR_OTHER;
     do {
-        if (livekit_eng_create(&room->engine, &eng_options) != LIVEKIT_ENG_ERR_NONE) {
+        if (engine_create(&room->engine, &eng_options) != ENGINE_ERR_NONE) {
             ESP_LOGE(TAG, "Failed to create engine");
             ret = LIVEKIT_ERR_ENGINE;
             break;
@@ -196,7 +196,7 @@ livekit_err_t livekit_room_destroy(livekit_room_handle_t handle)
         return LIVEKIT_ERR_INVALID_ARG;
     }
     livekit_room_close(handle);
-    livekit_eng_destroy(room->engine);
+    engine_destroy(room->engine);
     free(room);
     return LIVEKIT_ERR_NONE;
 }
@@ -208,7 +208,7 @@ livekit_err_t livekit_room_connect(livekit_room_handle_t handle, const char *ser
     }
     livekit_room_t *room = (livekit_room_t *)handle;
 
-    if (livekit_eng_connect(room->engine, server_url, token) != LIVEKIT_ENG_ERR_NONE) {
+    if (engine_connect(room->engine, server_url, token) != ENGINE_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to connect engine");
         return LIVEKIT_ERR_OTHER;
     }
@@ -221,7 +221,7 @@ livekit_err_t livekit_room_close(livekit_room_handle_t handle)
         return LIVEKIT_ERR_INVALID_ARG;
     }
     livekit_room_t *room = (livekit_room_t *)handle;
-    livekit_eng_close(room->engine);
+    engine_close(room->engine);
     return LIVEKIT_ERR_NONE;
 }
 
@@ -255,7 +255,7 @@ livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_pa
     livekit_pb_data_packet_kind_t kind = options->lossy ?
         LIVEKIT_PB_DATA_PACKET_KIND_LOSSY : LIVEKIT_PB_DATA_PACKET_KIND_RELIABLE;
 
-    if (livekit_eng_send_data_packet(room->engine, &packet, kind) != LIVEKIT_ENG_ERR_NONE) {
+    if (engine_send_data_packet(room->engine, &packet, kind) != ENGINE_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to send data packet");
         free(bytes_array);
         return LIVEKIT_ERR_ENGINE;

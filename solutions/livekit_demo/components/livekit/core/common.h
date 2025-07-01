@@ -18,7 +18,7 @@ typedef struct {
 
     esp_capture_handle_t capturer;
     av_render_handle_t   renderer;
-} livekit_eng_media_options_t;
+} engine_media_options_t;
 
 #ifdef __cplusplus
 }

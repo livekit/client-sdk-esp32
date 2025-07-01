@@ -13,7 +13,7 @@ extern "C" {
 /// @param out_url[out] The output URL.
 /// @return True if the URL is constructed successfully, false otherwise.
 /// @note The caller is responsible for freeing the output URL.
-bool livekit_url_build(const char *server_url, const char *token, char **out_url);
+bool url_build(const char *server_url, const char *token, char **out_url);
 
 #ifdef __cplusplus
 }
