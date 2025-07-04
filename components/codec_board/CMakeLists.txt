@@ -10,7 +10,7 @@ list(APPEND COMPONENT_PRIV_REQUIRE esp_driver_i2c)
 endif()
 
 idf_component_register(SRCS  "cfg_parse.c" "codec_board.c" "codec_init.c" "dummy_codec.c"
-                             "lcd_init.c" "drv/tca9554.c"
+                             "extend_io.c" "lcd_init.c" "led_init.c" "drv/tca9554.c"
                        INCLUDE_DIRS ./include
                        PRIV_INCLUDE_DIRS drv
                        REQUIRES "${COMPONENT_PRIV_REQUIRE}"

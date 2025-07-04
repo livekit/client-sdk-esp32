@@ -126,6 +126,24 @@ int board_lcd_init(void);
  */
 void *board_get_lcd_handle(void);
 
+/**
+ * @brief  Initialize the onboard LEDs
+ *
+ * @return
+ *       - 0       On success
+ *       - Others  Fail to init LEDs
+ */
+int board_led_init(void);
+
+/**
+ * @brief  Set the state of an onboard LED
+ *
+ * @return
+ *       - 0       On success
+ *       - Others  Fail to init LEDs
+ */
+int board_led_set(int led_number, const bool state);
+
 #ifdef __cplusplus
 }
 #endif

@@ -1,10 +1,10 @@
 #include "media_lib_os.h"
 #include "codec_board.h"
+#include "extend_io.h"
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
-#include "tca9554.h"
 #include "esp_log.h"
-#include "driver/gpio.h"
+
 #include "driver/spi_common.h"
 #include "esp_idf_version.h"
 
@@ -31,97 +31,14 @@
     return ret;                                                \
 }
 
-typedef struct {
-    int (*init)(lcd_cfg_t *cfg);
-    int (*set_dir)(int16_t gpio, bool output);
-    int (*set_gpio)(int16_t gpio, bool high);
-} extend_io_ops_t;
-
-static extend_io_ops_t        extend_io_ops;
 static esp_lcd_panel_handle_t panel_handle = NULL;
-
-static int tca9554_io_init(lcd_cfg_t *cfg)
-{
-    return tca9554_init(cfg->io_i2c_port);
-}
-
-static int tca9554_io_set_dir(int16_t gpio, bool output)
-{
-    gpio = (1 << gpio);
-    tca9554_set_io_config(gpio, output ? TCA9554_IO_OUTPUT : TCA9554_IO_INPUT);
-    return 0;
-}
-
-static int tca9554_io_set(int16_t gpio, bool high)
-{
-    gpio = (1 << gpio);
-    return tca9554_set_output_state(gpio, high ? TCA9554_IO_HIGH : TCA9554_IO_LOW);
-}
-
-static void register_tca9554(void)
-{
-    extend_io_ops.init = tca9554_io_init;
-    extend_io_ops.set_dir = tca9554_io_set_dir;
-    extend_io_ops.set_gpio = tca9554_io_set;
-}
-
-static int init_extend_io(lcd_cfg_t *cfg)
-{
-    if (cfg->io_type == EXTENT_IO_TYPE_NONE) {
-        return 0;
-    }
-    switch (cfg->io_type) {
-        case EXTENT_IO_TYPE_TCA9554:
-            register_tca9554();
-            break;
-        default:
-            return -1;
-    }
-    return extend_io_ops.init(cfg);
-}
-
-static int set_pin_dir(int16_t pin, bool output)
-{
-    if (pin & BOARD_EXTEND_IO_START) {
-        pin &= ~BOARD_EXTEND_IO_START;
-        extend_io_ops.set_dir(pin, output);
-    } else {
-        gpio_config_t bk_gpio_config = {
-            .mode = output ? GPIO_MODE_OUTPUT : GPIO_MODE_INPUT,
-            .pin_bit_mask = pin > 0 ? 1ULL << pin : 0ULL,
-        };
-        gpio_config(&bk_gpio_config);
-    }
-    return 0;
-}
-
-static int set_pin_state(int16_t pin, bool high)
-{
-    if (pin & BOARD_EXTEND_IO_START) {
-        extend_io_ops.set_gpio(pin, high);
-    } else {
-        gpio_set_level(pin, true);
-    }
-    return 0;
-}
-
-static int16_t get_hw_gpio(int16_t pin)
-{
-    if (pin == -1) {
-        return pin;
-    }
-    if (pin & BOARD_EXTEND_IO_START) {
-        return -1;
-    }
-    return pin;
-}
 
 static int _lcd_rest(lcd_cfg_t *cfg)
 {
     if (cfg->reset_pin >= 0) {
-        set_pin_state(cfg->reset_pin, false);
+        extend_io_set_pin_state(cfg->reset_pin, false);
         media_lib_thread_sleep(100);
-        set_pin_state(cfg->reset_pin, true);
+        extend_io_set_pin_state(cfg->reset_pin, true);
     }
     return 0;
 }
@@ -130,9 +47,9 @@ static int _init_spi_lcd(lcd_cfg_t *cfg)
 {
     int ret = 0;
     if (cfg->spi_cfg.cs & BOARD_EXTEND_IO_START) {
-        set_pin_dir(cfg->spi_cfg.cs, true);
+        extend_io_set_pin_dir(cfg->spi_cfg.cs, true);
         media_lib_thread_sleep(10);
-        set_pin_dir(cfg->spi_cfg.cs, false);
+        extend_io_set_pin_dir(cfg->spi_cfg.cs, false);
         media_lib_thread_sleep(10);
     }
     spi_bus_config_t buscfg = {
@@ -165,12 +82,12 @@ static int _init_spi_lcd(lcd_cfg_t *cfg)
     ret = spi_bus_initialize(bus_id, &buscfg, SPI_DMA_CH_AUTO);
     ESP_LOGI(TAG, "CLK %d MOSI %d CS:%d DC: %d Bus:%d",
              cfg->spi_cfg.clk, cfg->spi_cfg.mosi,
-             get_hw_gpio(cfg->spi_cfg.cs), cfg->spi_cfg.dc,
+             extend_io_get_hw_gpio(cfg->spi_cfg.cs), cfg->spi_cfg.dc,
              bus_id);
     RETURN_ON_ERR(ret);
     esp_lcd_panel_io_spi_config_t io_config = {
         .dc_gpio_num = cfg->spi_cfg.dc,
-        .cs_gpio_num = get_hw_gpio(cfg->spi_cfg.cs),
+        .cs_gpio_num = extend_io_get_hw_gpio(cfg->spi_cfg.cs),
         .pclk_hz = cfg->spi_cfg.pclk_clk ? cfg->spi_cfg.pclk_clk : 60 * 1000 * 1000,
         .spi_mode = 0,
         .trans_queue_depth = 10,
@@ -189,7 +106,7 @@ static int _init_spi_lcd(lcd_cfg_t *cfg)
     ret = esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)bus_id, &io_config, &io_handle);
     RETURN_ON_ERR(ret);
     esp_lcd_panel_dev_config_t panel_config = {
-        .reset_gpio_num = get_hw_gpio(cfg->reset_pin),
+        .reset_gpio_num = extend_io_get_hw_gpio(cfg->reset_pin),
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
         .rgb_ele_order = ESP_LCD_COLOR_SPACE_BGR,
 #else
@@ -308,27 +225,27 @@ static int _init_mipi_lcd(lcd_cfg_t *cfg)
 static int _init_lcd(lcd_cfg_t *cfg)
 {
     int ret = 0;
-    if (cfg->io_type != EXTENT_IO_TYPE_NONE) {
-        ret = init_extend_io(cfg);
+    if (cfg->io_type == EXTENT_IO_TYPE_TCA9554) {
+        ret = extend_io_init(cfg->io_i2c_port);
         if (ret != 0) {
             return ret;
         }
     }
     // Config reset and ctrl gpio dir
     if (cfg->reset_pin >= 0) {
-        set_pin_dir(cfg->reset_pin, true);
+        extend_io_set_pin_dir(cfg->reset_pin, true);
     }
     if (cfg->ctrl_pin >= 0) {
-        set_pin_dir(cfg->ctrl_pin, true);
+        extend_io_set_pin_dir(cfg->ctrl_pin, true);
     }
     if (cfg->bus_type == LCD_BUS_TYPE_SPI) {
         if (cfg->spi_cfg.cs >= 0) {
-            set_pin_dir(cfg->spi_cfg.cs, true);
+            extend_io_set_pin_dir(cfg->spi_cfg.cs, true);
         }
     }
     _lcd_rest(cfg);
     if (cfg->ctrl_pin >= 0) {
-        set_pin_dir(cfg->ctrl_pin, true);
+        extend_io_set_pin_dir(cfg->ctrl_pin, true);
     }
     if (cfg->bus_type == LCD_BUS_TYPE_SPI) {
         ret = _init_spi_lcd(cfg);
