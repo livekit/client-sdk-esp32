@@ -103,14 +103,13 @@ typedef void (*livekit_rpc_handler_t)(const livekit_rpc_invocation_t* invocation
     }, invocation->ctx)
 
 /// @brief Returns an error result from an RPC handler.
-/// @param code The error code.
 /// @param error_message The error message or NULL.
 /// @warning This macro is intended for use only in RPC handler methods, and expects the
 /// invocation parameter to be named `invocation`.
-#define livekit_rpc_return_error(_code, _error_message) \
+#define livekit_rpc_return_error(_error_message) \
     invocation->send_result(&(livekit_rpc_result_t){ \
         .id = invocation->id, \
-        .code = (_code), \
+        .code = LIVEKIT_RPC_RESULT_APPLICATION, \
         .payload = NULL, \
         .error_message = (_error_message) \
     }, invocation->ctx);
