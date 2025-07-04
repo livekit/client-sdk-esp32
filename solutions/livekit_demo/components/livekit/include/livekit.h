@@ -3,6 +3,7 @@
 
 #include "esp_capture.h"
 #include "av_render.h"
+#include "livekit_rpc.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -13,11 +14,12 @@ typedef void *livekit_room_handle_t;
 
 /// @brief Result
 typedef enum {
-    LIVEKIT_ERR_NONE        =  0,
-    LIVEKIT_ERR_INVALID_ARG = -1,
-    LIVEKIT_ERR_NO_MEM      = -2,
-    LIVEKIT_ERR_ENGINE      = -3,
-    LIVEKIT_ERR_OTHER       = -4,
+    LIVEKIT_ERR_NONE          =  0,
+    LIVEKIT_ERR_INVALID_ARG   = -1,
+    LIVEKIT_ERR_NO_MEM        = -2,
+    LIVEKIT_ERR_ENGINE        = -3,
+    LIVEKIT_ERR_OTHER         = -4,
+    LIVEKIT_ERR_INVALID_STATE = -5,
     // TODO: Add more error cases as needed
 } livekit_err_t;
 
@@ -117,6 +119,11 @@ typedef struct {
     /// @brief Options for subscribing to media.
     /// @note Only required if the room subscribes to media.
     livekit_sub_options_t subscribe;
+
+    void (*on_rpc_result)(const livekit_rpc_result_t* result, void* ctx);
+
+    /// @brief User context passed to all handlers.
+    void* ctx;
 } livekit_room_options_t;
 
 /// @brief Creates a room.
@@ -151,6 +158,12 @@ livekit_err_t livekit_room_close(livekit_room_handle_t handle);
 /// @param options[in] Options for sending the data packet (e.g. reliability, topic, etc.).
 /// @return LIVEKIT_ERR_NONE if successful, otherwise an error code.
 livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_payload_t *payload, livekit_publish_data_options_t *options);
+
+/// @brief Registers a handler for an RPC method.
+livekit_err_t livekit_room_rpc_register(livekit_room_handle_t handle, const char* method, livekit_rpc_handler_t handler);
+
+/// @brief Unregisters a handler for an RPC method.
+livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const char* method);
 
 #ifdef __cplusplus
 }

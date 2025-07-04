@@ -90,7 +90,7 @@ peer_err_t peer_handle_sdp(peer_handle_t handle, const char *sdp);
 peer_err_t peer_handle_ice_candidate(peer_handle_t handle, const char *candidate);
 
 /// @brief Sends a data packet to the remote peer.
-peer_err_t peer_send_data_packet(peer_handle_t handle, livekit_pb_data_packet_t* packet, livekit_pb_data_packet_kind_t kind);
+peer_err_t peer_send_data_packet(peer_handle_t handle, const livekit_pb_data_packet_t* packet, livekit_pb_data_packet_kind_t kind);
 
 /// @brief Sends an audio frame to the remote peer.
 /// @warning Only use on publisher peer.

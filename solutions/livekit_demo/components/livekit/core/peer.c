@@ -412,7 +412,7 @@ peer_err_t peer_handle_ice_candidate(peer_handle_t handle, const char *candidate
     return PEER_ERR_NONE;
 }
 
-peer_err_t peer_send_data_packet(peer_handle_t handle, livekit_pb_data_packet_t* packet, livekit_pb_data_packet_kind_t kind)
+peer_err_t peer_send_data_packet(peer_handle_t handle, const livekit_pb_data_packet_t* packet, livekit_pb_data_packet_kind_t kind)
 {
     if (handle == NULL || packet == NULL) {
         return PEER_ERR_INVALID_ARG;

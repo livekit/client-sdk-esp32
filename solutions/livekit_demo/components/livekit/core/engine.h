@@ -56,15 +56,7 @@ typedef struct {
     void (*on_connected)(engine_event_connected_t detail, void *ctx);
     void (*on_disconnected)(engine_event_disconnected_t detail, void *ctx);
     void (*on_error)(engine_event_error_t detail, void *ctx);
-
-    void (*on_user_packet)(livekit_pb_user_packet_t* packet, void *ctx);
-    void (*on_rpc_request)(livekit_pb_rpc_request_t* req, void *ctx);
-    void (*on_rpc_response)(livekit_pb_rpc_response_t* res, void *ctx);
-    void (*on_rpc_ack)(livekit_pb_rpc_ack_t* ack, void *ctx);
-    void (*on_stream_header)(livekit_pb_data_stream_header_t* header, void *ctx);
-    void (*on_stream_chunk)(livekit_pb_data_stream_chunk_t* chunk, void *ctx);
-    void (*on_stream_trailer)(livekit_pb_data_stream_trailer_t* trailer, void *ctx);
-
+    void (*on_data_packet)(livekit_pb_data_packet_t* packet, void *ctx);
     engine_media_options_t media;
 } engine_options_t;
 
@@ -83,7 +75,7 @@ engine_err_t engine_connect(engine_handle_t handle, const char* server_url, cons
 engine_err_t engine_close(engine_handle_t handle);
 
 /// @brief Sends a data packet to the remote peer.
-engine_err_t engine_send_data_packet(engine_handle_t handle, livekit_pb_data_packet_t* packet, livekit_pb_data_packet_kind_t kind);
+engine_err_t engine_send_data_packet(engine_handle_t handle, const livekit_pb_data_packet_t* packet, livekit_pb_data_packet_kind_t kind);
 
 #ifdef __cplusplus
 }

@@ -17,6 +17,7 @@ idf_component_register(
         peer_default
         webrtc_utils
         nanopb
+        khash
 )
 
 idf_component_get_property(LIVEKIT_SDK_VERSION ${COMPONENT_NAME} COMPONENT_VERSION)

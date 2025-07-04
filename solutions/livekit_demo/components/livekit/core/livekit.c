@@ -2,14 +2,35 @@
 #include <esp_log.h>
 #include "esp_peer.h"
 #include "engine.h"
+#include "rpc_manager.h"
 
 #include "livekit.h"
 
 static const char *TAG = "livekit";
 
 typedef struct {
+    rpc_manager_handle_t rpc_manager;
     engine_handle_t engine;
+    void (*on_rpc_result)(const livekit_rpc_result_t* result, void* ctx);
+    void* ctx;
 } livekit_room_t;
+
+static bool send_reliable_packet(const livekit_pb_data_packet_t* packet, void *ctx)
+{
+    livekit_room_t *room = (livekit_room_t *)ctx;
+    return engine_send_data_packet(
+        room->engine,
+        packet,
+        LIVEKIT_PB_DATA_PACKET_KIND_RELIABLE) == ENGINE_ERR_NONE;
+}
+
+static void on_rpc_result(const livekit_rpc_result_t* result, void* ctx)
+{
+    livekit_room_t *room = (livekit_room_t *)ctx;
+    if (room->on_rpc_result != NULL) {
+        room->on_rpc_result(result, room->ctx);
+    }
+}
 
 static void populate_media_options(
     engine_media_options_t *media_options,
@@ -82,46 +103,21 @@ static void on_eng_error(engine_event_error_t detail, void *ctx)
     // TODO: Implement
 }
 
-static void on_eng_user_packet(livekit_pb_user_packet_t* packet, void *ctx)
+static void on_eng_data_packet(livekit_pb_data_packet_t* packet, void *ctx)
 {
-    ESP_LOGI(TAG, "Received engine room update event");
-    // TODO: Implement
-}
-
-static void on_eng_rpc_request(livekit_pb_rpc_request_t* req, void *ctx)
-{
-    ESP_LOGI(TAG, "Received engine data event");
-    // TODO: Implement
-}
-
-static void on_eng_rpc_response(livekit_pb_rpc_response_t* res, void *ctx)
-{
-    ESP_LOGI(TAG, "Received engine RPC response event");
-    // TODO: Implement
-}
-
-static void on_eng_rpc_ack(livekit_pb_rpc_ack_t* ack, void *ctx)
-{
-    ESP_LOGI(TAG, "Received engine RPC ack event");
-    // TODO: Implement
-}
-
-static void on_eng_stream_header(livekit_pb_data_stream_header_t* header, void *ctx)
-{
-    ESP_LOGI(TAG, "Received engine stream header event");
-    // TODO: Implement
-}
-
-static void on_eng_stream_chunk(livekit_pb_data_stream_chunk_t* chunk, void *ctx)
-{
-    ESP_LOGI(TAG, "Received engine stream chunk event");
-    // TODO: Implement
-}
-
-static void on_eng_stream_trailer(livekit_pb_data_stream_trailer_t* trailer, void *ctx)
-{
-    ESP_LOGI(TAG, "Received engine stream trailer event");
-    // TODO: Implement
+    livekit_room_t *room = (livekit_room_t *)ctx;
+    switch (packet->which_value) {
+        case LIVEKIT_PB_DATA_PACKET_USER_TAG:
+            // TODO: Dispatch
+            break;
+        case LIVEKIT_PB_DATA_PACKET_RPC_REQUEST_TAG:
+        case LIVEKIT_PB_DATA_PACKET_RPC_ACK_TAG:
+        case LIVEKIT_PB_DATA_PACKET_RPC_RESPONSE_TAG:
+            rpc_manager_handle_packet(room->rpc_manager, packet);
+            break;
+        default:
+            break;
+    }
 }
 
 livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_room_options_t *options)
@@ -157,6 +153,9 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_r
         return LIVEKIT_ERR_NO_MEM;
     }
 
+    room->on_rpc_result = options->on_rpc_result;
+    room->ctx = options->ctx;
+
     engine_media_options_t media_options = {};
     populate_media_options(&media_options, &options->publish, &options->subscribe);
 
@@ -165,12 +164,7 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_r
         .on_connected = on_eng_connected,
         .on_disconnected = on_eng_disconnected,
         .on_error = on_eng_error,
-        .on_rpc_request = on_eng_rpc_request,
-        .on_rpc_response = on_eng_rpc_response,
-        .on_rpc_ack = on_eng_rpc_ack,
-        .on_stream_header = on_eng_stream_header,
-        .on_stream_chunk = on_eng_stream_chunk,
-        .on_stream_trailer = on_eng_stream_trailer,
+        .on_data_packet = on_eng_data_packet,
         .ctx = room
     };
 
@@ -179,6 +173,16 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_r
         if (engine_create(&room->engine, &eng_options) != ENGINE_ERR_NONE) {
             ESP_LOGE(TAG, "Failed to create engine");
             ret = LIVEKIT_ERR_ENGINE;
+            break;
+        }
+        rpc_manager_options_t rpc_manager_options = {
+            .on_result = on_rpc_result,
+            .send_packet = send_reliable_packet,
+            .ctx = room
+        };
+        if (rpc_manager_create(&room->rpc_manager, &rpc_manager_options) != RPC_MANAGER_ERR_NONE) {
+            ESP_LOGE(TAG, "Failed to create RPC manager");
+            ret = LIVEKIT_ERR_OTHER;
             break;
         }
         *handle = (livekit_room_handle_t)room;
@@ -261,5 +265,33 @@ livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_pa
         return LIVEKIT_ERR_ENGINE;
     }
     free(bytes_array);
+    return LIVEKIT_ERR_NONE;
+}
+
+livekit_err_t livekit_room_rpc_register(livekit_room_handle_t handle, const char* method, livekit_rpc_handler_t handler)
+{
+    if (handle == NULL || method == NULL || handler == NULL) {
+        return LIVEKIT_ERR_INVALID_ARG;
+    }
+    livekit_room_t *room = (livekit_room_t *)handle;
+
+    if (rpc_manager_register(room->rpc_manager, method, handler) != RPC_MANAGER_ERR_NONE) {
+        ESP_LOGE(TAG, "Failed to register RPC method '%s'", method);
+        return LIVEKIT_ERR_INVALID_STATE;
+    }
+    return LIVEKIT_ERR_NONE;
+}
+
+livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const char* method)
+{
+    if (handle == NULL || method == NULL) {
+        return LIVEKIT_ERR_INVALID_ARG;
+    }
+    livekit_room_t *room = (livekit_room_t *)handle;
+
+    if (rpc_manager_unregister(room->rpc_manager, method) != RPC_MANAGER_ERR_NONE) {
+        ESP_LOGE(TAG, "Failed to unregister RPC method '%s'", method);
+        return LIVEKIT_ERR_INVALID_STATE;
+    }
     return LIVEKIT_ERR_NONE;
 }
