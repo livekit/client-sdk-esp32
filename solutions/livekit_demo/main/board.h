@@ -12,7 +12,7 @@ extern "C" {
 
 typedef enum {
     BOARD_LED_RED = 0,
-    BOARD_LED_GREEN = 1
+    BOARD_LED_BLUE = 1
 } board_led_t;
 
 /// @brief Initialize board

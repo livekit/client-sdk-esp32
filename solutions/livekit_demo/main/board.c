@@ -20,11 +20,6 @@ static void init_temp_sensor(void)
     ESP_ERROR_CHECK(temperature_sensor_enable(temp_sensor));
 }
 
-static void init_leds(void)
-{
-    // TODO: Initialize LEDs
-}
-
 void board_init()
 {
     ESP_LOGI(TAG, "Initializing board");
@@ -40,7 +35,10 @@ void board_init()
     };
     init_codec(&cfg);
     init_temp_sensor();
-    init_leds();
+
+    board_led_init();
+    board_led_set(BOARD_LED_RED, false);
+    board_led_set(BOARD_LED_BLUE, false);
 }
 
 float board_get_temp(void)
@@ -48,10 +46,4 @@ float board_get_temp(void)
     float temp_out;
     ESP_ERROR_CHECK(temperature_sensor_get_celsius(temp_sensor, &temp_out));
     return temp_out;
-}
-
-void board_set_led_state(board_led_t led, bool state)
-{
-    ESP_LOGI(TAG, "Set LED %d to %s", led, state ? "on" : "off");
-    // TODO: Set LED state
 }

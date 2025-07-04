@@ -3,6 +3,7 @@
 #include <esp_log.h>
 #include "livekit_demo.h"
 #include "media_setup.h"
+#include "codec_init.h"
 #include "board.h"
 #include "cJSON.h"
 
@@ -32,14 +33,18 @@ static void set_led_state(const livekit_rpc_invocation_t* invocation, void* ctx)
     board_led_t led;
     if (strncmp(color, "red", 3) == 0) {
         led = BOARD_LED_RED;
-    } else if (strncmp(color, "green", 5) == 0) {
-        led = BOARD_LED_GREEN;
+    } else if (strncmp(color, "blue", 4) == 0) {
+        led = BOARD_LED_BLUE;
     } else {
         livekit_rpc_return_error("Unsupported color");
         cJSON_Delete(root);
         return;
     }
-    board_set_led_state(led, state);
+    if (board_led_set(led, state) != 0) {
+        livekit_rpc_return_error("Failed to set LED state");
+        cJSON_Delete(root);
+        return;
+    }
 
     livekit_rpc_return_ok(NULL);
     cJSON_Delete(root);
