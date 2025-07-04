@@ -143,7 +143,7 @@ void app_main(void)
     esp_log_level_set("*", ESP_LOG_INFO);
     media_lib_add_default_adapter();
     media_lib_thread_set_schedule_cb(thread_scheduler);
-    init_board();
+    board_init();
     media_setup_init();
     init_console();
     network_init(WIFI_SSID, WIFI_PASSWORD, network_event_handler);

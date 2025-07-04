@@ -1,10 +1,58 @@
 #include <stdlib.h>
+#include <math.h>
 #include <esp_log.h>
 #include "livekit_demo.h"
 #include "media_setup.h"
+#include "board.h"
+#include "cJSON.h"
 
 static const char *TAG = "livekit_demo";
+
 static livekit_room_handle_t room_handle;
+
+/// @brief Invoked by a remote participant to set the state of an on-board LED.
+static void set_led_state(const livekit_rpc_invocation_t* invocation, void* ctx)
+{
+    cJSON *root = cJSON_Parse(invocation->payload);
+    if (!root) {
+        livekit_rpc_return_error("Invalid JSON");
+        return;
+    }
+    const cJSON *color_entry = cJSON_GetObjectItemCaseSensitive(root, "color");
+    const cJSON *state_entry = cJSON_GetObjectItemCaseSensitive(root, "state");
+    if (!cJSON_IsString(color_entry) || !cJSON_IsBool(state_entry)) {
+        livekit_rpc_return_error("Unexpected JSON format");
+        cJSON_Delete(root);
+        return;
+    }
+
+    const char *color = color_entry->valuestring;
+    bool state = cJSON_IsTrue(state_entry);
+
+    board_led_t led;
+    if (strncmp(color, "red", 3) == 0) {
+        led = BOARD_LED_RED;
+    } else if (strncmp(color, "green", 5) == 0) {
+        led = BOARD_LED_GREEN;
+    } else {
+        livekit_rpc_return_error("Unsupported color");
+        cJSON_Delete(root);
+        return;
+    }
+    board_set_led_state(led, state);
+
+    livekit_rpc_return_ok(NULL);
+    cJSON_Delete(root);
+}
+
+/// @brief Invoked by a remote participant to get the current CPU temperature.
+static void get_cpu_temp(const livekit_rpc_invocation_t* invocation, void* ctx)
+{
+    float temp = board_get_temp();
+    char temp_string[16];
+    snprintf(temp_string, sizeof(temp_string), "%.2f", temp);
+    livekit_rpc_return_ok(temp_string);
+}
 
 int join_room()
 {
@@ -32,6 +80,9 @@ int join_room()
         ESP_LOGE(TAG, "Failed to create room");
         return -1;
     }
+
+    livekit_room_rpc_register(room_handle, "set_led_state", set_led_state);
+    livekit_room_rpc_register(room_handle, "get_cpu_temp", get_cpu_temp);
 
     livekit_err_t connect_res;
 #ifdef LK_SANDBOX_ID
