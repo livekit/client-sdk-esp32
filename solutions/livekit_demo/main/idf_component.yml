@@ -1,0 +1,22 @@
+## IDF Component Manager Manifest File
+dependencies:
+  ## Required IDF version
+  idf:
+    version: ">=5.0"
+  ## Import needed components only
+  capture_audio_src:
+    path: ../../../components/esp_capture/src/impl/capture_audio_src
+  capture_video_src:
+    path: ../../../components/esp_capture/src/impl/capture_video_src
+  capture_audio_enc:
+    path: ../../../components/esp_capture/src/impl/capture_audio_enc
+  capture_video_enc:
+    path: ../../../components/esp_capture/src/impl/capture_video_enc
+  peer_default:
+    path: ../../../components/esp_webrtc/impl/peer_default
+  render_impl:
+     path: ../../../components/av_render/render_impl
+  espressif/esp_h264:
+    version: "1.0.4"
+    rules:
+    - if: target in [esp32p4, esp32s3]

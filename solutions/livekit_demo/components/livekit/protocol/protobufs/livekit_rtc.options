@@ -1,0 +1,40 @@
+livekit_pb.JoinResponse.room type:FT_IGNORE
+livekit_pb.JoinResponse.participant label_override:LABEL_REQUIRED
+livekit_pb.JoinResponse.other_participants type:FT_IGNORE
+livekit_pb.JoinResponse.server_version type:FT_IGNORE
+livekit_pb.JoinResponse.alternative_url type:FT_IGNORE
+livekit_pb.JoinResponse.server_region type:FT_IGNORE
+livekit_pb.JoinResponse.server_info type:FT_IGNORE
+livekit_pb.JoinResponse.sif_trailer type:FT_IGNORE
+livekit_pb.JoinResponse.enabled_publish_codecs type:FT_IGNORE
+livekit_pb.JoinResponse.fast_publish type:FT_IGNORE
+livekit_pb.JoinResponse.ice_servers max_count:4
+
+livekit_pb.LeaveRequest.can_reconnect type:FT_IGNORE
+livekit_pb.LeaveRequest.regions type:FT_IGNORE
+
+livekit_pb.ICEServer.urls type:FT_POINTER
+livekit_pb.ICEServer.username type:FT_POINTER
+livekit_pb.ICEServer.credential type:FT_POINTER
+
+livekit_pb.SessionDescription.type max_length:8
+livekit_pb.SessionDescription.sdp type:FT_POINTER
+
+livekit_pb.TrickleRequest.candidateInit type:FT_POINTER
+
+livekit_pb.AddTrackRequest.cid max_length:15
+livekit_pb.AddTrackRequest.name max_length:15
+livekit_pb.AddTrackRequest.width type:FT_IGNORE
+livekit_pb.AddTrackRequest.height type:FT_IGNORE
+livekit_pb.AddTrackRequest.layers max_count:1
+livekit_pb.AddTrackRequest.simulcast_codecs type:FT_IGNORE
+livekit_pb.AddTrackRequest.sid type:FT_IGNORE
+livekit_pb.AddTrackRequest.stereo type:FT_IGNORE
+livekit_pb.AddTrackRequest.disable_red type:FT_IGNORE
+livekit_pb.AddTrackRequest.encryption type:FT_IGNORE
+livekit_pb.AddTrackRequest.stream type:FT_IGNORE
+livekit_pb.AddTrackRequest.backup_codec_policy type:FT_IGNORE
+livekit_pb.AddTrackRequest.audio_features max_count:8
+
+livekit_pb.TrackPublishedResponse.cid type:FT_POINTER
+livekit_pb.TrackPublishedResponse.track label_override:LABEL_REQUIRED

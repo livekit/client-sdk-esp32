@@ -1,0 +1,4 @@
+## IDF Component Manager Manifest File
+dependencies:
+  idf:
+    version: ">=4.1.0"
