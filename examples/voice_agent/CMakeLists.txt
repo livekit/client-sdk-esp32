@@ -9,8 +9,6 @@ if("${IDF_TARGET}" STREQUAL "esp32p4")
     set(EXTRA_COMPONENT_DIRS "$ENV{IDF_PATH}/examples/ethernet/basic/components/ethernet_init")
 endif()
 
-list(APPEND EXTRA_COMPONENT_DIRS "../../components")
-
 # Wi-Fi credentials
 if(NOT DEFINED ENV{WIFI_SSID})
   message(FATAL_ERROR "WiFi SSID not set in env variable WIFI_SSID")

@@ -1,28 +1,12 @@
-## IDF Component Manager Manifest File
 dependencies:
-  ## Required IDF version
-  idf:
-    version: ">=5.0"
-  ## Import needed components only
+  idf: ">=5.0"
+  livekit:
+    path: ../../../components/livekit
   codec_board:
     path: ../../../components/third_party/codec_board
-  media_lib_sal:
-    path: ../../../components/third_party/media_lib_sal
-  capture_audio_src:
-    path: ../../../components/third_party/esp_capture/src/impl/capture_audio_src
-  capture_video_src:
-    path: ../../../components/third_party/esp_capture/src/impl/capture_video_src
-  capture_audio_enc:
-    path: ../../../components/third_party/esp_capture/src/impl/capture_audio_enc
-  capture_video_enc:
-    path: ../../../components/third_party/esp_capture/src/impl/capture_video_enc
-  peer_default:
-    path: ../../../components/third_party/esp_webrtc/impl/peer_default
   render_impl:
-     path: ../../../components/third_party/av_render/render_impl
+    path: ../../../components/third_party/av_render/render_impl
+  livekit_sandbox:
+    path: ../../../components/livekit_sandbox
   common:
     path: ../../common
-  espressif/esp_h264:
-    version: "1.0.4"
-    rules:
-    - if: target in [esp32p4, esp32s3]
