@@ -50,4 +50,4 @@ else()
   )
 endif()
 
-project(livekit_demo)
+project(voice_agent)
