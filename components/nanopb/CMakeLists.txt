@@ -1,5 +1,6 @@
+idf_component_register(SRC_DIRS ./src
+                       INCLUDE_DIRS ./include)
 
-set(COMPONENT_ADD_INCLUDEDIRS .)
-list (APPEND COMPONENT_SRCDIRS .)
-
-register_component()
+target_compile_definitions(${COMPONENT_LIB} PRIVATE PB_BUFFER_ONLY=1)
+target_compile_definitions(${COMPONENT_LIB} PRIVATE PB_VALIDATE_UTF8=1)
+target_compile_definitions(${COMPONENT_LIB} PRIVATE PB_ENABLE_MALLOC=1)
