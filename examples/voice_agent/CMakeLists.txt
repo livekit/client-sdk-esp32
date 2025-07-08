@@ -10,7 +10,6 @@ if("${IDF_TARGET}" STREQUAL "esp32p4")
 endif()
 
 list(APPEND EXTRA_COMPONENT_DIRS "../../components")
-list(APPEND EXTRA_COMPONENT_DIRS "../common")
 
 # Wi-Fi credentials
 if(NOT DEFINED ENV{WIFI_SSID})
