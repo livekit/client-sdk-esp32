@@ -1,2 +1,12 @@
 description: LiveKit ESP SDK
 version: 0.1.0
+dependencies:
+  espressif/esp_websocket_client: ^1.4.0
+  esp_webrtc:
+    path: ../third_party/esp_webrtc
+  webrtc_utils:
+    path: ../third_party/webrtc_utils
+  nanopb:
+    path: ../third_party/nanopb
+  khash:
+    path: ../third_party/khash
