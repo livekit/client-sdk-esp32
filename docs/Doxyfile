@@ -1,0 +1,20 @@
+PROJECT_NAME           = LiveKit ESP-32 SDK
+OUTPUT_DIRECTORY       = ./output
+OPTIMIZE_OUTPUT_FOR_C  = YES
+WARN_IF_UNDOCUMENTED   = YES
+INPUT                  = ../README.md \
+                         ../docs \
+                         ../components/livekit/include \
+                         ../components/livekit_sandbox/include
+USE_MDFILE_AS_MAINPAGE = ../README.md
+FILE_PATTERNS          = *.h *.md
+EXTRACT_ALL            = YES
+RECURSIVE              = YES
+JAVADOC_AUTOBRIEF      = YES
+GENERATE_LATEX         = NO
+GENERATE_HTML          = YES
+TIMESTAMP              = YES
+INLINE_SIMPLE_STRUCTS  = YES
+TYPEDEF_HIDES_STRUCT   = YES
+SHOW_FILES             = NO
+LAYOUT_FILE            = ./layout.xml

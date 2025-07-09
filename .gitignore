@@ -36,3 +36,6 @@ coverage.info
 coverage_report/
 
 .vscode
+
+# Doxygen
+docs/output
