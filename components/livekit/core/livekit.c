@@ -229,20 +229,20 @@ livekit_err_t livekit_room_close(livekit_room_handle_t handle)
     return LIVEKIT_ERR_NONE;
 }
 
-livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_payload_t *payload, livekit_publish_data_options_t *options)
+livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_publish_data_options_t *options)
 {
-    if (handle == NULL || payload == NULL || options == NULL) {
+    if (handle == NULL || options == NULL || options->payload == NULL) {
         return LIVEKIT_ERR_INVALID_ARG;
     }
     livekit_room_t *room = (livekit_room_t *)handle;
 
     // TODO: Can this be done without allocating additional memory?
-    pb_bytes_array_t *bytes_array = malloc(PB_BYTES_ARRAY_T_ALLOCSIZE(payload->size));
+    pb_bytes_array_t *bytes_array = malloc(PB_BYTES_ARRAY_T_ALLOCSIZE(options->payload->size));
     if (bytes_array == NULL) {
         return LIVEKIT_ERR_NO_MEM;
     }
-    bytes_array->size = payload->size;
-    memcpy(bytes_array->bytes, payload->bytes, payload->size);
+    bytes_array->size = options->payload->size;
+    memcpy(bytes_array->bytes, options->payload->bytes, options->payload->size);
 
     livekit_pb_user_packet_t user_packet = {
         .topic = options->topic,

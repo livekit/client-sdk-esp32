@@ -161,6 +161,9 @@ livekit_err_t livekit_room_close(livekit_room_handle_t handle);
 
 /// Options passed to @ref livekit_room_publish_data.
 typedef struct {
+    /// Data to publish and its size.
+    livekit_payload_t *payload;
+
     /// Topic to send the data packet under.
     char* topic;
 
@@ -176,12 +179,30 @@ typedef struct {
 } livekit_publish_data_options_t;
 
 /// Publishes a data packet to participants in a room asynchronously.
-/// @ingroup DataPackets
+///
 /// @param handle[in] Room handle.
-/// @param payload[in] Data to publish and its size.
-/// @param options[in] Options for sending the data packet (e.g. reliability, topic, etc.).
+/// @param options[in] Data to send with options (e.g. reliability, topic, etc.).
 /// @return @ref LIVEKIT_ERR_NONE if successful, otherwise an error code.
-livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_payload_t *payload, livekit_publish_data_options_t *options);
+///
+/// Example usage:
+/// @code
+/// const char* command = "G5 I0 J3 P0 Q-3 X2 Y3";
+///
+/// livekit_payload_t payload = {
+///     .bytes = (uint8_t*)command,
+///     .size = strlen(command)
+/// };
+/// livekit_publish_data_options_t options = {
+///     .payload = &payload,
+///     .topic = "gcode",
+///     .lossy = false,
+///     .destination_identities = (char*[]){ "printer-1" },
+///     .destination_identities_count = 1
+/// };
+/// livekit_room_publish_data(room_handle, &options);
+/// @endcode
+///
+livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_publish_data_options_t *options);
 
 /// @}
 
@@ -195,6 +216,7 @@ livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_pa
 /// @{
 
 /// Registers a handler for an RPC method.
+///
 livekit_err_t livekit_room_rpc_register(livekit_room_handle_t handle, const char* method, livekit_rpc_handler_t handler);
 
 /// Unregisters a handler for an RPC method.
