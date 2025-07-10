@@ -11,8 +11,7 @@ static const char *TAG = "livekit";
 typedef struct {
     rpc_manager_handle_t rpc_manager;
     engine_handle_t engine;
-    void (*on_rpc_result)(const livekit_rpc_result_t* result, void* ctx);
-    void* ctx;
+    livekit_room_options_t options;
 } livekit_room_t;
 
 static bool send_reliable_packet(const livekit_pb_data_packet_t* packet, void *ctx)
@@ -27,9 +26,26 @@ static bool send_reliable_packet(const livekit_pb_data_packet_t* packet, void *c
 static void on_rpc_result(const livekit_rpc_result_t* result, void* ctx)
 {
     livekit_room_t *room = (livekit_room_t *)ctx;
-    if (room->on_rpc_result != NULL) {
-        room->on_rpc_result(result, room->ctx);
+    if (room->options.on_rpc_result != NULL) {
+        room->options.on_rpc_result(result, room->options.ctx);
     }
+}
+
+static void on_user_packet(const livekit_pb_user_packet_t* packet, const char* sender_identity, void* ctx)
+{
+    livekit_room_t *room = (livekit_room_t *)ctx;
+    if (room->options.on_data_received == NULL) {
+        return;
+    }
+    livekit_data_received_t data = {
+        .topic = packet->topic,
+        .payload = {
+            .bytes = packet->payload->bytes,
+            .size = packet->payload->size
+        },
+        .sender_identity = (char*)sender_identity
+    };
+    room->options.on_data_received(&data, room->options.ctx);
 }
 
 static void populate_media_options(
@@ -108,7 +124,7 @@ static void on_eng_data_packet(livekit_pb_data_packet_t* packet, void *ctx)
     livekit_room_t *room = (livekit_room_t *)ctx;
     switch (packet->which_value) {
         case LIVEKIT_PB_DATA_PACKET_USER_TAG:
-            // TODO: Dispatch
+            on_user_packet(&packet->value.user, packet->participant_identity, ctx);
             break;
         case LIVEKIT_PB_DATA_PACKET_RPC_REQUEST_TAG:
         case LIVEKIT_PB_DATA_PACKET_RPC_ACK_TAG:
@@ -152,9 +168,7 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_r
     if (room == NULL) {
         return LIVEKIT_ERR_NO_MEM;
     }
-
-    room->on_rpc_result = options->on_rpc_result;
-    room->ctx = options->ctx;
+    room->options = *options;
 
     engine_media_options_t media_options = {};
     populate_media_options(&media_options, &options->publish, &options->subscribe);
@@ -229,7 +243,7 @@ livekit_err_t livekit_room_close(livekit_room_handle_t handle)
     return LIVEKIT_ERR_NONE;
 }
 
-livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_publish_data_options_t *options)
+livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_data_publish_options_t *options)
 {
     if (handle == NULL || options == NULL || options->payload == NULL) {
         return LIVEKIT_ERR_INVALID_ARG;

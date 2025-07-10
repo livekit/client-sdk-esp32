@@ -56,12 +56,6 @@ typedef struct {
     uint8_t channel_count;        ///< Output number of channels
 } livekit_audio_encode_options_t;
 
-/// Payload containing a pointer to data and its size.
-typedef struct {
-    uint8_t *bytes;  ///< Pointer to data
-    size_t size;     ///< Size of the data
-} livekit_payload_t;
-
 /// @brief Options for publishing media.
 typedef struct {
     /// Kind of media that can be published.
@@ -90,6 +84,24 @@ typedef struct {
     av_render_handle_t renderer;
 } livekit_sub_options_t;
 
+/// Payload containing a pointer to data and its size.
+/// @ingroup DataPackets
+typedef struct {
+    uint8_t *bytes;  ///< Pointer to data
+    size_t size;     ///< Size of the data
+} livekit_data_payload_t;
+
+typedef struct {
+    /// Received data.
+    livekit_data_payload_t payload;
+
+    /// Topic the data was sent under if specified by the sender.
+    char* topic;
+
+    /// Identity of the participant who sent the data.
+    char* sender_identity;
+} livekit_data_received_t;
+
 /// Options for a room passed to @ref livekit_room_create.
 /// @ingroup Lifecycle
 typedef struct {
@@ -104,6 +116,10 @@ typedef struct {
     /// Callback for RPC results.
     /// @see RPC
     void (*on_rpc_result)(const livekit_rpc_result_t* result, void* ctx);
+
+    /// Handler for data packets received from remote participants.
+    /// @see DataPackets
+    void (*on_data_received)(const livekit_data_received_t* data, void* ctx);
 
     /// User context passed to all handlers.
     void* ctx;
@@ -155,14 +171,18 @@ livekit_err_t livekit_room_close(livekit_room_handle_t handle);
 ///
 /// Low-level API for high-frequency data exchange.
 ///
+/// - **Sending**: use the @ref livekit_room_publish_data function.
+/// - **Receiving**: define a handler function and set it for
+///                  @ref livekit_room_options_t::on_data_received in the room options.
+///
 /// For more information about this feature, see the
-/// [data packets documentation](https://docs.livekit.io/home/client/data/packets/).
+/// [LiveKit documentation](https://docs.livekit.io/home/client/data/packets/).
 /// @{
 
 /// Options passed to @ref livekit_room_publish_data.
 typedef struct {
     /// Data to publish and its size.
-    livekit_payload_t *payload;
+    livekit_data_payload_t *payload;
 
     /// Topic to send the data packet under.
     char* topic;
@@ -176,7 +196,7 @@ typedef struct {
 
     /// Number of destination identities.
     int destination_identities_count;
-} livekit_publish_data_options_t;
+} livekit_data_publish_options_t;
 
 /// Publishes a data packet to participants in a room asynchronously.
 ///
@@ -202,7 +222,7 @@ typedef struct {
 /// livekit_room_publish_data(room_handle, &options);
 /// @endcode
 ///
-livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_publish_data_options_t *options);
+livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_data_publish_options_t *options);
 
 /// @}
 
