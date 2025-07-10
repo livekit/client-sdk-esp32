@@ -91,6 +91,9 @@ typedef struct {
     size_t size;     ///< Size of the data
 } livekit_data_payload_t;
 
+/// Information about a data packet received from a remote participant
+/// passed to @ref livekit_room_options_t::on_data_received.
+/// @ingroup DataPackets
 typedef struct {
     /// Received data.
     livekit_data_payload_t payload;
@@ -113,7 +116,7 @@ typedef struct {
     /// @note Only required if the room subscribes to media.
     livekit_sub_options_t subscribe;
 
-    /// Callback for RPC results.
+    /// Handler for when an RPC method invoked with @ref livekit_room_rpc_invoke returns a result.
     /// @see RPC
     void (*on_rpc_result)(const livekit_rpc_result_t* result, void* ctx);
 
@@ -212,7 +215,7 @@ typedef struct {
 ///     .bytes = (uint8_t*)command,
 ///     .size = strlen(command)
 /// };
-/// livekit_publish_data_options_t options = {
+/// livekit_data_publish_options_t options = {
 ///     .payload = &payload,
 ///     .topic = "gcode",
 ///     .lossy = false,
@@ -232,14 +235,27 @@ livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_da
 /// await a response.
 ///
 /// For more information about this feature, see the
-/// [RPC documentation](https://docs.livekit.io/home/client/data/rpc/).
+/// [LiveKit documentation](https://docs.livekit.io/home/client/data/rpc/).
 /// @{
 
 /// Registers a handler for an RPC method.
 ///
+/// Once registered, the method can be invoked by remote participants in the room.
+///
+/// @param handle[in] Room handle.
+/// @param method[in] Name of the method to register.
+/// @param handler[in] Handler function to call when the method is invoked by a remote participant.
+/// @exception If a handler for the method is already registered, an error is returned.
+/// @return @ref LIVEKIT_ERR_NONE if successful, otherwise an error code.
+///
 livekit_err_t livekit_room_rpc_register(livekit_room_handle_t handle, const char* method, livekit_rpc_handler_t handler);
 
 /// Unregisters a handler for an RPC method.
+///
+/// @param handle[in] Room handle.
+/// @param method[in] Name of the method to unregister.
+/// @return @ref LIVEKIT_ERR_NONE if successful, otherwise an error code.
+///
 livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const char* method);
 
 /// @}
