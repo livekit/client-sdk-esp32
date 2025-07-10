@@ -9,22 +9,22 @@ dependencies:
   idf: ">=5.0"
   espressif/esp_websocket_client: ^1.4.0
   media_lib_sal:
-    path: ../third_party/media_lib_sal
+    path: ../third_party/esp-webrtc-solution/components/media_lib_sal
   esp_webrtc:
-    path: ../third_party/esp_webrtc
+    path: ../third_party/esp-webrtc-solution/components/esp_webrtc
   peer_default:
-    path: ../third_party/esp_webrtc/impl/peer_default
+    path: ../third_party/esp-webrtc-solution/components/esp_webrtc/impl/peer_default
     public: true  # Required to prevent linker error
   webrtc_utils:
-    path: ../third_party/webrtc_utils
+    path: ../third_party/esp-webrtc-solution/components/webrtc_utils
   capture_audio_enc:
-    path: ../third_party/esp_capture/src/impl/capture_audio_enc
+    path: ../third_party/esp-webrtc-solution/components/esp_capture/src/impl/capture_audio_enc
   capture_video_enc:
-    path: ../third_party/esp_capture/src/impl/capture_video_enc
+    path: ../third_party/esp-webrtc-solution/components/esp_capture/src/impl/capture_video_enc
   capture_audio_src:
-    path: ../third_party/esp_capture/src/impl/capture_audio_src
+    path: ../third_party/esp-webrtc-solution/components/esp_capture/src/impl/capture_audio_src
   capture_video_src:
-    path: ../third_party/esp_capture/src/impl/capture_video_src
+    path: ../third_party/esp-webrtc-solution/components/esp_capture/src/impl/capture_video_src
   nanopb:
     path: ../third_party/nanopb
   khash:
