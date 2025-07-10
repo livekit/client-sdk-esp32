@@ -1,0 +1,33 @@
+description: LiveKit ESP-32 SDK
+tags: [webrtc, media, agents]
+url: "https://livekit.io"
+repository: "https://github.com/livekit/client-sdk-esp32"
+issues: "https://github.com/livekit/client-sdk-esp32/issues"
+discussion: "https://livekit.io/join-slack"
+version: 0.1.0
+dependencies:
+  idf: ">=5.0"
+  espressif/esp_websocket_client: ^1.4.0
+  media_lib_sal:
+    path: ../third_party/media_lib_sal
+  esp_webrtc:
+    path: ../third_party/esp_webrtc
+  peer_default:
+    path: ../third_party/esp_webrtc/impl/peer_default
+    public: true  # Required to prevent linker error
+  webrtc_utils:
+    path: ../third_party/webrtc_utils
+  capture_audio_enc:
+    path: ../third_party/esp_capture/src/impl/capture_audio_enc
+  capture_video_enc:
+    path: ../third_party/esp_capture/src/impl/capture_video_enc
+  capture_audio_src:
+    path: ../third_party/esp_capture/src/impl/capture_audio_src
+  capture_video_src:
+    path: ../third_party/esp_capture/src/impl/capture_video_src
+  nanopb:
+    path: ../third_party/nanopb
+  khash:
+    path: ../third_party/khash
+files:
+  use_gitignore: true

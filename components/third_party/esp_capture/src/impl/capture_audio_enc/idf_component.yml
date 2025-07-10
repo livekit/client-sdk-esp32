@@ -1,0 +1,4 @@
+dependencies:
+  espressif/esp_audio_codec: "~2.3.0"
+  esp_capture:
+    path: ../../../../esp_capture
