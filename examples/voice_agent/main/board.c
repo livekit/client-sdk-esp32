@@ -6,6 +6,7 @@
 #include "sdkconfig.h"
 #include "settings.h"
 #include "driver/temperature_sensor.h"
+#include "bsp/esp-bsp.h"
 
 #include "board.h"
 
@@ -13,16 +14,22 @@ static const char *TAG = "board";
 
 static temperature_sensor_handle_t temp_sensor = NULL;
 
-static void init_temp_sensor(void)
-{
-    temperature_sensor_config_t temp_sensor_config = TEMPERATURE_SENSOR_CONFIG_DEFAULT(10, 50);
-    ESP_ERROR_CHECK(temperature_sensor_install(&temp_sensor_config, &temp_sensor));
-    ESP_ERROR_CHECK(temperature_sensor_enable(temp_sensor));
-}
-
 void board_init()
 {
     ESP_LOGI(TAG, "Initializing board");
+
+    // Initialize board support package and LEDs
+    bsp_i2c_init();
+    bsp_leds_init();
+    bsp_led_set(BSP_LED_RED, true);
+    bsp_led_set(BSP_LED_BLUE, true);
+
+    // Initialize temperature sensor
+    temperature_sensor_config_t temp_sensor_config = TEMPERATURE_SENSOR_CONFIG_DEFAULT(10, 50);
+    ESP_ERROR_CHECK(temperature_sensor_install(&temp_sensor_config, &temp_sensor));
+    ESP_ERROR_CHECK(temperature_sensor_enable(temp_sensor));
+
+    // Initialize codec board support (must be performed after BSP initialization)
     set_codec_board_type(TEST_BOARD_NAME);
     // When using performing recording and playback at the same time,
     // reuse_dev must be set to false.
@@ -34,11 +41,6 @@ void board_init()
         .reuse_dev = false
     };
     init_codec(&cfg);
-    init_temp_sensor();
-
-    board_led_init();
-    board_led_set(BOARD_LED_RED, false);
-    board_led_set(BOARD_LED_BLUE, false);
 }
 
 float board_get_temp(void)

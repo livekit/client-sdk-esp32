@@ -6,6 +6,7 @@
 #include "codec_init.h"
 #include "board.h"
 #include "cJSON.h"
+#include "bsp/esp-bsp.h"
 
 static const char *TAG = "livekit_demo";
 
@@ -30,17 +31,17 @@ static void set_led_state(const livekit_rpc_invocation_t* invocation, void* ctx)
     const char *color = color_entry->valuestring;
     bool state = cJSON_IsTrue(state_entry);
 
-    board_led_t led;
+    bsp_led_t led;
     if (strncmp(color, "red", 3) == 0) {
-        led = BOARD_LED_RED;
+        led = BSP_LED_RED;
     } else if (strncmp(color, "blue", 4) == 0) {
-        led = BOARD_LED_BLUE;
+        led = BSP_LED_BLUE;
     } else {
         livekit_rpc_return_error("Unsupported color");
         cJSON_Delete(root);
         return;
     }
-    if (board_led_set(led, state) != 0) {
+    if (bsp_led_set(led, !state) != ESP_OK) {
         livekit_rpc_return_error("Failed to set LED state");
         cJSON_Delete(root);
         return;
