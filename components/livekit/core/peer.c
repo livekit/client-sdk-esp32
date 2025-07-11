@@ -13,6 +13,9 @@ static const char *SUB_TAG = "livekit_peer.sub";
 static const char *PUB_TAG = "livekit_peer.pub";
 #define TAG(peer) (peer->options.target == LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER ? SUB_TAG : PUB_TAG)
 
+#define SUB_THREAD_NAME (PEER_THREAD_NAME_PREFIX "sub")
+#define PUB_THREAD_NAME (PEER_THREAD_NAME_PREFIX "pub")
+
 #define RELIABLE_CHANNEL_LABEL "_reliable"
 #define LOSSY_CHANNEL_LABEL "_lossy"
 #define STREAM_ID_INVALID 0xFFFF
@@ -332,9 +335,9 @@ peer_err_t peer_connect(peer_handle_t handle)
     peer->running = true;
     media_lib_thread_handle_t thread;
     const char* thread_name = peer->options.target == LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER ?
-        "lk_sub_task" : "lk_pub_task";
+        SUB_THREAD_NAME : PUB_THREAD_NAME;
     if (media_lib_thread_create_from_scheduler(&thread, thread_name, peer_task, peer) != ESP_PEER_ERR_NONE) {
-        ESP_LOGE(TAG(peer), "Failed to create task");
+        ESP_LOGE(TAG(peer), "Failed to create thread");
         return PEER_ERR_RTC;
     }
 

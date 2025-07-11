@@ -3,7 +3,7 @@
 #include "esp_peer.h"
 #include "engine.h"
 #include "rpc_manager.h"
-
+#include "system.h"
 #include "livekit.h"
 
 static const char *TAG = "livekit";
@@ -140,6 +140,10 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_r
 {
     if (handle == NULL || options == NULL) {
         return LIVEKIT_ERR_INVALID_ARG;
+    }
+    if (!system_is_media_lib_setup()) {
+        ESP_LOGE(TAG, "Must perform system initialization before creating a room");
+        return LIVEKIT_ERR_SYSTEM_INIT;
     }
 
     // Validate options
@@ -306,6 +310,14 @@ livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const ch
     if (rpc_manager_unregister(room->rpc_manager, method) != RPC_MANAGER_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to unregister RPC method '%s'", method);
         return LIVEKIT_ERR_INVALID_STATE;
+    }
+    return LIVEKIT_ERR_NONE;
+}
+
+livekit_err_t livekit_system_init(void)
+{
+    if (!system_setup_media_lib()) {
+        return LIVEKIT_ERR_SYSTEM_INIT;
     }
     return LIVEKIT_ERR_NONE;
 }

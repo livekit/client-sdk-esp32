@@ -5,6 +5,8 @@
 #include "engine.h"
 #include "protocol.h"
 
+#define PEER_THREAD_NAME_PREFIX "lk_peer_"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

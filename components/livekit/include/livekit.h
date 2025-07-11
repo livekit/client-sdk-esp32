@@ -1,8 +1,10 @@
 
 #pragma once
 
+#include "media_lib_os.h"
 #include "esp_capture.h"
 #include "av_render.h"
+
 #include "livekit_rpc.h"
 
 #ifdef __cplusplus
@@ -17,6 +19,7 @@ typedef enum {
     LIVEKIT_ERR_ENGINE        = -3,  ///< Engine
     LIVEKIT_ERR_OTHER         = -4,  ///< Other error
     LIVEKIT_ERR_INVALID_STATE = -5,  ///< Invalid state
+    LIVEKIT_ERR_SYSTEM_INIT   = -6   ///< System not initialized
 } livekit_err_t;
 
 /// Video codec to use within a room.
@@ -127,6 +130,21 @@ typedef struct {
     /// User context passed to all handlers.
     void* ctx;
 } livekit_room_options_t;
+
+/// @defgroup System System initialization
+/// Perform required one-time system initialization.
+/// @{
+
+/// Performs one-time system initialization.
+///
+/// @return @ref LIVEKIT_ERR_NONE if successful, otherwise LIVEKIT_ERR_SYSTEM_INIT.
+///
+/// Invoke this function early in the application's main function before
+/// creating a room. Internally, this will setup the media library's thread scheduler.
+///
+livekit_err_t livekit_system_init(void);
+
+/// @}
 
 /// @defgroup Lifecycle
 /// Create and destroy room objects.

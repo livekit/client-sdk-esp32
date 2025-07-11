@@ -1,5 +1,4 @@
 #include "esp_log.h"
-#include "webrtc_utils_time.h"
 #include "media_lib_os.h"
 #include "esp_codec_dev.h"
 
@@ -38,21 +37,6 @@ typedef struct {
     esp_codec_dev_handle_t        renderer_handle;
     esp_peer_audio_stream_info_t  sub_audio_info;
 } engine_t;
-
-/// @brief Performs one-time system initialization.
-static void sys_init(void)
-{
-    static bool is_initialized = false;
-    if (is_initialized) {
-        ESP_LOGI(TAG, "System already initialized");
-        return;
-    }
-    is_initialized = webrtc_utils_time_sync_init() == ESP_OK;
-    if (!is_initialized) {
-        ESP_LOGE(TAG, "System initialization failed");
-        return;
-    }
-}
 
 static esp_capture_codec_type_t capture_audio_codec_type(esp_peer_audio_codec_t peer_codec)
 {
@@ -153,7 +137,7 @@ static engine_err_t media_stream_begin(engine_t *eng)
     }
     media_lib_thread_handle_t handle = NULL;
     eng->is_media_streaming = true;
-    if (media_lib_thread_create_from_scheduler(&handle, "lk_stream", media_stream_task, eng) != ESP_OK) {
+    if (media_lib_thread_create_from_scheduler(&handle, STREAM_THREAD_NAME, media_stream_task, eng) != ESP_OK) {
         ESP_LOGE(TAG, "Failed to create media stream thread");
         eng->is_media_streaming = false;
         return ENGINE_ERR_MEDIA;
@@ -581,8 +565,6 @@ engine_err_t engine_connect(engine_handle_t handle, const char* server_url, cons
         return ENGINE_ERR_INVALID_ARG;
     }
     engine_t *eng = (engine_t *)handle;
-
-    sys_init();
 
     if (signal_connect(eng->sig, server_url, token) != SIGNAL_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to connect signaling client");

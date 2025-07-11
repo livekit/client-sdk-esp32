@@ -81,52 +81,6 @@ static int init_console()
     return 0;
 }
 
-static void thread_scheduler(const char *thread_name, media_lib_thread_cfg_t *thread_cfg)
-{
-    // TODO: Handle internally
-    if (strcmp(thread_name, "lk_pub_task") == 0 ||
-        strcmp(thread_name, "lk_sub_task") == 0) {
-        thread_cfg->stack_size = 25 * 1024;
-        thread_cfg->priority = 18;
-        thread_cfg->core_id = 1;
-    }
-    if (strcmp(thread_name, "lk_stream") == 0) {
-        thread_cfg->stack_size = 4 * 1024;
-        thread_cfg->priority = 15;
-        thread_cfg->core_id = 1;
-    }
-    if (strcmp(thread_name, "start") == 0) {
-        thread_cfg->stack_size = 6 * 1024;
-    }
-    if (strcmp(thread_name, "Adec") == 0) {
-        thread_cfg->stack_size = 40 * 1024;
-        thread_cfg->priority = 10;
-        thread_cfg->core_id = 1;
-    }
-    if (strcmp(thread_name, "venc") == 0) {
-#if CONFIG_IDF_TARGET_ESP32S3
-        thread_cfg->stack_size = 20 * 1024;
-#endif
-        thread_cfg->priority = 10;
-    }
-
-    // Required for Opus
-    if (strcmp(thread_name, "aenc") == 0) {
-        thread_cfg->stack_size = 40 * 1024;
-        thread_cfg->priority = 10;
-    }
-    if (strcmp(thread_name, "SrcRead") == 0) {
-        thread_cfg->stack_size = 40 * 1024;
-        thread_cfg->priority = 16;
-        thread_cfg->core_id = 0;
-    }
-    if (strcmp(thread_name, "buffer_in") == 0) {
-        thread_cfg->stack_size = 6 * 1024;
-        thread_cfg->priority = 10;
-        thread_cfg->core_id = 0;
-    }
-}
-
 static int network_event_handler(bool connected)
 {
     // Auto-join when network is connected
@@ -141,8 +95,7 @@ static int network_event_handler(bool connected)
 void app_main(void)
 {
     esp_log_level_set("*", ESP_LOG_INFO);
-    media_lib_add_default_adapter();
-    media_lib_thread_set_schedule_cb(thread_scheduler);
+    livekit_system_init();
     board_init();
     media_setup_init();
     init_console();
