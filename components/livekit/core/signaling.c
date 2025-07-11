@@ -171,9 +171,7 @@ static void on_data(signal_t *sg, const char *data, size_t len)
         return;
     }
 
-    ESP_LOGI(TAG, "Decoded res: type=%s(%d)",
-        livekit_protocol_sig_res_name(res.which_message),
-        res.which_message);
+    ESP_LOGI(TAG, "Decoded res: type=%d", res.which_message);
     handle_res(sg, &res);
 }
 
