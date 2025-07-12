@@ -251,6 +251,7 @@ static void free_ice_servers(engine_t *eng)
     eng->ice_server_count = 0;
 }
 
+__attribute__((unused))
 static engine_err_t set_ice_servers(engine_t* eng, livekit_pb_ice_server_t *servers, int count)
 {
     if (eng == NULL || servers == NULL || count <= 0) {
@@ -311,7 +312,6 @@ static void on_peer_pub_state_changed(peer_state_t state, void *ctx)
 
 static void on_peer_sub_state_changed(peer_state_t state, void *ctx)
 {
-    engine_t *eng = (engine_t *)ctx;
     if (state == PEER_STATE_CONNECTED) {
         // TODO: Subscribe
     }
@@ -331,7 +331,6 @@ static void on_peer_sub_answer(const char *sdp, void *ctx)
 
 static void on_peer_ice_candidate(const char *candidate, void *ctx)
 {
-    engine_t *eng = (engine_t *)ctx;
     ESP_LOGI(TAG, "Peer generated ice candidate: %s", candidate);
 }
 
@@ -373,21 +372,18 @@ static void on_peer_sub_audio_frame(esp_peer_audio_frame_t* frame, void *ctx)
 
 static void on_sig_connect(void *ctx)
 {
-    engine_t *eng = (engine_t *)ctx;
     ESP_LOGI(TAG, "Signaling connected");
     // TODO: Implement
 }
 
 static void on_sig_disconnect(void *ctx)
 {
-    engine_t *eng = (engine_t *)ctx;
     ESP_LOGI(TAG, "Signaling disconnected");
     // TODO: Implement
 }
 
 static void on_sig_error(void *ctx)
 {
-    engine_t *eng = (engine_t *)ctx;
     ESP_LOGI(TAG, "Signaling error");
     // TODO: Implement
 }
