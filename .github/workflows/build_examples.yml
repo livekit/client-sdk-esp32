@@ -1,0 +1,28 @@
+name: Build Examples
+on:
+  workflow_call: {}
+  workflow_dispatch: {}
+jobs:
+  build-examples:
+    name: Build Examples
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Add additional targets later
+        device: [esp32s3]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with: { submodules: recursive }
+      - name: Build Examples
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v5.4
+          command: |
+            export WIFI_SSID="---"
+            export WIFI_PASSWORD="---"
+            export LK_SERVER_URL="---"
+            export LK_TOKEN="---"
+            pip install idf-build-apps
+            idf-build-apps build -p ./examples --recursive --target ${{ matrix.device }}

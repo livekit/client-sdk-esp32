@@ -1,0 +1,16 @@
+name: CI
+on:
+  schedule:
+    - cron: 0 0 * * 1
+  workflow_dispatch:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  push:
+    branches: [main]
+concurrency:
+  group: "ci"
+  cancel-in-progress: true
+jobs:
+  build-examples:
+    name: Build Examples
+    uses: ./.github/workflows/build_examples.yml
