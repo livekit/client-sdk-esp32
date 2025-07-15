@@ -15,7 +15,7 @@
 extern "C" {
 #endif
 
-/// @brief  Handle to an engine instance.
+/// Handle to an engine instance.
 typedef void *engine_handle_t;
 
 typedef enum {
@@ -29,7 +29,7 @@ typedef enum {
     // TODO: Add more error cases as needed
 } engine_err_t;
 
-/// @brief  WebRTC media provider
+/// WebRTC media provider
 /// @note   Media player and capture system are created externally.
 ///         WebRTC will internally use the capture and player handle to capture media data and perform media playback.
 typedef struct {
@@ -46,21 +46,21 @@ typedef struct {
     engine_media_options_t media;
 } engine_options_t;
 
-/// @brief Creates a new instance.
+/// Creates a new instance.
 /// @param[out] handle The handle to the new instance.
 engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options);
 
-/// @brief Destroys an instance.
+/// Destroys an instance.
 /// @param[in] handle The handle to the instance to destroy.
 engine_err_t engine_destroy(engine_handle_t handle);
 
-/// @brief Connect the engine.
+/// Connect the engine.
 engine_err_t engine_connect(engine_handle_t handle, const char* server_url, const char* token);
 
-/// @brief Close the engine.
+/// Close the engine.
 engine_err_t engine_close(engine_handle_t handle);
 
-/// @brief Sends a data packet to the remote peer.
+/// Sends a data packet to the remote peer.
 engine_err_t engine_send_data_packet(engine_handle_t handle, const livekit_pb_data_packet_t* packet, livekit_pb_data_packet_kind_t kind);
 
 #ifdef __cplusplus

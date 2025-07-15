@@ -35,11 +35,11 @@ typedef struct {
 signal_err_t signal_create(signal_handle_t *handle, signal_options_t *options);
 signal_err_t signal_destroy(signal_handle_t handle);
 
-/// @brief Establishes the WebSocket connection
+/// Establishes the WebSocket connection
 /// @note This function will close the existing connection if already connected.
 signal_err_t signal_connect(signal_handle_t handle, const char* server_url, const char* token);
 
-/// @brief Closes the WebSocket connection
+/// Closes the WebSocket connection
 signal_err_t signal_close(signal_handle_t handle);
 
 signal_err_t signal_send_leave(signal_handle_t handle);

@@ -22,53 +22,53 @@ typedef enum {
     PEER_ERR_MESSAGE        = -5
 } peer_err_t;
 
-/// @brief Options for creating a peer.
+/// Options for creating a peer.
 typedef struct {
-    /// @brief Whether the peer is a publisher or subscriber.
+    /// Whether the peer is a publisher or subscriber.
     livekit_pb_signal_target_t target;
 
-    /// @brief ICE server list.
+    /// ICE server list.
     esp_peer_ice_server_cfg_t* server_list;
 
-    /// @brief Number of servers in the list.
+    /// Number of servers in the list.
     int server_count;
 
-    /// @brief Weather to force the use of relay ICE candidates.
+    /// Weather to force the use of relay ICE candidates.
     bool force_relay;
 
-    /// @brief Whether the peer is the primary peer.
+    /// Whether the peer is the primary peer.
     /// @note This determines which peer controls the data channels.
     bool is_primary;
 
-    /// @brief Media options used for creating SDP messages.
+    /// Media options used for creating SDP messages.
     engine_media_options_t* media;
 
-    /// @brief Invoked when the peer's connection state changes.
+    /// Invoked when the peer's connection state changes.
     void (*on_state_changed)(connection_state_t state, void *ctx);
 
-    /// @brief Invoked when an SDP message is available. This can be either
+    /// Invoked when an SDP message is available. This can be either
     /// an offer or answer depending on target configuration.
     void (*on_sdp)(const char *sdp, void *ctx);
 
-    /// @brief Invoked when a new ICE candidate is available.
+    /// Invoked when a new ICE candidate is available.
     void (*on_ice_candidate)(const char *candidate, void *ctx);
 
-    /// @brief Invoked when a data packet is received over the data channel.
+    /// Invoked when a data packet is received over the data channel.
     void (*on_packet_received)(livekit_pb_data_packet_t* packet, void *ctx);
 
-    /// @brief Invoked when information about an incoming audio stream is available.
+    /// Invoked when information about an incoming audio stream is available.
     void (*on_audio_info)(esp_peer_audio_stream_info_t* info, void *ctx);
 
-    /// @brief Invoked when an audio frame is received.
+    /// Invoked when an audio frame is received.
     void (*on_audio_frame)(esp_peer_audio_frame_t* frame, void *ctx);
 
-    /// @brief Invoked when information about an incoming video stream is available.
+    /// Invoked when information about an incoming video stream is available.
     void (*on_video_info)(esp_peer_video_stream_info_t* info, void *ctx);
 
-    /// @brief Invoked when a video frame is received.
+    /// Invoked when a video frame is received.
     void (*on_video_frame)(esp_peer_video_frame_t* frame, void *ctx);
 
-    /// @brief Context pointer passed to the handlers.
+    /// Context pointer passed to the handlers.
     void *ctx;
 } peer_options_t;
 
@@ -78,20 +78,20 @@ peer_err_t peer_destroy(peer_handle_t handle);
 peer_err_t peer_connect(peer_handle_t handle);
 peer_err_t peer_disconnect(peer_handle_t handle);
 
-/// @brief Handles an SDP message from the remote peer.
+/// Handles an SDP message from the remote peer.
 peer_err_t peer_handle_sdp(peer_handle_t handle, const char *sdp);
 
-/// @brief Handles an ICE candidate from the remote peer.
+/// Handles an ICE candidate from the remote peer.
 peer_err_t peer_handle_ice_candidate(peer_handle_t handle, const char *candidate);
 
-/// @brief Sends a data packet to the remote peer.
+/// Sends a data packet to the remote peer.
 peer_err_t peer_send_data_packet(peer_handle_t handle, const livekit_pb_data_packet_t* packet, livekit_pb_data_packet_kind_t kind);
 
-/// @brief Sends an audio frame to the remote peer.
+/// Sends an audio frame to the remote peer.
 /// @warning Only use on publisher peer.
 peer_err_t peer_send_audio(peer_handle_t handle, esp_peer_audio_frame_t* frame);
 
-/// @brief Sends a video frame to the remote peer.
+/// Sends a video frame to the remote peer.
 /// @warning Only use on publisher peer.
 peer_err_t peer_send_video(peer_handle_t handle, esp_peer_video_frame_t* frame);
 

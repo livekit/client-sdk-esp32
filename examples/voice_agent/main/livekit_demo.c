@@ -78,7 +78,7 @@ static void set_led_state(const livekit_rpc_invocation_t* invocation, void* ctx)
     cJSON_Delete(root);
 }
 
-/// @brief Invoked by a remote participant to get the current CPU temperature.
+/// Invoked by a remote participant to get the current CPU temperature.
 static void get_cpu_temp(const livekit_rpc_invocation_t* invocation, void* ctx)
 {
     float temp = board_get_temp();

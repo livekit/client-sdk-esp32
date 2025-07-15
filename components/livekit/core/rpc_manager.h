@@ -25,19 +25,19 @@ typedef struct {
     void* ctx;
 } rpc_manager_options_t;
 
-/// @brief Creates a new RPC manager.
+/// Creates a new RPC manager.
 rpc_manager_err_t rpc_manager_create(rpc_manager_handle_t *handle, const rpc_manager_options_t *options);
 
-/// @brief Destroys an RPC manager.
+/// Destroys an RPC manager.
 rpc_manager_err_t rpc_manager_destroy(rpc_manager_handle_t handle);
 
-/// @brief Registers a handler for an RPC method.
+/// Registers a handler for an RPC method.
 rpc_manager_err_t rpc_manager_register(rpc_manager_handle_t handle, const char* method, livekit_rpc_handler_t handler);
 
-/// @brief Unregisters a handler for an RPC method.
+/// Unregisters a handler for an RPC method.
 rpc_manager_err_t rpc_manager_unregister(rpc_manager_handle_t handle, const char* method);
 
-/// @brief Handles an incoming RPC packet.
+/// Handles an incoming RPC packet.
 rpc_manager_err_t rpc_manager_handle_packet(rpc_manager_handle_t handle, const livekit_pb_data_packet_t* packet);
 
 #ifdef __cplusplus

@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-/// @brief Constructs a signaling URL.
+/// Constructs a signaling URL.
 /// @param server_url The server URL beginning with ws:// or wss://.
 /// @param token Access token.
 /// @param out_url[out] The output URL.

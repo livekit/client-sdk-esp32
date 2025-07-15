@@ -69,7 +69,7 @@ typedef struct {
     uint8_t channel_count;        ///< Output number of channels
 } livekit_audio_encode_options_t;
 
-/// @brief Options for publishing media.
+/// Options for publishing media.
 typedef struct {
     /// Kind of media that can be published.
     livekit_media_kind_t kind;
@@ -87,7 +87,7 @@ typedef struct {
     esp_capture_handle_t capturer;
 } livekit_pub_options_t;
 
-/// @brief Options for subscribing to media.
+/// Options for subscribing to media.
 typedef struct {
     /// Kind of media that can be subscribed to.
     livekit_media_kind_t kind;

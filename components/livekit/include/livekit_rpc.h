@@ -11,7 +11,7 @@ extern "C" {
 /// @ingroup RPC
 #define LIVEKIT_RPC_MAX_PAYLOAD_BYTES 15360 // 15 KB
 
-/// @brief Built-in RPC error codes.
+/// Built-in RPC error codes.
 typedef enum {
     /// The RPC method returned normally.
     LIVEKIT_RPC_RESULT_OK = 0,

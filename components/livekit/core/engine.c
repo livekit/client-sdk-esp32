@@ -250,7 +250,7 @@ static engine_err_t send_add_video_track(engine_t *eng)
     return ENGINE_ERR_NONE;
 }
 
-/// @brief Begins media streaming and sends add track requests.
+/// Begins media streaming and sends add track requests.
 static engine_err_t publish_tracks(engine_t *eng)
 {
     if (eng->options.media.audio_info.codec == ESP_PEER_AUDIO_CODEC_NONE &&
