@@ -146,6 +146,40 @@ static void on_eng_data_packet(livekit_pb_data_packet_t* packet, void *ctx)
     }
 }
 
+static void on_eng_room_info(const livekit_pb_room_t* info, void *ctx)
+{
+    livekit_room_t *room = (livekit_room_t *)ctx;
+    if (room->options.on_room_info == NULL) {
+        return;
+    }
+    livekit_room_info_t room_info = {
+        .sid = info->sid,
+        .name = info->name,
+        .metadata = info->metadata,
+        .participant_count = info->num_participants,
+        .active_recording = info->active_recording
+    };
+    room->options.on_room_info(&room_info, room->options.ctx);
+}
+
+static void on_eng_participant_info(const livekit_pb_participant_info_t* info, void *ctx)
+{
+    livekit_room_t *room = (livekit_room_t *)ctx;
+    if (room->options.on_participant_info == NULL) {
+        return;
+    }
+    livekit_participant_info_t participant_info = {
+        .sid = info->sid,
+        .identity = info->identity,
+        .name = info->name,
+        .metadata = info->metadata,
+        // Assumes enum values are the same as defined in the protocol.
+        .kind = (livekit_participant_kind_t)info->kind,
+        .state = (livekit_participant_state_t)info->state,
+    };
+    room->options.on_participant_info(&participant_info, room->options.ctx);
+}
+
 livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_room_options_t *options)
 {
     if (handle == NULL || options == NULL) {
@@ -192,6 +226,8 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_r
         .media = media_options,
         .on_state_changed = on_eng_state_changed,
         .on_data_packet = on_eng_data_packet,
+        .on_room_info = on_eng_room_info,
+        .on_participant_info = on_eng_participant_info,
         .ctx = room
     };
 

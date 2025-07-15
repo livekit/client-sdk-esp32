@@ -20,6 +20,25 @@ static void on_state_changed(livekit_connection_state_t state, void* ctx)
     }
 }
 
+/// Invoked when participant information is received.
+static void on_participant_info(const livekit_participant_info_t* info, void* ctx)
+{
+    if (info->kind != LIVEKIT_PARTICIPANT_KIND_AGENT) {
+        // Only handle agent participants for this example.
+        return;
+    }
+    switch (info->state) {
+        case LIVEKIT_PARTICIPANT_STATE_ACTIVE:
+            ESP_LOGI(TAG, "Agent has joined the room");
+            break;
+        case LIVEKIT_PARTICIPANT_STATE_DISCONNECTED:
+            ESP_LOGI(TAG, "Agent has left the room");
+            break;
+        default:
+            break;
+    }
+}
+
 /// Invoked by a remote participant to set the state of an on-board LED.
 static void set_led_state(const livekit_rpc_invocation_t* invocation, void* ctx)
 {
@@ -85,6 +104,7 @@ int join_room()
             .renderer = media_setup_get_renderer()
         },
         .on_state_changed = on_state_changed,
+        .on_participant_info = on_participant_info,
         .ctx = NULL // Not used for this example
     };
 

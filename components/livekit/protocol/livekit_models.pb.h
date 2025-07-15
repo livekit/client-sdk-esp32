@@ -215,6 +215,14 @@ typedef struct livekit_pb_list_update {
     pb_callback_t set; /* set the field to a new list */
 } livekit_pb_list_update_t;
 
+typedef struct livekit_pb_room {
+    char *sid;
+    char *name;
+    char *metadata;
+    uint32_t num_participants;
+    bool active_recording;
+} livekit_pb_room_t;
+
 typedef struct livekit_pb_codec {
     pb_callback_t mime;
     pb_callback_t fmtp_line;
@@ -236,7 +244,13 @@ typedef struct livekit_pb_participant_permission {
 } livekit_pb_participant_permission_t;
 
 typedef struct livekit_pb_participant_info {
+    char *sid;
+    char *identity;
+    livekit_pb_participant_info_state_t state;
+    char *metadata;
+    char *name;
     livekit_pb_participant_permission_t permission;
+    livekit_pb_participant_info_kind_t *kind;
 } livekit_pb_participant_info_t;
 
 typedef struct livekit_pb_encryption {
@@ -522,24 +536,6 @@ typedef struct livekit_pb_timed_version {
     int32_t ticks;
 } livekit_pb_timed_version_t;
 
-typedef struct livekit_pb_room {
-    pb_callback_t sid;
-    pb_callback_t name;
-    uint32_t empty_timeout;
-    uint32_t max_participants;
-    int64_t creation_time;
-    pb_callback_t turn_password;
-    pb_callback_t enabled_codecs;
-    pb_callback_t metadata;
-    uint32_t num_participants;
-    bool active_recording;
-    uint32_t num_publishers;
-    bool has_version;
-    livekit_pb_timed_version_t version;
-    uint32_t departure_timeout;
-    int64_t creation_time_ms;
-} livekit_pb_room_t;
-
 typedef struct livekit_pb_data_stream {
     char dummy_field;
 } livekit_pb_data_stream_t;
@@ -710,6 +706,8 @@ extern "C" {
 
 
 
+#define livekit_pb_participant_info_t_state_ENUMTYPE livekit_pb_participant_info_state_t
+#define livekit_pb_participant_info_t_kind_ENUMTYPE livekit_pb_participant_info_kind_t
 
 
 
@@ -761,11 +759,11 @@ extern "C" {
 /* Initializer values for message structs */
 #define LIVEKIT_PB_PAGINATION_INIT_DEFAULT       {{{NULL}, NULL}, 0}
 #define LIVEKIT_PB_LIST_UPDATE_INIT_DEFAULT      {{{NULL}, NULL}}
-#define LIVEKIT_PB_ROOM_INIT_DEFAULT             {{{NULL}, NULL}, {{NULL}, NULL}, 0, 0, 0, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0, 0, false, LIVEKIT_PB_TIMED_VERSION_INIT_DEFAULT, 0, 0}
+#define LIVEKIT_PB_ROOM_INIT_DEFAULT             {NULL, NULL, NULL, 0, 0}
 #define LIVEKIT_PB_CODEC_INIT_DEFAULT            {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_PLAYOUT_DELAY_INIT_DEFAULT    {0, 0, 0}
 #define LIVEKIT_PB_PARTICIPANT_PERMISSION_INIT_DEFAULT {0, 0, 0}
-#define LIVEKIT_PB_PARTICIPANT_INFO_INIT_DEFAULT {LIVEKIT_PB_PARTICIPANT_PERMISSION_INIT_DEFAULT}
+#define LIVEKIT_PB_PARTICIPANT_INFO_INIT_DEFAULT {NULL, NULL, _LIVEKIT_PB_PARTICIPANT_INFO_STATE_MIN, NULL, NULL, LIVEKIT_PB_PARTICIPANT_PERMISSION_INIT_DEFAULT, NULL}
 #define LIVEKIT_PB_ENCRYPTION_INIT_DEFAULT       {0}
 #define LIVEKIT_PB_SIMULCAST_CODEC_INFO_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_TRACK_INFO_INIT_DEFAULT       {NULL, _LIVEKIT_PB_TRACK_TYPE_MIN, 0, 0, 0, {_LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN}}
@@ -805,11 +803,11 @@ extern "C" {
 #define LIVEKIT_PB_WEBHOOK_CONFIG_INIT_DEFAULT   {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_PAGINATION_INIT_ZERO          {{{NULL}, NULL}, 0}
 #define LIVEKIT_PB_LIST_UPDATE_INIT_ZERO         {{{NULL}, NULL}}
-#define LIVEKIT_PB_ROOM_INIT_ZERO                {{{NULL}, NULL}, {{NULL}, NULL}, 0, 0, 0, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0, 0, 0, false, LIVEKIT_PB_TIMED_VERSION_INIT_ZERO, 0, 0}
+#define LIVEKIT_PB_ROOM_INIT_ZERO                {NULL, NULL, NULL, 0, 0}
 #define LIVEKIT_PB_CODEC_INIT_ZERO               {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_PLAYOUT_DELAY_INIT_ZERO       {0, 0, 0}
 #define LIVEKIT_PB_PARTICIPANT_PERMISSION_INIT_ZERO {0, 0, 0}
-#define LIVEKIT_PB_PARTICIPANT_INFO_INIT_ZERO    {LIVEKIT_PB_PARTICIPANT_PERMISSION_INIT_ZERO}
+#define LIVEKIT_PB_PARTICIPANT_INFO_INIT_ZERO    {NULL, NULL, _LIVEKIT_PB_PARTICIPANT_INFO_STATE_MIN, NULL, NULL, LIVEKIT_PB_PARTICIPANT_PERMISSION_INIT_ZERO, NULL}
 #define LIVEKIT_PB_ENCRYPTION_INIT_ZERO          {0}
 #define LIVEKIT_PB_SIMULCAST_CODEC_INFO_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_TRACK_INFO_INIT_ZERO          {NULL, _LIVEKIT_PB_TRACK_TYPE_MIN, 0, 0, 0, {_LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN}}
@@ -852,6 +850,11 @@ extern "C" {
 #define LIVEKIT_PB_PAGINATION_AFTER_ID_TAG       1
 #define LIVEKIT_PB_PAGINATION_LIMIT_TAG          2
 #define LIVEKIT_PB_LIST_UPDATE_SET_TAG           1
+#define LIVEKIT_PB_ROOM_SID_TAG                  1
+#define LIVEKIT_PB_ROOM_NAME_TAG                 2
+#define LIVEKIT_PB_ROOM_METADATA_TAG             8
+#define LIVEKIT_PB_ROOM_NUM_PARTICIPANTS_TAG     9
+#define LIVEKIT_PB_ROOM_ACTIVE_RECORDING_TAG     10
 #define LIVEKIT_PB_CODEC_MIME_TAG                1
 #define LIVEKIT_PB_CODEC_FMTP_LINE_TAG           2
 #define LIVEKIT_PB_PLAYOUT_DELAY_ENABLED_TAG     1
@@ -860,7 +863,13 @@ extern "C" {
 #define LIVEKIT_PB_PARTICIPANT_PERMISSION_CAN_SUBSCRIBE_TAG 1
 #define LIVEKIT_PB_PARTICIPANT_PERMISSION_CAN_PUBLISH_TAG 2
 #define LIVEKIT_PB_PARTICIPANT_PERMISSION_CAN_PUBLISH_DATA_TAG 3
+#define LIVEKIT_PB_PARTICIPANT_INFO_SID_TAG      1
+#define LIVEKIT_PB_PARTICIPANT_INFO_IDENTITY_TAG 2
+#define LIVEKIT_PB_PARTICIPANT_INFO_STATE_TAG    3
+#define LIVEKIT_PB_PARTICIPANT_INFO_METADATA_TAG 5
+#define LIVEKIT_PB_PARTICIPANT_INFO_NAME_TAG     9
 #define LIVEKIT_PB_PARTICIPANT_INFO_PERMISSION_TAG 11
+#define LIVEKIT_PB_PARTICIPANT_INFO_KIND_TAG     14
 #define LIVEKIT_PB_SIMULCAST_CODEC_INFO_MIME_TYPE_TAG 1
 #define LIVEKIT_PB_SIMULCAST_CODEC_INFO_MID_TAG  2
 #define LIVEKIT_PB_SIMULCAST_CODEC_INFO_CID_TAG  3
@@ -1018,20 +1027,6 @@ extern "C" {
 #define LIVEKIT_PB_RTP_FORWARDER_STATE_SENDER_REPORT_STATE_TAG 8
 #define LIVEKIT_PB_TIMED_VERSION_UNIX_MICRO_TAG  1
 #define LIVEKIT_PB_TIMED_VERSION_TICKS_TAG       2
-#define LIVEKIT_PB_ROOM_SID_TAG                  1
-#define LIVEKIT_PB_ROOM_NAME_TAG                 2
-#define LIVEKIT_PB_ROOM_EMPTY_TIMEOUT_TAG        3
-#define LIVEKIT_PB_ROOM_MAX_PARTICIPANTS_TAG     4
-#define LIVEKIT_PB_ROOM_CREATION_TIME_TAG        5
-#define LIVEKIT_PB_ROOM_TURN_PASSWORD_TAG        6
-#define LIVEKIT_PB_ROOM_ENABLED_CODECS_TAG       7
-#define LIVEKIT_PB_ROOM_METADATA_TAG             8
-#define LIVEKIT_PB_ROOM_NUM_PARTICIPANTS_TAG     9
-#define LIVEKIT_PB_ROOM_ACTIVE_RECORDING_TAG     10
-#define LIVEKIT_PB_ROOM_NUM_PUBLISHERS_TAG       11
-#define LIVEKIT_PB_ROOM_VERSION_TAG              13
-#define LIVEKIT_PB_ROOM_DEPARTURE_TIMEOUT_TAG    14
-#define LIVEKIT_PB_ROOM_CREATION_TIME_MS_TAG     15
 #define LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_OPERATION_TYPE_TAG 1
 #define LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_VERSION_TAG 2
 #define LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_REPLY_TO_STREAM_ID_TAG 3
@@ -1079,24 +1074,13 @@ X(a, CALLBACK, REPEATED, STRING,   set,               1)
 #define LIVEKIT_PB_LIST_UPDATE_DEFAULT NULL
 
 #define LIVEKIT_PB_ROOM_FIELDLIST(X, a) \
-X(a, CALLBACK, SINGULAR, STRING,   sid,               1) \
-X(a, CALLBACK, SINGULAR, STRING,   name,              2) \
-X(a, STATIC,   SINGULAR, UINT32,   empty_timeout,     3) \
-X(a, STATIC,   SINGULAR, UINT32,   max_participants,   4) \
-X(a, STATIC,   SINGULAR, INT64,    creation_time,     5) \
-X(a, CALLBACK, SINGULAR, STRING,   turn_password,     6) \
-X(a, CALLBACK, REPEATED, MESSAGE,  enabled_codecs,    7) \
-X(a, CALLBACK, SINGULAR, STRING,   metadata,          8) \
+X(a, POINTER,  SINGULAR, STRING,   sid,               1) \
+X(a, POINTER,  SINGULAR, STRING,   name,              2) \
+X(a, POINTER,  SINGULAR, STRING,   metadata,          8) \
 X(a, STATIC,   SINGULAR, UINT32,   num_participants,   9) \
-X(a, STATIC,   SINGULAR, BOOL,     active_recording,  10) \
-X(a, STATIC,   SINGULAR, UINT32,   num_publishers,   11) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  version,          13) \
-X(a, STATIC,   SINGULAR, UINT32,   departure_timeout,  14) \
-X(a, STATIC,   SINGULAR, INT64,    creation_time_ms,  15)
-#define LIVEKIT_PB_ROOM_CALLBACK pb_default_field_callback
+X(a, STATIC,   SINGULAR, BOOL,     active_recording,  10)
+#define LIVEKIT_PB_ROOM_CALLBACK NULL
 #define LIVEKIT_PB_ROOM_DEFAULT NULL
-#define livekit_pb_room_t_enabled_codecs_MSGTYPE livekit_pb_codec_t
-#define livekit_pb_room_t_version_MSGTYPE livekit_pb_timed_version_t
 
 #define LIVEKIT_PB_CODEC_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   mime,              1) \
@@ -1119,7 +1103,13 @@ X(a, STATIC,   SINGULAR, BOOL,     can_publish_data,   3)
 #define LIVEKIT_PB_PARTICIPANT_PERMISSION_DEFAULT NULL
 
 #define LIVEKIT_PB_PARTICIPANT_INFO_FIELDLIST(X, a) \
-X(a, STATIC,   REQUIRED, MESSAGE,  permission,       11)
+X(a, POINTER,  SINGULAR, STRING,   sid,               1) \
+X(a, POINTER,  SINGULAR, STRING,   identity,          2) \
+X(a, STATIC,   SINGULAR, UENUM,    state,             3) \
+X(a, POINTER,  SINGULAR, STRING,   metadata,          5) \
+X(a, POINTER,  SINGULAR, STRING,   name,              9) \
+X(a, STATIC,   REQUIRED, MESSAGE,  permission,       11) \
+X(a, POINTER,  SINGULAR, UENUM,    kind,             14)
 #define LIVEKIT_PB_PARTICIPANT_INFO_CALLBACK NULL
 #define LIVEKIT_PB_PARTICIPANT_INFO_DEFAULT NULL
 #define livekit_pb_participant_info_t_permission_MSGTYPE livekit_pb_participant_permission_t
@@ -1592,6 +1582,7 @@ extern const pb_msgdesc_t livekit_pb_webhook_config_t_msg;
 /* livekit_pb_ListUpdate_size depends on runtime parameters */
 /* livekit_pb_Room_size depends on runtime parameters */
 /* livekit_pb_Codec_size depends on runtime parameters */
+/* livekit_pb_ParticipantInfo_size depends on runtime parameters */
 /* livekit_pb_SimulcastCodecInfo_size depends on runtime parameters */
 /* livekit_pb_TrackInfo_size depends on runtime parameters */
 /* livekit_pb_DataPacket_size depends on runtime parameters */
@@ -1620,7 +1611,6 @@ extern const pb_msgdesc_t livekit_pb_webhook_config_t_msg;
 #define LIVEKIT_PB_DATA_STREAM_SIZE              0
 #define LIVEKIT_PB_DATA_STREAM_TRAILER_SIZE      55
 #define LIVEKIT_PB_ENCRYPTION_SIZE               0
-#define LIVEKIT_PB_PARTICIPANT_INFO_SIZE         8
 #define LIVEKIT_PB_PARTICIPANT_PERMISSION_SIZE   6
 #define LIVEKIT_PB_PLAYOUT_DELAY_SIZE            14
 #define LIVEKIT_PB_RPC_ACK_SIZE                  38

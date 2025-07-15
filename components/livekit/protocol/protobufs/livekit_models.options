@@ -2,19 +2,18 @@ livekit_pb.ClientConfiguration.video type:FT_IGNORE
 livekit_pb.ClientConfiguration.screen type:FT_IGNORE
 livekit_pb.ClientConfiguration.disabled_codecs type:FT_IGNORE
 
-livekit_pb.ParticipantInfo.sid type:FT_IGNORE
-livekit_pb.ParticipantInfo.identity type:FT_IGNORE
-livekit_pb.ParticipantInfo.state type:FT_IGNORE
+livekit_pb.ParticipantInfo.sid type:FT_POINTER
+livekit_pb.ParticipantInfo.identity type:FT_POINTER
 livekit_pb.ParticipantInfo.tracks type:FT_IGNORE
-livekit_pb.ParticipantInfo.metadata type:FT_IGNORE
+livekit_pb.ParticipantInfo.metadata type:FT_POINTER
 livekit_pb.ParticipantInfo.joined_at type:FT_IGNORE
 livekit_pb.ParticipantInfo.joined_at_ms type:FT_IGNORE
-livekit_pb.ParticipantInfo.name type:FT_IGNORE
+livekit_pb.ParticipantInfo.name type:FT_POINTER
 livekit_pb.ParticipantInfo.version type:FT_IGNORE
 livekit_pb.ParticipantInfo.permission label_override:LABEL_REQUIRED
 livekit_pb.ParticipantInfo.region type:FT_IGNORE
 livekit_pb.ParticipantInfo.is_publisher type:FT_IGNORE
-livekit_pb.ParticipantInfo.kind type:FT_IGNORE
+livekit_pb.ParticipantInfo.kind type:FT_POINTER
 livekit_pb.ParticipantInfo.attributes type:FT_IGNORE
 livekit_pb.ParticipantInfo.disconnect_reason type:FT_IGNORE
 livekit_pb.ParticipantInfo.kind_details type:FT_IGNORE
@@ -87,3 +86,16 @@ livekit_pb.TrackInfo.stream type:FT_IGNORE
 livekit_pb.TrackInfo.version type:FT_IGNORE
 livekit_pb.TrackInfo.audio_features max_count:8
 livekit_pb.TrackInfo.backup_codec_policy type:FT_IGNORE
+
+livekit_pb.Room.sid type:FT_POINTER
+livekit_pb.Room.name type:FT_POINTER
+livekit_pb.Room.empty_timeout type:FT_IGNORE
+livekit_pb.Room.departure_timeout type:FT_IGNORE
+livekit_pb.Room.max_participants type:FT_IGNORE
+livekit_pb.Room.num_publishers type:FT_IGNORE
+livekit_pb.Room.creation_time type:FT_IGNORE
+livekit_pb.Room.creation_time_ms type:FT_IGNORE
+livekit_pb.Room.turn_password type:FT_IGNORE
+livekit_pb.Room.enabled_codecs type:FT_IGNORE
+livekit_pb.Room.metadata type:FT_POINTER
+livekit_pb.Room.version type:FT_IGNORE

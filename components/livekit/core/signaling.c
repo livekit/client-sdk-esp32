@@ -115,6 +115,17 @@ static void handle_res(signal_t *sg, livekit_pb_signal_response_t *res)
             esp_timer_stop(sg->ping_timer);
             sg->options.on_leave(leave_res->reason, leave_res->action, sg->options.ctx);
             break;
+        case LIVEKIT_PB_SIGNAL_RESPONSE_ROOM_UPDATE_TAG:
+            livekit_pb_room_update_t *room_update = &res->message.room_update;
+            if (!room_update->has_room) break;
+            sg->options.on_room_update(&room_update->room, sg->options.ctx);
+            break;
+        case LIVEKIT_PB_SIGNAL_RESPONSE_UPDATE_TAG:
+            livekit_pb_participant_update_t *participant_update = &res->message.update;
+            for (int i = 0; i < participant_update->participants_count; i++) {
+                sg->options.on_participant_update(&participant_update->participants[i], sg->options.ctx);
+            }
+            break;
         case LIVEKIT_PB_SIGNAL_RESPONSE_OFFER_TAG:
             livekit_pb_session_description_t *offer = &res->message.offer;
             ESP_LOGI(TAG, "Offer: id=%" PRIu32 "\n%s", offer->id, offer->sdp);
@@ -231,12 +242,14 @@ signal_err_t signal_create(signal_handle_t *handle, signal_options_t *options)
         return SIGNAL_ERR_INVALID_ARG;
     }
 
-    if (options->on_state_changed == NULL ||
-        options->on_join     == NULL ||
-        options->on_leave    == NULL ||
-        options->on_offer    == NULL ||
-        options->on_answer   == NULL ||
-        options->on_trickle  == NULL
+    if (options->on_state_changed      == NULL ||
+        options->on_join               == NULL ||
+        options->on_leave              == NULL ||
+        options->on_room_update        == NULL ||
+        options->on_participant_update == NULL ||
+        options->on_offer              == NULL ||
+        options->on_answer             == NULL ||
+        options->on_trickle            == NULL
     ) {
         ESP_LOGE(TAG, "Missing required event handlers");
         return SIGNAL_ERR_INVALID_ARG;

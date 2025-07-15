@@ -1,6 +1,5 @@
-livekit_pb.JoinResponse.room type:FT_IGNORE
 livekit_pb.JoinResponse.participant label_override:LABEL_REQUIRED
-livekit_pb.JoinResponse.other_participants type:FT_IGNORE
+livekit_pb.JoinResponse.other_participants type:FT_POINTER
 livekit_pb.JoinResponse.server_version type:FT_IGNORE
 livekit_pb.JoinResponse.alternative_url type:FT_IGNORE
 livekit_pb.JoinResponse.server_region type:FT_IGNORE
@@ -38,3 +37,5 @@ livekit_pb.AddTrackRequest.audio_features max_count:8
 
 livekit_pb.TrackPublishedResponse.cid type:FT_POINTER
 livekit_pb.TrackPublishedResponse.track label_override:LABEL_REQUIRED
+
+livekit_pb.ParticipantUpdate.participants type:FT_POINTER

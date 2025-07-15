@@ -9,7 +9,7 @@
 PB_BIND(LIVEKIT_PB_SIGNAL_REQUEST, livekit_pb_signal_request_t, AUTO)
 
 
-PB_BIND(LIVEKIT_PB_SIGNAL_RESPONSE, livekit_pb_signal_response_t, AUTO)
+PB_BIND(LIVEKIT_PB_SIGNAL_RESPONSE, livekit_pb_signal_response_t, 2)
 
 
 PB_BIND(LIVEKIT_PB_SIMULCAST_CODEC, livekit_pb_simulcast_codec_t, AUTO)
@@ -24,7 +24,7 @@ PB_BIND(LIVEKIT_PB_TRICKLE_REQUEST, livekit_pb_trickle_request_t, AUTO)
 PB_BIND(LIVEKIT_PB_MUTE_TRACK_REQUEST, livekit_pb_mute_track_request_t, AUTO)
 
 
-PB_BIND(LIVEKIT_PB_JOIN_RESPONSE, livekit_pb_join_response_t, AUTO)
+PB_BIND(LIVEKIT_PB_JOIN_RESPONSE, livekit_pb_join_response_t, 2)
 
 
 PB_BIND(LIVEKIT_PB_RECONNECT_RESPONSE, livekit_pb_reconnect_response_t, AUTO)

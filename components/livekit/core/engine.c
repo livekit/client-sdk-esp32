@@ -490,6 +490,14 @@ static void on_sig_join(livekit_pb_join_response_t *join_res, void *ctx)
         ESP_LOGE(TAG, "Failed to connect subscriber peer");
         return;
     }
+
+    // Join response contains initial room and participant info (both local and remote);
+    // extract and invoke the appropriate handlers.
+    eng->options.on_room_info(&join_res->room, eng->options.ctx);
+    eng->options.on_participant_info(&join_res->participant, eng->options.ctx);
+    for (int i = 0; i < join_res->other_participants_count; i++) {
+        eng->options.on_participant_info(&join_res->other_participants[i], eng->options.ctx);
+    }
 }
 
 static void on_sig_leave(livekit_pb_disconnect_reason_t reason, livekit_pb_leave_request_action_t action, void *ctx)
@@ -498,6 +506,18 @@ static void on_sig_leave(livekit_pb_disconnect_reason_t reason, livekit_pb_leave
     // TODO: Handle reconnect, update engine state
     disconnect_peer(&eng->pub_peer);
     disconnect_peer(&eng->sub_peer);
+}
+
+static void on_sig_room_update(const livekit_pb_room_t* info, void *ctx)
+{
+    engine_t *eng = (engine_t *)ctx;
+    eng->options.on_room_info(info, eng->options.ctx);
+}
+
+static void on_sig_participant_update(const livekit_pb_participant_info_t* info, void *ctx)
+{
+    engine_t *eng = (engine_t *)ctx;
+    eng->options.on_participant_info(info, eng->options.ctx);
 }
 
 static void on_sig_answer(const char *sdp, void *ctx)
@@ -522,12 +542,16 @@ static void on_sig_trickle(const char *ice_candidate, livekit_pb_signal_target_t
 
 engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options)
 {
-    if (handle  == NULL ||
-        options == NULL ||
-        options->on_state_changed == NULL ||
-        options->on_data_packet   == NULL ) {
+    if (handle                         == NULL ||
+        options                        == NULL ||
+        options->on_state_changed      == NULL ||
+        options->on_data_packet        == NULL ||
+        options->on_room_info          == NULL ||
+        options->on_participant_info   == NULL
+    ) {
         return ENGINE_ERR_INVALID_ARG;
     }
+
     engine_t *eng = (engine_t *)calloc(1, sizeof(engine_t));
     if (eng == NULL) {
         return ENGINE_ERR_NO_MEM;
@@ -538,6 +562,8 @@ engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options)
         .on_state_changed = on_sig_state_changed,
         .on_join = on_sig_join,
         .on_leave = on_sig_leave,
+        .on_room_update = on_sig_room_update,
+        .on_participant_update = on_sig_participant_update,
         .on_answer = on_sig_answer,
         .on_offer = on_sig_offer,
         .on_trickle = on_sig_trickle
