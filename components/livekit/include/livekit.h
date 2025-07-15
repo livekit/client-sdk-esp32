@@ -215,7 +215,7 @@ typedef struct {
     void* ctx;
 } livekit_room_options_t;
 
-/// @defgroup System System initialization
+/// @defgroup System System Initialization
 /// Perform required one-time system initialization.
 /// @{
 
@@ -298,9 +298,9 @@ livekit_connection_state_t livekit_room_get_state(livekit_room_handle_t handle);
 /// - **Room**: @ref livekit_room_options_t::on_room_info
 /// - **Participant**: @ref livekit_room_options_t::on_participant_info
 ///
-/// In your implementation, you are free to examine the fields in the struct and copy
-/// any information you need to keep for later use; the pointer to the info struct is only
-/// valid until the handler returns.
+/// In your implementation, you are free to examine the fields in the provided info struct and copy
+/// any information you need to keep for later use; the pointer to this struct is only valid until
+/// the handler returns.
 ///
 /// The following example demonstrates how you can define an `on_participant_info` handler
 /// to perform some action when a participant named "Jon" joins the room:
@@ -317,7 +317,7 @@ livekit_connection_state_t livekit_room_get_state(livekit_room_handle_t handle);
 /// @endcode
 ///
 
-/// @defgroup DataPackets Data packets
+/// @defgroup DataPackets Data Packets
 ///
 /// Low-level API for high-frequency data exchange.
 ///
@@ -376,7 +376,7 @@ livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_da
 
 /// @}
 
-/// @defgroup RPC Remote method calls (RPC)
+/// @defgroup RPC Remote Method Calls (RPC)
 ///
 /// Use RPC to execute custom methods on other participants in the room and
 /// await a response.
