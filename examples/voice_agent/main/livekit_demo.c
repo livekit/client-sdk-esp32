@@ -12,7 +12,15 @@ static const char *TAG = "livekit_demo";
 
 static livekit_room_handle_t room_handle;
 
-/// @brief Invoked by a remote participant to set the state of an on-board LED.
+/// Invoked when the room's connection state changes.
+static void on_state_changed(livekit_connection_state_t state, void* ctx)
+{
+    if (state == LIVEKIT_CONNECTION_STATE_CONNECTED) {
+        ESP_LOGI(TAG, "Connected to room");
+    }
+}
+
+/// Invoked by a remote participant to set the state of an on-board LED.
 static void set_led_state(const livekit_rpc_invocation_t* invocation, void* ctx)
 {
     cJSON *root = cJSON_Parse(invocation->payload);
@@ -75,7 +83,9 @@ int join_room()
         .subscribe = {
             .kind = LIVEKIT_MEDIA_TYPE_AUDIO,
             .renderer = media_setup_get_renderer()
-        }
+        },
+        .on_state_changed = on_state_changed,
+        .ctx = NULL // Not used for this example
     };
 
     if (room_handle != NULL) {

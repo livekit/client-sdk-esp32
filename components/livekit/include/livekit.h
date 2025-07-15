@@ -22,6 +22,16 @@ typedef enum {
     LIVEKIT_ERR_SYSTEM_INIT   = -6   ///< System not initialized
 } livekit_err_t;
 
+/// Connection state of a room.
+/// @ingroup Connection
+typedef enum {
+    LIVEKIT_CONNECTION_STATE_DISCONNECTED = 0, ///< Disconnected
+    LIVEKIT_CONNECTION_STATE_CONNECTING   = 1, ///< Establishing connection
+    LIVEKIT_CONNECTION_STATE_CONNECTED    = 2, ///< Connected
+    LIVEKIT_CONNECTION_STATE_RECONNECTING = 3, ///< Connection was previously established, but was lost
+    LIVEKIT_CONNECTION_STATE_FAILED       = 4  ///< Connection failed
+} livekit_connection_state_t;
+
 /// Video codec to use within a room.
 typedef enum {
     LIVEKIT_VIDEO_CODEC_NONE = 0, ///< No video codec set
@@ -119,6 +129,10 @@ typedef struct {
     /// @note Only required if the room subscribes to media.
     livekit_sub_options_t subscribe;
 
+    /// Handler for when the room's connection state changes.
+    /// @see Connection
+    void (*on_state_changed)(livekit_connection_state_t state, void* ctx);
+
     /// Handler for when an RPC method invoked with @ref livekit_room_rpc_invoke returns a result.
     /// @see RPC
     void (*on_rpc_result)(const livekit_rpc_result_t* result, void* ctx);
@@ -170,21 +184,34 @@ livekit_err_t livekit_room_destroy(livekit_room_handle_t handle);
 
 /// @defgroup Connection
 /// Connect and disconnect from a room.
+///
+/// The connection state of a room can be monitored by setting a handler for
+/// @ref livekit_room_options_t::on_state_changed.
+///
 /// @{
 
 /// Connects to a room asynchronously.
+///
 /// @param handle[in] Room handle.
 /// @param server_url[in] URL of the LiveKit server beginning with "wss://" or "ws://".
 /// @param token[in] Server-generated token for authentication.
-/// @note Handle room events to get notified once the connection is established or fails.
 /// @return @ref LIVEKIT_ERR_NONE, otherwise an error code.
+///
 livekit_err_t livekit_room_connect(livekit_room_handle_t handle, const char *server_url, const char *token);
 
 /// Disconnects from a room asynchronously.
+///
 /// @param handle[in] Room handle.
-/// @note Handle room events to get notified once the disconnection is complete.
 /// @return @ref LIVEKIT_ERR_NONE if successful, otherwise an error code.
+///
 livekit_err_t livekit_room_close(livekit_room_handle_t handle);
+
+/// Gets the current connection state of a room.
+///
+/// @param handle[in] Room handle.
+/// @return Current connection state.
+///
+livekit_connection_state_t livekit_room_get_state(livekit_room_handle_t handle);
 
 /// @}
 

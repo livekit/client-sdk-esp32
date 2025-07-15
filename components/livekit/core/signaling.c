@@ -180,10 +180,11 @@ static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void
     assert(ctx != NULL);
     signal_t *sg = (signal_t *)ctx;
     esp_websocket_event_data_t *data = (esp_websocket_event_data_t *)event_data;
+
     switch (event_id) {
-                case WEBSOCKET_EVENT_CONNECTED:
+        case WEBSOCKET_EVENT_CONNECTED:
             ESP_LOGI(TAG, "Signaling connected");
-            sg->options.on_connect(sg->options.ctx);
+            sg->options.on_state_changed(CONNECTION_STATE_CONNECTED, sg->options.ctx);
             break;
         case WEBSOCKET_EVENT_DISCONNECTED:
             ESP_LOGI(TAG, "Signaling disconnected");
@@ -198,7 +199,7 @@ static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void
                 log_error_if_nonzero("reported from tls stack", data->error_handle.esp_tls_stack_err);
                 log_error_if_nonzero("captured as transport's socket errno", data->error_handle.esp_transport_sock_errno);
             }
-            sg->options.on_disconnect(sg->options.ctx);
+            sg->options.on_state_changed(CONNECTION_STATE_DISCONNECTED, sg->options.ctx);
             break;
         case WEBSOCKET_EVENT_DATA:
             if (data->op_code != WS_TRANSPORT_OPCODES_BINARY) {
@@ -218,7 +219,7 @@ static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void
                 log_error_if_nonzero("reported from tls stack", data->error_handle.esp_tls_stack_err);
                 log_error_if_nonzero("captured as transport's socket errno", data->error_handle.esp_transport_sock_errno);
             }
-            sg->options.on_error(sg->options.ctx);
+            sg->options.on_state_changed(CONNECTION_STATE_FAILED, sg->options.ctx);
             break;
         default: break;
     }
@@ -230,14 +231,12 @@ signal_err_t signal_create(signal_handle_t *handle, signal_options_t *options)
         return SIGNAL_ERR_INVALID_ARG;
     }
 
-    if (options->on_connect    == NULL ||
-        options->on_disconnect == NULL ||
-        options->on_error      == NULL ||
-        options->on_join       == NULL ||
-        options->on_leave      == NULL ||
-        options->on_offer      == NULL ||
-        options->on_answer     == NULL ||
-        options->on_trickle    == NULL
+    if (options->on_state_changed == NULL ||
+        options->on_join     == NULL ||
+        options->on_leave    == NULL ||
+        options->on_offer    == NULL ||
+        options->on_answer   == NULL ||
+        options->on_trickle  == NULL
     ) {
         ESP_LOGE(TAG, "Missing required event handlers");
         return SIGNAL_ERR_INVALID_ARG;

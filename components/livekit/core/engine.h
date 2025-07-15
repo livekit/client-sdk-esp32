@@ -54,10 +54,7 @@ typedef struct {
 
 typedef struct {
     void *ctx;
-
-    void (*on_connected)(engine_event_connected_t detail, void *ctx);
-    void (*on_disconnected)(engine_event_disconnected_t detail, void *ctx);
-    void (*on_error)(engine_event_error_t detail, void *ctx);
+    void (*on_state_changed)(connection_state_t state, void *ctx);
     void (*on_data_packet)(livekit_pb_data_packet_t* packet, void *ctx);
     engine_media_options_t media;
 } engine_options_t;

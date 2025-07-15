@@ -12,6 +12,7 @@ typedef struct {
     rpc_manager_handle_t rpc_manager;
     engine_handle_t engine;
     livekit_room_options_t options;
+    livekit_connection_state_t state;
 } livekit_room_t;
 
 static bool send_reliable_packet(const livekit_pb_data_packet_t* packet, void *ctx)
@@ -101,22 +102,31 @@ static void populate_media_options(
     media_options->renderer = sub_options->renderer;
 }
 
-static void on_eng_connected(engine_event_connected_t detail, void *ctx)
+static void on_eng_state_changed(connection_state_t engine_state, void *ctx)
 {
-    ESP_LOGI(TAG, "Received engine connected event");
-    // TODO: Implement
-}
-
-static void on_eng_disconnected(engine_event_disconnected_t detail, void *ctx)
-{
-    ESP_LOGI(TAG, "Received engine disconnected event");
-    // TODO: Implement
-}
-
-static void on_eng_error(engine_event_error_t detail, void *ctx)
-{
-    ESP_LOGE(TAG, "Received engine error event");
-    // TODO: Implement
+    livekit_room_t *room = (livekit_room_t *)ctx;
+    switch (engine_state) {
+        case CONNECTION_STATE_DISCONNECTED:
+            room->state = LIVEKIT_CONNECTION_STATE_DISCONNECTED;
+            break;
+        case CONNECTION_STATE_CONNECTED:
+            room->state = LIVEKIT_CONNECTION_STATE_CONNECTED;
+            break;
+        case CONNECTION_STATE_CONNECTING:
+            room->state = LIVEKIT_CONNECTION_STATE_CONNECTING;
+            break;
+        case CONNECTION_STATE_RECONNECTING:
+            room->state = LIVEKIT_CONNECTION_STATE_RECONNECTING;
+            break;
+        case CONNECTION_STATE_FAILED:
+            room->state = LIVEKIT_CONNECTION_STATE_FAILED;
+            break;
+        default:
+            return;
+    }
+    if (room->options.on_state_changed != NULL) {
+        room->options.on_state_changed(room->state, room->options.ctx);
+    }
 }
 
 static void on_eng_data_packet(livekit_pb_data_packet_t* packet, void *ctx)
@@ -172,6 +182,7 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_r
     if (room == NULL) {
         return LIVEKIT_ERR_NO_MEM;
     }
+    room->state = LIVEKIT_CONNECTION_STATE_DISCONNECTED;
     room->options = *options;
 
     engine_media_options_t media_options = {};
@@ -179,9 +190,7 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_r
 
     engine_options_t eng_options = {
         .media = media_options,
-        .on_connected = on_eng_connected,
-        .on_disconnected = on_eng_disconnected,
-        .on_error = on_eng_error,
+        .on_state_changed = on_eng_state_changed,
         .on_data_packet = on_eng_data_packet,
         .ctx = room
     };
@@ -245,6 +254,15 @@ livekit_err_t livekit_room_close(livekit_room_handle_t handle)
     livekit_room_t *room = (livekit_room_t *)handle;
     engine_close(room->engine);
     return LIVEKIT_ERR_NONE;
+}
+
+livekit_connection_state_t livekit_room_get_state(livekit_room_handle_t handle)
+{
+    if (handle == NULL) {
+        return LIVEKIT_CONNECTION_STATE_DISCONNECTED;
+    }
+    livekit_room_t *room = (livekit_room_t *)handle;
+    return room->state;
 }
 
 livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_data_publish_options_t *options)

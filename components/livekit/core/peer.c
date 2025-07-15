@@ -31,7 +31,7 @@ typedef struct {
     esp_peer_role_t ice_role;
     esp_peer_handle_t connection;
 
-    peer_state_t state;
+    connection_state_t state;
 
     bool running;
     bool pause;
@@ -92,16 +92,16 @@ static int on_state(esp_peer_state_t rtc_state, void *ctx)
     peer_t *peer = (peer_t *)ctx;
     ESP_LOGI(TAG(peer), "RTC state changed to %d", rtc_state);
 
-    peer_state_t state = peer->state;
+    connection_state_t state = peer->state;
     switch (rtc_state) {
         case ESP_PEER_STATE_CONNECT_FAILED:
-            state = PEER_STATE_FAILED;
+            state = CONNECTION_STATE_FAILED;
             break;
         case ESP_PEER_STATE_DISCONNECTED:
-            state = PEER_STATE_DISCONNECTED;
+            state = CONNECTION_STATE_DISCONNECTED;
             break;
         case ESP_PEER_STATE_PAIRING:
-            state = PEER_STATE_CONNECTING;
+            state = CONNECTION_STATE_CONNECTING;
             break;
         case ESP_PEER_STATE_CONNECTED:
             create_data_channels(peer);
@@ -110,7 +110,7 @@ static int on_state(esp_peer_state_t rtc_state, void *ctx)
             // Don't enter the connected state until both data channels are opened.
             if (peer->reliable_stream_id == STREAM_ID_INVALID ||
                 peer->lossy_stream_id    == STREAM_ID_INVALID ) break;
-            state = PEER_STATE_CONNECTED;
+            state = CONNECTION_STATE_CONNECTED;
             break;
         default:
             break;
@@ -259,7 +259,7 @@ peer_err_t peer_create(peer_handle_t *handle, peer_options_t *options)
     peer->options = *options;
     peer->ice_role = options->target == LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER ?
         ESP_PEER_ROLE_CONTROLLED : ESP_PEER_ROLE_CONTROLLING;
-    peer->state = PEER_STATE_DISCONNECTED;
+    peer->state = CONNECTION_STATE_DISCONNECTED;
 
     // Set to invalid IDs to indicate that the data channels are not connected yet
     peer->reliable_stream_id = STREAM_ID_INVALID;

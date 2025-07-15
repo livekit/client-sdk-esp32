@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include "common.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -20,9 +22,7 @@ typedef enum {
 
 typedef struct {
     void* ctx;
-    void (*on_connect)(void *ctx);
-    void (*on_disconnect)(void *ctx);
-    void (*on_error)(void *ctx);
+    void (*on_state_changed)(connection_state_t state, void *ctx);
     void (*on_join)(livekit_pb_join_response_t *join_res, void *ctx);
     void (*on_leave)(livekit_pb_disconnect_reason_t reason, livekit_pb_leave_request_action_t action, void *ctx);
     void (*on_answer)(const char *sdp, void *ctx);

@@ -22,13 +22,6 @@ typedef enum {
     PEER_ERR_MESSAGE        = -5
 } peer_err_t;
 
-typedef enum {
-    PEER_STATE_DISCONNECTED = 0, /*!< Disconnected */
-    PEER_STATE_CONNECTING   = 1, /*!< Establishing peer connection */
-    PEER_STATE_CONNECTED    = 2, /*!< Connected to peer & data channels open */
-    PEER_STATE_FAILED       = 3  /*!< Connection failed */
-} peer_state_t;
-
 /// @brief Options for creating a peer.
 typedef struct {
     /// @brief Whether the peer is a publisher or subscriber.
@@ -51,7 +44,7 @@ typedef struct {
     engine_media_options_t* media;
 
     /// @brief Invoked when the peer's connection state changes.
-    void (*on_state_changed)(peer_state_t state, void *ctx);
+    void (*on_state_changed)(connection_state_t state, void *ctx);
 
     /// @brief Invoked when an SDP message is available. This can be either
     /// an offer or answer depending on target configuration.

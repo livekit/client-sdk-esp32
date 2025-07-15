@@ -9,6 +9,15 @@
 extern "C" {
 #endif
 
+/// State of an engine component or the engine itself.
+typedef enum {
+    CONNECTION_STATE_DISCONNECTED = 0, /*!< Disconnected */
+    CONNECTION_STATE_CONNECTING   = 1, /*!< Establishing connection */
+    CONNECTION_STATE_CONNECTED    = 2, /*!< Connected */
+    CONNECTION_STATE_RECONNECTING = 3, /*!< Connection was previously established, but was lost */
+    CONNECTION_STATE_FAILED       = 4  /*!< Connection failed */
+} connection_state_t;
+
 typedef struct {
     esp_peer_media_dir_t audio_dir;
     esp_peer_media_dir_t video_dir;

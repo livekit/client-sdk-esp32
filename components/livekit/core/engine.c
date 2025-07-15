@@ -36,7 +36,54 @@ typedef struct {
 
     esp_codec_dev_handle_t        renderer_handle;
     esp_peer_audio_stream_info_t  sub_audio_info;
+
+    connection_state_t state;     /// Engine state, derived from signaling and peer states
+    connection_state_t sig_state; /// Signaling state
+    connection_state_t pub_state; /// Publisher peer state
+    connection_state_t sub_state; /// Subscriber peer state
+
+    bool is_subscriber_primary;
 } engine_t;
+
+static void recalculate_state(engine_t *eng)
+{
+    connection_state_t new_state = eng->state;
+
+    if (eng->sig_state == CONNECTION_STATE_FAILED ||
+        eng->pub_state == CONNECTION_STATE_FAILED ||
+        eng->sub_state == CONNECTION_STATE_FAILED)
+    {
+        new_state = CONNECTION_STATE_FAILED;
+    }
+    else if (eng->sig_state == CONNECTION_STATE_RECONNECTING ||
+             eng->pub_state == CONNECTION_STATE_RECONNECTING ||
+             eng->sub_state == CONNECTION_STATE_RECONNECTING)
+    {
+        new_state = CONNECTION_STATE_RECONNECTING;
+    }
+
+    else if (eng->sig_state == CONNECTION_STATE_CONNECTED &&
+             ( (eng->is_subscriber_primary && eng->sub_state == CONNECTION_STATE_CONNECTED) ||
+               (!eng->is_subscriber_primary && eng->pub_state == CONNECTION_STATE_CONNECTED) ))
+    {
+        new_state = CONNECTION_STATE_CONNECTED;
+    }
+    else if (eng->sig_state == CONNECTION_STATE_DISCONNECTED &&
+             eng->pub_state == CONNECTION_STATE_DISCONNECTED &&
+             eng->sub_state == CONNECTION_STATE_DISCONNECTED)
+    {
+        new_state = CONNECTION_STATE_DISCONNECTED;
+    }
+    else {
+        new_state = CONNECTION_STATE_CONNECTING;
+    }
+
+    if (new_state != eng->state) {
+        ESP_LOGI(TAG, "State changed: %d -> %d", eng->state, new_state);
+        eng->state = new_state;
+        eng->options.on_state_changed(eng->state, eng->options.ctx);
+    }
+}
 
 static esp_capture_codec_type_t capture_audio_codec_type(esp_peer_audio_codec_t peer_codec)
 {
@@ -302,19 +349,21 @@ static engine_err_t set_ice_servers(engine_t* eng, livekit_pb_ice_server_t *serv
     return ENGINE_ERR_NONE;
 }
 
-static void on_peer_pub_state_changed(peer_state_t state, void *ctx)
+static void on_peer_pub_state_changed(connection_state_t state, void *ctx)
 {
     engine_t *eng = (engine_t *)ctx;
-    if (state == PEER_STATE_CONNECTED) {
+    if (state == CONNECTION_STATE_CONNECTED) {
         publish_tracks(eng);
     }
+    eng->pub_state = state;
+    recalculate_state(eng);
 }
 
-static void on_peer_sub_state_changed(peer_state_t state, void *ctx)
+static void on_peer_sub_state_changed(connection_state_t state, void *ctx)
 {
-    if (state == PEER_STATE_CONNECTED) {
-        // TODO: Subscribe
-    }
+    engine_t *eng = (engine_t *)ctx;
+    eng->sub_state = state;
+    recalculate_state(eng);
 }
 
 static void on_peer_pub_offer(const char *sdp, void *ctx)
@@ -370,22 +419,11 @@ static void on_peer_sub_audio_frame(esp_peer_audio_frame_t* frame, void *ctx)
     av_render_add_audio_data(eng->renderer_handle, &audio_data);
 }
 
-static void on_sig_connect(void *ctx)
+static void on_sig_state_changed(connection_state_t state, void *ctx)
 {
-    ESP_LOGI(TAG, "Signaling connected");
-    // TODO: Implement
-}
-
-static void on_sig_disconnect(void *ctx)
-{
-    ESP_LOGI(TAG, "Signaling disconnected");
-    // TODO: Implement
-}
-
-static void on_sig_error(void *ctx)
-{
-    ESP_LOGI(TAG, "Signaling error");
-    // TODO: Implement
+    engine_t *eng = (engine_t *)ctx;
+    eng->sig_state = state;
+    recalculate_state(eng);
 }
 
 static bool disconnect_peer(peer_handle_t *peer)
@@ -410,6 +448,7 @@ static void on_sig_join(livekit_pb_join_response_t *join_res, void *ctx)
     engine_t *eng = (engine_t *)ctx;
 
     if (join_res->subscriber_primary) {
+        eng->is_subscriber_primary = true;
         ESP_LOGE(TAG, "Subscriber primary is not supported yet");
         return;
     }
@@ -483,7 +522,10 @@ static void on_sig_trickle(const char *ice_candidate, livekit_pb_signal_target_t
 
 engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options)
 {
-    if (handle == NULL || options == NULL || options->on_data_packet == NULL) {
+    if (handle  == NULL ||
+        options == NULL ||
+        options->on_state_changed == NULL ||
+        options->on_data_packet   == NULL ) {
         return ENGINE_ERR_INVALID_ARG;
     }
     engine_t *eng = (engine_t *)calloc(1, sizeof(engine_t));
@@ -493,9 +535,7 @@ engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options)
     eng->options = *options;
     signal_options_t sig_options = {
         .ctx = eng,
-        .on_connect = on_sig_connect,
-        .on_disconnect = on_sig_disconnect,
-        .on_error = on_sig_error,
+        .on_state_changed = on_sig_state_changed,
         .on_join = on_sig_join,
         .on_leave = on_sig_leave,
         .on_answer = on_sig_answer,
@@ -562,6 +602,9 @@ engine_err_t engine_connect(engine_handle_t handle, const char* server_url, cons
     }
     engine_t *eng = (engine_t *)handle;
 
+    if (eng->state != CONNECTION_STATE_DISCONNECTED) {
+        return ENGINE_ERR_OTHER;
+    }
     if (signal_connect(eng->sig, server_url, token) != SIGNAL_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to connect signaling client");
         return ENGINE_ERR_SIGNALING;
@@ -576,6 +619,9 @@ engine_err_t engine_close(engine_handle_t handle)
     }
     engine_t *eng = (engine_t *)handle;
 
+    if (eng->state == CONNECTION_STATE_DISCONNECTED) {
+        return ENGINE_ERR_OTHER;
+    }
     media_stream_end(eng);
     // TODO: Reset just the stream that was added in case users added their own streams?
     av_render_reset(eng->renderer_handle);
