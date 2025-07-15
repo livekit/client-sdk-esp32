@@ -38,21 +38,6 @@ typedef struct {
 } engine_media_provider_t;
 
 typedef struct {
-    // This is an alternative to RtcEngine's async connect method
-    livekit_pb_join_response_t join_response;
-} engine_event_connected_t;
-
-typedef struct {
-    livekit_pb_disconnect_reason_t reason;
-} engine_event_disconnected_t;
-
-typedef struct {
-    // This is an alternative to RtcEngine's async connect method
-    // returning a error result.
-    // TODO: add error details
-} engine_event_error_t;
-
-typedef struct {
     void *ctx;
     void (*on_state_changed)(connection_state_t state, void *ctx);
     void (*on_data_packet)(livekit_pb_data_packet_t* packet, void *ctx);
