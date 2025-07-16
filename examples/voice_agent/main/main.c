@@ -27,8 +27,4 @@ void app_main(void)
     board_init();
     media_setup_init();
     network_init(CONFIG_WIFI_SSID, CONFIG_WIFI_PASSWORD, network_event_handler);
-    while (1)
-    {
-        media_lib_thread_sleep(2000);
-    }
 }
