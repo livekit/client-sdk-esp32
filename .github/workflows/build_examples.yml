@@ -20,9 +20,5 @@ jobs:
         with:
           esp_idf_version: v5.4
           command: |
-            export WIFI_SSID="---"
-            export WIFI_PASSWORD="---"
-            export LK_SERVER_URL="---"
-            export LK_TOKEN="---"
             pip install idf-build-apps
             idf-build-apps build -p ./examples --recursive --target ${{ matrix.device }}
