@@ -7,12 +7,11 @@
    CONDITIONS OF ANY KIND, either express or implied.
 */
 
-#include <esp_log.h>
+#include "esp_log.h"
 #include "esp_console.h"
 #include "media_lib_adapter.h"
 #include "media_lib_os.h"
 #include "network.h"
-
 #include "media_setup.h"
 #include "board.h"
 #include "livekit_demo.h"

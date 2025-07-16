@@ -7,20 +7,14 @@
    CONDITIONS OF ANY KIND, either express or implied.
 */
 
+#include "esp_log.h"
 #include "codec_init.h"
-#include "codec_board.h"
-
 #include "esp_capture_path_simple.h"
 #include "esp_capture_audio_enc.h"
-#include "av_render.h"
-#include "common.h"
-#include "media_lib_os.h"
-#include "esp_timer.h"
 #include "av_render_default.h"
 #include "esp_audio_dec_default.h"
 #include "esp_audio_enc_default.h"
 #include "esp_capture_defaults.h"
-#include "esp_log.h"
 
 #include "media_setup.h"
 

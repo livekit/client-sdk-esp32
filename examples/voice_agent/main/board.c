@@ -1,9 +1,6 @@
-#include <stdio.h>
 #include "esp_log.h"
 #include "codec_init.h"
 #include "codec_board.h"
-#include "esp_codec_dev.h"
-#include "sdkconfig.h"
 #include "driver/temperature_sensor.h"
 #include "bsp/esp-bsp.h"
 

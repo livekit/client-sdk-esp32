@@ -1,12 +1,10 @@
-#include <stdlib.h>
-#include <math.h>
-#include <esp_log.h>
-#include "livekit_demo.h"
-#include "media_setup.h"
-#include "codec_init.h"
-#include "board.h"
+#include "esp_log.h"
 #include "cJSON.h"
 #include "bsp/esp-bsp.h"
+#include "media_setup.h"
+#include "board.h"
+
+#include "livekit_demo.h"
 
 static const char *TAG = "livekit_demo";
 

@@ -1,8 +1,8 @@
 
 #pragma once
 
-#include <esp_capture.h>
-#include <av_render.h>
+#include "esp_capture.h"
+#include "av_render.h"
 
 #ifdef __cplusplus
 extern "C" {
