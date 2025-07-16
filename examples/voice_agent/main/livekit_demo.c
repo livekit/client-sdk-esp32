@@ -121,7 +121,7 @@ int join_room()
     livekit_room_rpc_register(room_handle, "get_cpu_temp", get_cpu_temp);
 
     livekit_err_t connect_res;
-#ifdef LK_SANDBOX_ID
+#ifdef CONFIG_LK_USE_SANDBOX
     // Option A: Sandbox token server.
     livekit_sandbox_res_t res = {};
     livekit_sandbox_options_t gen_options = {
