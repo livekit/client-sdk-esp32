@@ -1,12 +1,4 @@
-/* Media system
-
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
-
+#include "esp_check.h"
 #include "esp_log.h"
 #include "codec_init.h"
 #include "esp_capture_path_simple.h"
@@ -18,112 +10,114 @@
 
 #include "media_setup.h"
 
-#define RET_ON_NULL(ptr, v) do {                                \
-    if (ptr == NULL) {                                          \
-        ESP_LOGE(TAG, "Memory allocate fail on %d", __LINE__);  \
-        return v;                                               \
-    }                                                           \
-} while (0)
+static const char *TAG = "media_setup";
 
-#define TAG "MEDIA_SYS"
+#define NULL_CHECK(pointer, message) \
+    ESP_RETURN_ON_FALSE(pointer != NULL, -1, TAG, message)
 
 typedef struct {
-    esp_capture_path_handle_t   capture_handle;
-    esp_capture_aenc_if_t      *aud_enc;
-    esp_capture_audio_src_if_t *aud_src;
-    esp_capture_path_if_t      *path_if;
+    esp_capture_aenc_if_t      *audio_encoder;
+    esp_capture_audio_src_if_t *audio_source;
+    esp_capture_path_if_t      *capture_path;
+    esp_capture_path_handle_t   capturer_handle;
 } capture_system_t;
 
 typedef struct {
-    audio_render_handle_t audio_render;
-    av_render_handle_t    player;
-} player_system_t;
+    audio_render_handle_t audio_renderer;
+    av_render_handle_t    av_renderer_handle;
+} renderer_system_t;
 
-static capture_system_t capture_sys;
-static player_system_t  player_sys;
+static capture_system_t  capturer_system;
+static renderer_system_t renderer_system;
 
-static int build_capture_system(void)
+static int build_capturer_system(void)
 {
-    capture_sys.aud_enc = esp_capture_new_audio_encoder();
-    RET_ON_NULL(capture_sys.aud_enc, -1);
+    // 1. Create audio encoder
+    capturer_system.audio_encoder = esp_capture_new_audio_encoder();
+    NULL_CHECK(capturer_system.audio_encoder, "Failed to create audio encoder");
 
-   // For S3 when use ES7210 it use TDM mode second channel is reference data
+    // 2. Create audio source
+    esp_codec_dev_handle_t record_handle = get_record_handle();
+    NULL_CHECK(record_handle, "Failed to get record handle");
+
     esp_capture_audio_aec_src_cfg_t codec_cfg = {
-        .record_handle = get_record_handle(),
-#if CONFIG_IDF_TARGET_ESP32S3
+        .record_handle = record_handle,
         .channel = 4,
-        .channel_mask = 1 | 2,
-#endif
+        .channel_mask = 1 | 2
     };
-    // capture_sys.aud_src = esp_capture_new_audio_codec_src(&codec_cfg);
-    capture_sys.aud_src = esp_capture_new_audio_aec_src(&codec_cfg);
-    RET_ON_NULL(capture_sys.aud_src, -1);
-    esp_capture_simple_path_cfg_t simple_cfg = {
-        .aenc = capture_sys.aud_enc,
+    capturer_system.audio_source = esp_capture_new_audio_aec_src(&codec_cfg);
+    NULL_CHECK(capturer_system.audio_source, "Failed to create audio source");
+
+    // 3. Create capture path
+    esp_capture_simple_path_cfg_t path_cfg = {
+        .aenc = capturer_system.audio_encoder,
     };
-    capture_sys.path_if = esp_capture_build_simple_path(&simple_cfg);
-    RET_ON_NULL(capture_sys.path_if, -1);
-    // Create capture system
+    capturer_system.capture_path = esp_capture_build_simple_path(&path_cfg);
+    NULL_CHECK(capturer_system.capture_path, "Failed to create capture path");
+
+    // 4. Create capture system
     esp_capture_cfg_t cfg = {
         .sync_mode = ESP_CAPTURE_SYNC_MODE_AUDIO,
-        .audio_src = capture_sys.aud_src,
-        .capture_path = capture_sys.path_if,
+        .audio_src = capturer_system.audio_source,
+        .capture_path = capturer_system.capture_path,
     };
-    esp_capture_open(&cfg, &capture_sys.capture_handle);
+    esp_capture_open(&cfg, &capturer_system.capturer_handle);
+    NULL_CHECK(capturer_system.capturer_handle, "Failed to open capture system");
     return 0;
 }
 
-static int build_player_system()
+static int build_renderer_system(void)
 {
+    // 1. Create audio renderer
     i2s_render_cfg_t i2s_cfg = {
-        .play_handle = get_playback_handle(),
+        .play_handle = get_playback_handle()
     };
-    player_sys.audio_render = av_render_alloc_i2s_render(&i2s_cfg);
-    if (player_sys.audio_render == NULL) {
-        ESP_LOGE(TAG, "Fail to create audio render");
-        return -1;
-    }
+    renderer_system.audio_renderer = av_render_alloc_i2s_render(&i2s_cfg);
+    NULL_CHECK(renderer_system.audio_renderer, "Failed to create I2S renderer");
+
+    // Set initial speaker volume
     esp_codec_dev_set_out_vol(i2s_cfg.play_handle, CONFIG_DEFAULT_PLAYBACK_VOL);
+
+    // 2. Create AV renderer
+    // For this example, this only includes an audio renderer.
     av_render_cfg_t render_cfg = {
-        .audio_render = player_sys.audio_render,
+        .audio_render = renderer_system.audio_renderer,
         .audio_raw_fifo_size = 8 * 4096,
         .audio_render_fifo_size = 100 * 1024,
         .allow_drop_data = false,
     };
-    player_sys.player = av_render_open(&render_cfg);
-    if (player_sys.player == NULL) {
-        ESP_LOGE(TAG, "Fail to create player");
-        return -1;
-    }
-    // When support AEC, reference data is from speaker right channel for ES8311 so must output 2 channel
-    av_render_audio_frame_info_t aud_info = {
+    renderer_system.av_renderer_handle = av_render_open(&render_cfg);
+    NULL_CHECK(renderer_system.av_renderer_handle, "Failed to create AV renderer");
+
+    // 3. Set frame info
+    av_render_audio_frame_info_t frame_info = {
         .sample_rate = 16000,
         .channel = 2,
         .bits_per_sample = 16,
     };
-    av_render_set_fixed_frame_info(player_sys.player, &aud_info);
+    av_render_set_fixed_frame_info(renderer_system.av_renderer_handle, &frame_info);
+
     return 0;
 }
 
 int media_setup_init(void)
 {
-    // Register default audio encoder
+    // Register default audio encoder and decoder
     esp_audio_enc_register_default();
-    // Register default audio decoder
     esp_audio_dec_register_default();
-    // Build capture system
-    build_capture_system();
-    // Build player system
-    build_player_system();
+
+    // Build capturer and renderer systems
+    build_capturer_system();
+    build_renderer_system();
     return 0;
 }
 
 esp_capture_handle_t media_setup_get_capturer(void)
 {
-    return capture_sys.capture_handle;
+    return capturer_system.capturer_handle;
 }
 
 av_render_handle_t media_setup_get_renderer(void)
 {
-    return player_sys.player;
+    return renderer_system.av_renderer_handle;
 }
