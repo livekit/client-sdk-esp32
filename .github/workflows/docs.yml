@@ -22,7 +22,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with: { path: docs/output }
   deploy:
-    needs: build
+    needs: build-docs
     permissions:
       pages: write
       id-token: write
