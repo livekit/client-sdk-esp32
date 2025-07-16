@@ -6,7 +6,7 @@ issues: "https://github.com/livekit/client-sdk-esp32/issues"
 discussion: "https://livekit.io/join-slack"
 version: 0.1.0
 dependencies:
-  idf: ">=5.0"
+  idf: ">=5.4"
   espressif/esp_websocket_client: ^1.4.0
   media_lib_sal:
     path: ../third_party/esp-webrtc-solution/components/media_lib_sal

@@ -1,2 +1,4 @@
 description: LiveKit Sandbox Token Generator
 version: 0.1.0
+dependencies:
+  idf: ">=5.4"

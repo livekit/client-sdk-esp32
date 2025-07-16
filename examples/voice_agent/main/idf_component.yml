@@ -1,5 +1,5 @@
 dependencies:
-  idf: ">=5.0"
+  idf: ">=5.4"
   livekit:
     path: ../../../components/livekit
   codec_board:
