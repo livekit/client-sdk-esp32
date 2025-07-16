@@ -1,16 +1,14 @@
-# LiveKit Demo
+# Voice Agent
 
-This demo showcases how to use [LiveKit](https://livekit.io) on ESP32-series chips, powered by Espressif's hardware-optimized WebRTC and media components. It demonstrates using LiveKit APIs to join a room and exchange real-time data and media.
+This example demonstrates how to use the [LiveKit ESP-32 SDK](https://github.com/livekit/client-sdk-esp32/) with [LiveKit Agents](https://docs.livekit.io/agents/) to enable bidirectional voice chat with an AI agent, allowing the agent to interact with hardware in response to user requests.
 
-## Structure
+## Requirements
 
-Application code under [*main/*](./main/) configures the media system and uses the LiveKit APIs to join a room (see [*livekit.h*](./components/livekit/include/livekit.h)). The API is in early development and may undergo breaking changes.
-
-The demo is currently configured to use the [ESP32-S3-Korvo-2](https://docs.espressif.com/projects/esp-adf/en/latest/design-guide/dev-boards/user-guide-esp32-s3-korvo-2.html) board, which features AEC to enable echo-free bidirectional audio. To configure the demo for a different board, please refer to the [*codec_board* README](../../components/codec_board/README.md).
-
-## Sandbox Token Server
-
-In production, you are responsible for generating JWT-based access tokens to authenticate users. However, to simplify setup, this demo is configured to use sandbox tokens. Create a [Sandbox Token Server](https://cloud.livekit.io/projects/p_/sandbox/templates/token-server) for your LiveKit Cloud project and take note of its ID for the next step.
+- Software: [IDF](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/index.html) release v5.4 or later
+- Hardware
+    - Dev board: [ESP32-S3-Korvo-2](https://docs.espressif.com/projects/esp-adf/en/latest/design-guide/dev-boards/user-guide-esp32-s3-korvo-2.html)
+    - Two micro USB cables: one for power, one for flashing
+    - Mono enclosed speaker (example from [Adafruit](https://www.adafruit.com/product/3351))
 
 ## Build
 
@@ -81,6 +79,6 @@ idf.py -p YOUR_DEVICE_PATH flash monitor
 
 To determine the path for your board:
 
-- macOS: Run `ls /dev/cu.*` and look for */dev/cu.usbserial-** or similar.
+- macOS: Run `ls /dev/cu.*` and look for \*/dev/cu.usbserial-\*\* or similar.
 - Linux: Run `ls /dev/ttyUSB*` or `ls /dev/ttyACM*`.
-- Windows: Check Device Manager under "Ports (COM & LPT)" for the COM port (e.g. *COM3*).
+- Windows: Check Device Manager under "Ports (COM & LPT)" for the COM port (e.g. _COM3_).
