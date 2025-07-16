@@ -4,7 +4,6 @@
 extern "C" {
 #endif
 
-#include "media_sys.h"
 #include "network.h"
 #include "sys_state.h"
 #include "esp_webrtc.h"
