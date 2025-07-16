@@ -6,22 +6,17 @@
 #include "board.h"
 #include "livekit_demo.h"
 
-#define RUN_ASYNC(name, body)           \
-    void run_async##name(void *arg)     \
-    {                                   \
-        body;                           \
-        media_lib_thread_destroy(NULL); \
-    }                                   \
-    media_lib_thread_create_from_scheduler(NULL, #name, run_async##name, NULL);
+static void run_async_join_room(void *arg)
+{
+    join_room();
+    media_lib_thread_destroy(NULL);
+}
 
 static int network_event_handler(bool connected)
 {
-    // Auto-join when network is connected
-    if (connected) {
-        RUN_ASYNC(join, {
-            join_room();
-        });
-    }
+    // Create and join the room once network is connected.
+    if (!connected) return 0;
+    media_lib_thread_create_from_scheduler(NULL, "join", run_async_join_room, NULL);
     return 0;
 }
 
