@@ -14,42 +14,54 @@ In production, you are responsible for generating JWT-based access tokens to aut
 
 ## Build
 
-To build and run the demo, you will need [IDF](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/index.html) release v5.4 or later installed on your system. Configure required settings and build as follows:
+### 1. Configure required settings
 
-### 1. Set network credentials
-
-Set your Wi-Fi SSID and password in your environment:
+To configure the example from the command line using _menuconfig_, run:
 ```sh
-export WIFI_SSID='your_wifi_network_name'
-export WIFI_PASSWORD='your_wifi_password'
+idf.py menuconfig
+```
+Then navigate to the _LiveKit Example_ menu.
+
+Alternatively, you can set these options directly in an _sdkconfig_ file located in this directory as shown below:
+
+#### Network connection
+
+Connect using Wi-Fi:
+
+```sh
+CONFIG_NETWORK_MODE_WIFI=y
+CONFIG_WIFI_SSID="<your SSID>"
+CONFIG_WIFI_PASSWORD="<your password>"
 ```
 
-### 2. Choose connection method
+#### Room connection
 
 In production, your backend server is responsible for [generating tokens](https://docs.livekit.io/home/server/generating-tokens/) for users to connect to a room. For demonstration purposes, choose one of the following options to get the demo up and running quickly:
 
-#### Option A: Sandbox token server (recommended)
+##### Option A: Sandbox token server (recommended)
 
-Create a [Sandbox Token Server](https://cloud.livekit.io/projects/p_/sandbox/templates/token-server) for your LiveKit Cloud project, and export its ID:
+Create a [Sandbox Token Server](https://cloud.livekit.io/projects/p_/sandbox/templates/token-server) for your LiveKit Cloud project, and set its ID in _sdkconfig_:
 
 ```sh
-export LK_SANDBOX_ID="your-sandbox-id"
+CONFIG_LK_USE_SANDBOX=y
+CONFIG_LK_SANDBOX_ID="<your sandbox id>"
 ```
 
-(Optional) If you would like the token to be generated with a specific room or participant name, you can do so as follows:
+(Optional) If you would like the token to be generated with a specific room or participant name, you can also add the following keys:
 
 ```sh
-export LK_SANDBOX_ROOM_NAME="Meeting"
-export LK_SANDBOX_PARTICIPANT_NAME="ESP-32"
+CONFIG_LK_SANDBOX_ROOM_NAME="robot-control"
+CONFIG_LK_SANDBOX_PARTICIPANT_NAME="esp-32"
 ```
 
-#### Option B: Pre-generated token
+##### Option B: Pre-generated token
 
-Set your LiveKit server URL and pre-generated token in your environment:
+Set your LiveKit server URL and pre-generated token in _sdkconfig_:
 
 ```sh
-export LK_TOKEN="your-jwt-token"
-export LK_SERVER_URL="wss://your-livekit-server.com"
+CONFIG_LK_USE_PREGENERATED=y
+CONFIG_LK_TOKEN="your-jwt-token"
+CONFIG_LK_SERVER_URL="wss://your-livekit-server.com"
 ```
 
 ### 3. Set target
@@ -60,6 +72,7 @@ idf.py set-target esp32s3
 
 ### 4. Build, flash, and monitor:
 
+With your dev board connected, run the following to build, flash, and monitor in a single command:
 ```sh
 idf.py -p YOUR_DEVICE_PATH flash monitor
 ```

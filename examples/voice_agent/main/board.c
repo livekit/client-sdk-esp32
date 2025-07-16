@@ -4,7 +4,6 @@
 #include "codec_board.h"
 #include "esp_codec_dev.h"
 #include "sdkconfig.h"
-#include "settings.h"
 #include "driver/temperature_sensor.h"
 #include "bsp/esp-bsp.h"
 
@@ -30,7 +29,7 @@ void board_init()
     ESP_ERROR_CHECK(temperature_sensor_enable(temp_sensor));
 
     // Initialize codec board support (must be performed after BSP initialization)
-    set_codec_board_type(TEST_BOARD_NAME);
+    set_codec_board_type("S3_Korvo_V2");
     // When using performing recording and playback at the same time,
     // reuse_dev must be set to false.
     codec_init_cfg_t cfg = {

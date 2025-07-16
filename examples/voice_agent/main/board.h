@@ -4,7 +4,6 @@
 extern "C" {
 #endif
 
-#include "settings.h"
 #include "media_sys.h"
 #include "network.h"
 #include "sys_state.h"

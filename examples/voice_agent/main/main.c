@@ -13,7 +13,6 @@
 #include "media_lib_os.h"
 #include "network.h"
 
-#include "settings.h"
 #include "media_setup.h"
 #include "board.h"
 #include "livekit_demo.h"
@@ -99,7 +98,7 @@ void app_main(void)
     board_init();
     media_setup_init();
     init_console();
-    network_init(WIFI_SSID, WIFI_PASSWORD, network_event_handler);
+    network_init(CONFIG_WIFI_SSID, CONFIG_WIFI_PASSWORD, network_event_handler);
     while (1)
     {
         media_lib_thread_sleep(2000);

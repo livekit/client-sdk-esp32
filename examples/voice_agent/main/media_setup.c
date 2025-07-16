@@ -14,7 +14,6 @@
 #include "esp_capture_audio_enc.h"
 #include "av_render.h"
 #include "common.h"
-#include "settings.h"
 #include "media_lib_os.h"
 #include "esp_timer.h"
 #include "av_render_default.h"
@@ -90,7 +89,7 @@ static int build_player_system()
         ESP_LOGE(TAG, "Fail to create audio render");
         return -1;
     }
-    esp_codec_dev_set_out_vol(i2s_cfg.play_handle, DEFAULT_PLAYBACK_VOL);
+    esp_codec_dev_set_out_vol(i2s_cfg.play_handle, CONFIG_DEFAULT_PLAYBACK_VOL);
     av_render_cfg_t render_cfg = {
         .audio_render = player_sys.audio_render,
         .audio_raw_fifo_size = 8 * 4096,
