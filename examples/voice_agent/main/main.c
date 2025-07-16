@@ -1,14 +1,15 @@
 #include "esp_log.h"
 #include "media_lib_adapter.h"
 #include "media_lib_os.h"
+#include "livekit.h"
 #include "network.h"
 #include "media_setup.h"
 #include "board.h"
-#include "livekit_demo.h"
+#include "example.h"
 
 static void run_async_join_room(void *arg)
 {
-    join_room();
+    join_room(); // See example.c
     media_lib_thread_destroy(NULL);
 }
 

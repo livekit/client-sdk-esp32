@@ -1,12 +1,13 @@
 #include "esp_log.h"
 #include "cJSON.h"
 #include "bsp/esp-bsp.h"
+#include "livekit.h"
+#include "livekit_sandbox.h"
 #include "media_setup.h"
 #include "board.h"
+#include "example.h"
 
-#include "livekit_demo.h"
-
-static const char *TAG = "livekit_demo";
+static const char *TAG = "livekit_example";
 
 static livekit_room_handle_t room_handle;
 
