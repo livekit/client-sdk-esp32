@@ -4,7 +4,9 @@ This example demonstrates how to use the [LiveKit ESP-32 SDK](https://github.com
 
 ## Requirements
 
-- Software: [IDF](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/index.html) release v5.4 or later
+- Software:
+    - [IDF](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/index.html) release v5.4 or later
+    - Python 3.9 or later (for agent)
 - Hardware
     - Dev board: [ESP32-S3-Korvo-2](https://docs.espressif.com/projects/esp-adf/en/latest/design-guide/dev-boards/user-guide-esp32-s3-korvo-2.html)
     - Two micro USB cables: one for power, one for flashing
@@ -82,3 +84,8 @@ To determine the path for your board:
 - macOS: Run `ls /dev/cu.*` and look for \*/dev/cu.usbserial-\*\* or similar.
 - Linux: Run `ls /dev/ttyUSB*` or `ls /dev/ttyACM*`.
 - Windows: Check Device Manager under "Ports (COM & LPT)" for the COM port (e.g. _COM3_).
+
+### 5. Run agent
+
+With the example running on the device and connected to a room, the agent is ready to join. Refer to the
+agent's [README](./agent/README.md) to get it up and running.

@@ -1,24 +1,11 @@
 # ESP-32 Example Agent
 
-A simple example agent built with [LiveKit Agents](https://docs.livekit.io/agents/) to be paired with the ESP-32 [voice chat example](../README.md). The agent is designed to demonstrate hardware interaction in response to user requests:
+A simple agent built with [LiveKit Agents](https://docs.livekit.io/agents/) to be paired with the ESP-32 [voice agent example](../README.md). The agent is designed to demonstrate hardware interaction in response to user requests:
 
 1. Read CPU temperature:
 
 > **User:** What is the current CPU temperature? \
 > **Agent:** The CPU temperature is currently 33°C.
-
-```mermaid
-sequenceDiagram
-    actor U as User
-    participant A as Agent
-    participant E as ESP-32
-    autonumber
-
-    U ->> A: "What is the current<br/> CPU temperature?"
-    A ->> E: RPC invocation, get_cpu_temp
-    E ->> A: RPC return (e.g. "33.0")
-    A ->> U: "The current CPU <br/>temperature is 33°C."
-```
 
 2. Control on-board LED state:
 
@@ -27,19 +14,6 @@ sequenceDiagram
 
 > **User:** Turn on the yellow LED. \
 > **Agent:** I'm sorry, the board does not have a yellow LED.
-
-```mermaid
-sequenceDiagram
-    actor U as User
-    participant A as Agent
-    participant E as ESP-32
-    autonumber
-
-    U ->> A: "Turn on the blue LED."
-    A ->> E: RPC invocation, set_led_state<br /> { "color": "blue", state: true }
-    E ->> A: RPC return
-    A ->> U: "The blue LED is now on."
-```
 
 ## Usage
 
@@ -62,4 +36,4 @@ python agent.py download-files
 python agent.py dev
 ```
 
-3. Launch ESP-32 voice chat example (see [README](../README.md)).
+3. Run ESP-32 voice agent example (see [README](../README.md)).
