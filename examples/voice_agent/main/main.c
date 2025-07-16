@@ -1,22 +1,10 @@
-/* LiveKit Demo
-
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
-
 #include "esp_log.h"
-#include "esp_console.h"
 #include "media_lib_adapter.h"
 #include "media_lib_os.h"
 #include "network.h"
 #include "media_setup.h"
 #include "board.h"
 #include "livekit_demo.h"
-
-static const char *TAG = "livekit_demo";
 
 #define RUN_ASYNC(name, body)           \
     void run_async##name(void *arg)     \
@@ -25,59 +13,6 @@ static const char *TAG = "livekit_demo";
         media_lib_thread_destroy(NULL); \
     }                                   \
     media_lib_thread_create_from_scheduler(NULL, #name, run_async##name, NULL);
-
-static int join_room_cmd(int argc, char **argv)
-{
-    join_room();
-    return 0;
-}
-
-static int leave_room_cmd(int argc, char **argv)
-{
-    RUN_ASYNC(leave, {
-        leave_room();
-    });
-    return 0;
-}
-
-static int init_console()
-{
-    esp_console_repl_t *repl = NULL;
-    esp_console_repl_config_t repl_config = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
-    repl_config.prompt = "esp>";
-    repl_config.task_stack_size = 10 * 1024;
-    repl_config.task_priority = 22;
-    repl_config.max_cmdline_length = 1024;
-    // install console REPL environment
-#if CONFIG_ESP_CONSOLE_UART
-    esp_console_dev_uart_config_t uart_config = ESP_CONSOLE_DEV_UART_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_console_new_repl_uart(&uart_config, &repl_config, &repl));
-#elif CONFIG_ESP_CONSOLE_USB_CDC
-    esp_console_dev_usb_cdc_config_t cdc_config = ESP_CONSOLE_DEV_CDC_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_console_new_repl_usb_cdc(&cdc_config, &repl_config, &repl));
-#elif CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
-    esp_console_dev_usb_serial_jtag_config_t usbjtag_config = ESP_CONSOLE_DEV_USB_SERIAL_JTAG_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_console_new_repl_usb_serial_jtag(&usbjtag_config, &repl_config, &repl));
-#endif
-
-    esp_console_cmd_t cmds[] = {
-        {
-            .command = "join",
-            .help = "Please enter a room name.\r\n",
-            .func = join_room_cmd
-        },
-        {
-            .command = "leave",
-            .help = "Leave from room\n",
-            .func = leave_room_cmd,
-        }
-    };
-    for (int i = 0; i < sizeof(cmds) / sizeof(cmds[0]); i++) {
-        ESP_ERROR_CHECK(esp_console_cmd_register(&cmds[i]));
-    }
-    ESP_ERROR_CHECK(esp_console_start_repl(repl));
-    return 0;
-}
 
 static int network_event_handler(bool connected)
 {
@@ -96,7 +31,6 @@ void app_main(void)
     livekit_system_init();
     board_init();
     media_setup_init();
-    init_console();
     network_init(CONFIG_WIFI_SSID, CONFIG_WIFI_PASSWORD, network_event_handler);
     while (1)
     {
