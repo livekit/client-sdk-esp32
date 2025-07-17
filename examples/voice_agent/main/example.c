@@ -115,8 +115,7 @@ int join_room()
             .renderer = media_get_renderer()
         },
         .on_state_changed = on_state_changed,
-        .on_participant_info = on_participant_info,
-        .ctx = NULL // Not used for this example
+        .on_participant_info = on_participant_info
     };
 
     if (room_handle != NULL) {
