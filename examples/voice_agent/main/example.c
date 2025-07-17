@@ -24,16 +24,18 @@ static void on_participant_info(const livekit_participant_info_t* info, void* ct
         // Only handle agent participants for this example.
         return;
     }
+    char* verb;
     switch (info->state) {
         case LIVEKIT_PARTICIPANT_STATE_ACTIVE:
-            ESP_LOGI(TAG, "Agent has joined the room");
+            verb = "joined";
             break;
         case LIVEKIT_PARTICIPANT_STATE_DISCONNECTED:
-            ESP_LOGI(TAG, "Agent has left the room");
+            verb = "left";
             break;
         default:
-            break;
+            return;
     }
+    ESP_LOGI(TAG, "Agent has %s the room", verb);
 }
 
 /// Invoked by a remote participant to set the state of an on-board LED.
