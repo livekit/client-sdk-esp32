@@ -18,7 +18,7 @@ static bool is_media_lib_setup = false;
 
 static void thread_scheduler(const char *thread_name, media_lib_thread_cfg_t *thread_cfg)
 {
-    ESP_LOGI(TAG, "Scheduling thread '%s'", thread_name);
+    ESP_LOGD(TAG, "Scheduling thread '%s'", thread_name);
 
     // LiveKit threads
     if (strncmp(thread_name, PEER_THREAD_NAME_PREFIX, strlen(PEER_THREAD_NAME_PREFIX)) == 0) {

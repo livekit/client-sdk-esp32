@@ -45,7 +45,7 @@ static void log_error_if_nonzero(const char *message, int error_code)
 static signal_err_t send_request(signal_t *sg, livekit_pb_signal_request_t *request)
 {
     // TODO: Optimize (use static buffer for small messages)
-    ESP_LOGI(TAG, "Sending request: type=%d", request->which_message);
+    ESP_LOGD(TAG, "Sending request: type=%d", request->which_message);
 
     size_t encoded_size = 0;
     if (!pb_get_encoded_size(&encoded_size, LIVEKIT_PB_SIGNAL_REQUEST_FIELDS, request)) {
@@ -174,15 +174,13 @@ static void handle_res(signal_t *sg, livekit_pb_signal_response_t *res)
 
 static void on_data(signal_t *sg, const char *data, size_t len)
 {
-    ESP_LOGI(TAG, "Incoming res: %d byte(s)", len);
+    ESP_LOGD(TAG, "Incoming res: %d byte(s)", len);
     livekit_pb_signal_response_t res = {};
     pb_istream_t stream = pb_istream_from_buffer((const pb_byte_t *)data, len);
     if (!pb_decode(&stream, LIVEKIT_PB_SIGNAL_RESPONSE_FIELDS, &res)) {
         ESP_LOGE(TAG, "Failed to decode res: %s", stream.errmsg);
         return;
     }
-
-    ESP_LOGI(TAG, "Decoded res: type=%d", res.which_message);
     handle_res(sg, &res);
 }
 
@@ -194,11 +192,11 @@ static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void
 
     switch (event_id) {
         case WEBSOCKET_EVENT_CONNECTED:
-            ESP_LOGI(TAG, "Signaling connected");
+            ESP_LOGD(TAG, "Signaling connected");
             sg->options.on_state_changed(CONNECTION_STATE_CONNECTED, sg->options.ctx);
             break;
         case WEBSOCKET_EVENT_DISCONNECTED:
-            ESP_LOGI(TAG, "Signaling disconnected");
+            ESP_LOGD(TAG, "Signaling disconnected");
 
             // In the normal case, this timer will be stopped when the leave message is received.
             // However, if the connection is lost, we need to stop the timer manually.

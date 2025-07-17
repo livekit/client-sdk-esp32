@@ -162,7 +162,6 @@ static void _media_stream_send_video(engine_t *eng)
 static void media_stream_task(void *arg)
 {
     engine_t *eng = (engine_t *)arg;
-    ESP_LOGI(TAG, "Media stream task started");
     while (eng->is_media_streaming) {
         if (eng->options.media.audio_info.codec != ESP_PEER_AUDIO_CODEC_NONE) {
             _media_stream_send_audio(eng);
@@ -172,7 +171,6 @@ static void media_stream_task(void *arg)
         }
         media_lib_thread_sleep(FRAME_INTERVAL_MS);
     }
-    ESP_LOGI(TAG, "Media stream task ended");
     media_lib_thread_destroy(NULL);
 }
 
@@ -189,7 +187,6 @@ static engine_err_t media_stream_begin(engine_t *eng)
         eng->is_media_streaming = false;
         return ENGINE_ERR_MEDIA;
     }
-    ESP_LOGI(TAG, "Media stream started");
     return ENGINE_ERR_NONE;
 }
 
@@ -200,7 +197,6 @@ static engine_err_t media_stream_end(engine_t *eng)
     }
     eng->is_media_streaming = false;
     esp_capture_stop(eng->options.media.capturer);
-    ESP_LOGI(TAG, "Media stream ended");
     return ENGINE_ERR_NONE;
 }
 
@@ -275,7 +271,6 @@ static engine_err_t publish_tracks(engine_t *eng)
             ret = ENGINE_ERR_SIGNALING;
             break;
         }
-        ESP_LOGI(TAG, "Published media tracks");
         return ENGINE_ERR_NONE;
     } while (0);
 
@@ -380,7 +375,7 @@ static void on_peer_sub_answer(const char *sdp, void *ctx)
 
 static void on_peer_ice_candidate(const char *candidate, void *ctx)
 {
-    ESP_LOGI(TAG, "Peer generated ice candidate: %s", candidate);
+    ESP_LOGD(TAG, "Peer generated ice candidate: %s", candidate);
 }
 
 static void on_peer_packet_received(livekit_pb_data_packet_t* packet, void *ctx)
@@ -395,7 +390,7 @@ static void on_peer_sub_audio_info(esp_peer_audio_stream_info_t* info, void *ctx
 
     av_render_audio_info_t render_info = {};
     convert_dec_aud_info(info, &render_info);
-    ESP_LOGI(TAG, "Audio render info: codec=%d, sample_rate=%" PRIu32 ", channels=%" PRIu8,
+    ESP_LOGD(TAG, "Audio render info: codec=%d, sample_rate=%" PRIu32 ", channels=%" PRIu8,
         render_info.codec, render_info.sample_rate, render_info.channel);
 
     if (av_render_add_audio_stream(eng->renderer_handle, &render_info) != ESP_MEDIA_ERR_OK) {

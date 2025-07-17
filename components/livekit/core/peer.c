@@ -54,7 +54,6 @@ static esp_peer_media_dir_t get_media_direction(esp_peer_media_dir_t direction, 
 static void peer_task(void *ctx)
 {
     peer_t *peer = (peer_t *)ctx;
-    ESP_LOGI(TAG(peer), "Task started");
     while (peer->running) {
         if (peer->pause) {
             media_lib_event_group_set_bits(peer->wait_event, PC_PAUSED_BIT);
@@ -72,7 +71,6 @@ static void peer_task(void *ctx)
 static void create_data_channels(peer_t *peer)
 {
     if (peer->options.target != LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER) return;
-    ESP_LOGI(TAG(peer), "Creating data channels");
 
     esp_peer_data_channel_cfg_t reliable_cfg = {
         .label = RELIABLE_CHANNEL_LABEL,
@@ -97,18 +95,18 @@ static void create_data_channels(peer_t *peer)
 static int on_state(esp_peer_state_t rtc_state, void *ctx)
 {
     peer_t *peer = (peer_t *)ctx;
-    ESP_LOGI(TAG(peer), "RTC state changed to %d", rtc_state);
+    ESP_LOGD(TAG(peer), "RTC state changed to %d", rtc_state);
 
-    connection_state_t state = peer->state;
+    connection_state_t new_state = peer->state;
     switch (rtc_state) {
         case ESP_PEER_STATE_CONNECT_FAILED:
-            state = CONNECTION_STATE_FAILED;
+            new_state = CONNECTION_STATE_FAILED;
             break;
         case ESP_PEER_STATE_DISCONNECTED:
-            state = CONNECTION_STATE_DISCONNECTED;
+            new_state = CONNECTION_STATE_DISCONNECTED;
             break;
         case ESP_PEER_STATE_PAIRING:
-            state = CONNECTION_STATE_CONNECTING;
+            new_state = CONNECTION_STATE_CONNECTING;
             break;
         case ESP_PEER_STATE_CONNECTED:
             create_data_channels(peer);
@@ -117,15 +115,15 @@ static int on_state(esp_peer_state_t rtc_state, void *ctx)
             // Don't enter the connected state until both data channels are opened.
             if (peer->reliable_stream_id == STREAM_ID_INVALID ||
                 peer->lossy_stream_id    == STREAM_ID_INVALID ) break;
-            state = CONNECTION_STATE_CONNECTED;
+            new_state = CONNECTION_STATE_CONNECTED;
             break;
         default:
             break;
     }
-    if (state != peer->state) {
-        ESP_LOGI(TAG(peer), "State changed to %d", state);
-        peer->state = state;
-        peer->options.on_state_changed(state, peer->options.ctx);
+    if (new_state != peer->state) {
+        ESP_LOGI(TAG(peer), "State changed: %d -> %d", peer->state, new_state);
+        peer->state = new_state;
+        peer->options.on_state_changed(new_state, peer->options.ctx);
     }
     return 0;
 }
@@ -145,7 +143,7 @@ static int on_msg(esp_peer_msg_t *info, void *ctx)
             peer->options.on_ice_candidate((char *)info->data, peer->options.ctx);
             break;
         default:
-            ESP_LOGI(TAG(peer), "Unhandled msg type: %d", info->type);
+            ESP_LOGD(TAG(peer), "Unhandled msg type: %d", info->type);
             break;
     }
     return 0;
@@ -234,7 +232,6 @@ static int on_data(esp_peer_data_frame_t *frame, void *ctx)
         return -1;
     }
 
-    ESP_LOGI(TAG(peer), "Decoded data packet: type=%d", packet.which_value);
     peer->options.on_packet_received(&packet, peer->options.ctx);
     pb_release(LIVEKIT_PB_DATA_PACKET_FIELDS, &packet);
     return 0;
@@ -284,7 +281,7 @@ peer_err_t peer_create(peer_handle_t *handle, peer_options_t *options)
     };
     esp_peer_media_dir_t audio_dir = get_media_direction(options->media->audio_dir, peer->options.target);
     esp_peer_media_dir_t video_dir = get_media_direction(options->media->video_dir, peer->options.target);
-    ESP_LOGI(TAG(peer), "Audio dir: %d, Video dir: %d", audio_dir, video_dir);
+    ESP_LOGD(TAG(peer), "Audio dir: %d, Video dir: %d", audio_dir, video_dir);
 
     esp_peer_cfg_t peer_cfg = {
         .server_lists = options->server_list,

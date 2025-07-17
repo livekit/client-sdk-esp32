@@ -55,10 +55,10 @@ static bool on_result(const livekit_rpc_result_t* result, void* ctx)
 static rpc_manager_err_t handle_request_packet(rpc_manager_t *manager, const livekit_pb_rpc_request_t* request, const char* caller_identity)
 {
     if (caller_identity == NULL || request->method == NULL || strlen(request->id) != 36) {
-        ESP_LOGE(TAG, "Invalid request packet");
+        ESP_LOGD(TAG, "Invalid request packet");
         return RPC_MANAGER_ERR_NONE;
     }
-    ESP_LOGI(TAG, "RPC request: method=%s, id=%s", request->method, request->id);
+    ESP_LOGD(TAG, "RPC request: method=%s, id=%s", request->method, request->id);
 
     livekit_pb_data_packet_t ack_packet = {
         .which_value = LIVEKIT_PB_DATA_PACKET_RPC_ACK_TAG
@@ -68,13 +68,11 @@ static rpc_manager_err_t handle_request_packet(rpc_manager_t *manager, const liv
             sizeof(ack_packet.value.rpc_ack.request_id));
 
     if (!manager->options.send_packet(&ack_packet, manager->options.ctx)) {
-        ESP_LOGE(TAG, "** Failed to send ack packet");
         return RPC_MANAGER_ERR_SEND_FAILED;
     }
 
     if (request->version != 1) {
-        ESP_LOGW(TAG, "Unsupported version: %" PRIu32, request->version);
-
+        ESP_LOGD(TAG, "Unsupported version: %" PRIu32, request->version);
         livekit_pb_data_packet_t res_packet = {
             .which_value = LIVEKIT_PB_DATA_PACKET_RPC_RESPONSE_TAG,
             .value.rpc_response = {
@@ -89,7 +87,6 @@ static rpc_manager_err_t handle_request_packet(rpc_manager_t *manager, const liv
                 sizeof(res_packet.value.rpc_response.request_id));
 
         if (!manager->options.send_packet(&res_packet, manager->options.ctx)) {
-            ESP_LOGE(TAG, "** Failed to send ack packet");
             return RPC_MANAGER_ERR_SEND_FAILED;
         }
         return RPC_MANAGER_ERR_NONE;
@@ -97,7 +94,7 @@ static rpc_manager_err_t handle_request_packet(rpc_manager_t *manager, const liv
 
     khiter_t key = kh_get(handlers, manager->handlers, request->method);
     if (key == kh_end(manager->handlers)) {
-        ESP_LOGE(TAG, "No handler registered for method '%s'", request->method);
+        ESP_LOGD(TAG, "No handler registered for method '%s'", request->method);
         livekit_pb_data_packet_t res_packet = {
             .which_value = LIVEKIT_PB_DATA_PACKET_RPC_RESPONSE_TAG,
             .value.rpc_response = {
@@ -133,7 +130,7 @@ static rpc_manager_err_t handle_request_packet(rpc_manager_t *manager, const liv
     handler(&invocation, NULL);
 
     int64_t exec_duration = esp_timer_get_time() - start_time;
-    ESP_LOGI(TAG, "Handler for method '%s' took %" PRIu64 "us", request->method, exec_duration / 1000);
+    ESP_LOGD(TAG, "Handler for method '%s' took %" PRIu64 "us", request->method, exec_duration / 1000);
 
     // After, record should be deleted or be marked pending
 
@@ -234,7 +231,7 @@ rpc_manager_err_t rpc_manager_handle_packet(rpc_manager_handle_t handle, const l
         case LIVEKIT_PB_DATA_PACKET_RPC_RESPONSE_TAG:
             return handle_response_packet(manager, &packet->value.rpc_response);
         default:
-            ESP_LOGE(TAG, "Unhandled packet type");
+            ESP_LOGD(TAG, "Unhandled packet type");
             return RPC_MANAGER_ERR_INVALID_STATE;
     }
     return RPC_MANAGER_ERR_NONE;
