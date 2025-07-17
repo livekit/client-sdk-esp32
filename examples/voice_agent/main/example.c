@@ -100,6 +100,11 @@ static void get_cpu_temp(const livekit_rpc_invocation_t* invocation, void* ctx)
 
 int join_room()
 {
+    if (room_handle != NULL) {
+        ESP_LOGE(TAG, "Room already created");
+        return -1;
+    }
+
     livekit_room_options_t room_options = {
         .publish = {
             .kind = LIVEKIT_MEDIA_TYPE_AUDIO,
@@ -117,11 +122,6 @@ int join_room()
         .on_state_changed = on_state_changed,
         .on_participant_info = on_participant_info
     };
-
-    if (room_handle != NULL) {
-        ESP_LOGE(TAG, "Room already created");
-        return -1;
-    }
     if (livekit_room_create(&room_handle, &room_options) != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to create room");
         return -1;
