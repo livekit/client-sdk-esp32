@@ -72,17 +72,24 @@ static void peer_task(void *ctx)
 static void create_data_channels(peer_t *peer)
 {
     if (peer->options.target != LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER) return;
-    esp_peer_data_channel_cfg_t channel_cfg = {};
     ESP_LOGI(TAG(peer), "Creating data channels");
 
-    // TODO: This is a temporary solution to create data channels. This is NOT
-    // actually reliable. Update once necessary options are exposed.
-    channel_cfg.label = RELIABLE_CHANNEL_LABEL;
-    if (esp_peer_create_data_channel(peer->connection, &channel_cfg) != ESP_PEER_ERR_NONE) {
+    esp_peer_data_channel_cfg_t reliable_cfg = {
+        .label = RELIABLE_CHANNEL_LABEL,
+        .type = ESP_PEER_DATA_CHANNEL_RELIABLE,
+        .ordered = true
+    };
+    if (esp_peer_create_data_channel(peer->connection, &reliable_cfg) != ESP_PEER_ERR_NONE) {
         ESP_LOGE(TAG(peer), "Failed to create reliable data channel");
     }
-    channel_cfg.label = LOSSY_CHANNEL_LABEL;
-    if (esp_peer_create_data_channel(peer->connection, &channel_cfg) != ESP_PEER_ERR_NONE) {
+
+    esp_peer_data_channel_cfg_t lossy_cfg = {
+        .label = LOSSY_CHANNEL_LABEL,
+        .type = ESP_PEER_DATA_CHANNEL_PARTIAL_RELIABLE_RETX,
+        .ordered = false,
+        .max_retransmit_count = 0
+    };
+    if (esp_peer_create_data_channel(peer->connection, &lossy_cfg) != ESP_PEER_ERR_NONE) {
         ESP_LOGE(TAG(peer), "Failed to create lossy data channel");
     }
 }
