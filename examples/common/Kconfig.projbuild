@@ -1,5 +1,14 @@
 menu "LiveKit Example"
 
+    menu "Codec Board Type"
+        config CODEC_BOARD_TYPE
+            string "Codec board type"
+            default "DUMMY_CODEC_BOARD"
+            help
+                The model of dev board you are using. See board_cfg.txt from the codec
+                board component for a list of supported boards.
+    endmenu
+
     menu "Network"
         choice NETWORK_MODE
             prompt "Choose network mode"

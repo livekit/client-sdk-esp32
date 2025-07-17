@@ -26,7 +26,7 @@ void board_init()
     ESP_ERROR_CHECK(temperature_sensor_enable(temp_sensor));
 
     // Initialize codec board support (must be performed after BSP initialization)
-    set_codec_board_type("S3_Korvo_V2");
+    set_codec_board_type(CONFIG_CODEC_BOARD_TYPE);
     // When using performing recording and playback at the same time,
     // reuse_dev must be set to false.
     codec_init_cfg_t cfg = {
