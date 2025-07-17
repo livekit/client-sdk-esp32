@@ -301,6 +301,18 @@ livekit_connection_state_t livekit_room_get_state(livekit_room_handle_t handle)
     return room->state;
 }
 
+const char* livekit_connection_state_str(livekit_connection_state_t state)
+{
+    switch (state) {
+        case LIVEKIT_CONNECTION_STATE_DISCONNECTED: return "disconnected";
+        case LIVEKIT_CONNECTION_STATE_CONNECTING:   return "connecting";
+        case LIVEKIT_CONNECTION_STATE_CONNECTED:    return "connected";
+        case LIVEKIT_CONNECTION_STATE_RECONNECTING: return "reconnecting";
+        case LIVEKIT_CONNECTION_STATE_FAILED:       return "failed";
+        default: return "unknown";
+    }
+}
+
 livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_data_publish_options_t *options)
 {
     if (handle == NULL || options == NULL || options->payload == NULL) {

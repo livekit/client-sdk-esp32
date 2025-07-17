@@ -96,7 +96,7 @@ Once running on device, the example will establish a network connection and then
 LiveKit room. Once connected, you will see the following log message:
 
 ```sh
-I (17208) livekit_example: Connected to room
+I (19508) livekit_example: Room state: connected
 ```
 
 If you encounter any issues during this process, please refer to the example [troubleshooting guide](./examples/README.md/#troubleshooting).

@@ -14,9 +14,7 @@ static livekit_room_handle_t room_handle;
 /// Invoked when the room's connection state changes.
 static void on_state_changed(livekit_connection_state_t state, void* ctx)
 {
-    if (state == LIVEKIT_CONNECTION_STATE_CONNECTED) {
-        ESP_LOGI(TAG, "Connected to room");
-    }
+    ESP_LOGI(TAG, "Room state: %s", livekit_connection_state_str(state));
 }
 
 /// Invoked when participant information is received.

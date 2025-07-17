@@ -283,6 +283,13 @@ livekit_err_t livekit_room_close(livekit_room_handle_t handle);
 ///
 livekit_connection_state_t livekit_room_get_state(livekit_room_handle_t handle);
 
+/// Gets a string representation of a connection state.
+///
+/// @param state[in] Connection state.
+/// @return String representation of the connection state.
+///
+const char* livekit_connection_state_str(livekit_connection_state_t state);
+
 /// @}
 
 /// @defgroup Info Room & Participant Info
