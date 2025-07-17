@@ -180,8 +180,13 @@ typedef struct {
     livekit_participant_state_t state;
 } livekit_participant_info_t;
 
-/// Options for a room passed to @ref livekit_room_create.
+/// Options for creating a room.
+///
+/// This is the main way a room is configured. It is passed to
+/// @ref livekit_room_create.
+///
 /// @ingroup Lifecycle
+///
 typedef struct {
     /// Options for publishing media.
     /// @note Only required if the room publishes media.
