@@ -8,9 +8,9 @@
 #include "esp_audio_enc_default.h"
 #include "esp_capture_defaults.h"
 
-#include "media_setup.h"
+#include "media.h"
 
-static const char *TAG = "media_setup";
+static const char *TAG = "media";
 
 #define NULL_CHECK(pointer, message) \
     ESP_RETURN_ON_FALSE(pointer != NULL, -1, TAG, message)
@@ -100,7 +100,7 @@ static int build_renderer_system(void)
     return 0;
 }
 
-int media_setup_init(void)
+int media_init(void)
 {
     // Register default audio encoder and decoder
     esp_audio_enc_register_default();
@@ -112,12 +112,12 @@ int media_setup_init(void)
     return 0;
 }
 
-esp_capture_handle_t media_setup_get_capturer(void)
+esp_capture_handle_t media_get_capturer(void)
 {
     return capturer_system.capturer_handle;
 }
 
-av_render_handle_t media_setup_get_renderer(void)
+av_render_handle_t media_get_renderer(void)
 {
     return renderer_system.av_renderer_handle;
 }

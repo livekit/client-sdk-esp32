@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 /// Initializes the capturer and renderer systems.
-int media_setup_init(void);
+int media_init(void);
 
 /// Returns the capturer handle.
 ///
@@ -20,7 +20,7 @@ int media_setup_init(void);
 /// How the capturer is configured is determined by the requirements of
 /// your application and the hardware you are using.
 ///
-esp_capture_handle_t media_setup_get_capturer(void);
+esp_capture_handle_t media_get_capturer(void);
 
 /// Returns the renderer handle.
 ///
@@ -31,7 +31,7 @@ esp_capture_handle_t media_setup_get_capturer(void);
 /// How the renderer is configured is determined by the requirements of
 /// your application and the hardware you are using.
 ///
-av_render_handle_t media_setup_get_renderer(void);
+av_render_handle_t media_get_renderer(void);
 
 #ifdef __cplusplus
 }

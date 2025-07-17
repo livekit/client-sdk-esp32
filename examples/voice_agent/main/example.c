@@ -3,7 +3,7 @@
 #include "bsp/esp-bsp.h"
 #include "livekit.h"
 #include "livekit_sandbox.h"
-#include "media_setup.h"
+#include "media.h"
 #include "board.h"
 #include "example.h"
 
@@ -96,11 +96,11 @@ int join_room()
                 .sample_rate = 16000,
                 .channel_count = 1
             },
-            .capturer = media_setup_get_capturer()
+            .capturer = media_get_capturer()
         },
         .subscribe = {
             .kind = LIVEKIT_MEDIA_TYPE_AUDIO,
-            .renderer = media_setup_get_renderer()
+            .renderer = media_get_renderer()
         },
         .on_state_changed = on_state_changed,
         .on_participant_info = on_participant_info,
