@@ -1,4 +1,8 @@
-CONFIG_CODEC_BOARD_TYPE="S3_Korvo_V2"
+// Updating board type to target Waveshare device
+// This is necessary to switch the project's configuration to the new board's settings
+// without manual reconfiguration, enabling it to build and run on the target hardware.
+
+CONFIG_CODEC_BOARD_TYPE="WAVESHARE_S3_TOUCH_AMOLED"
 
 CONFIG_ESPTOOLPY_FLASHFREQ_120M=y
 CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
