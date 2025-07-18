@@ -98,11 +98,11 @@ static void get_cpu_temp(const livekit_rpc_invocation_t* invocation, void* ctx)
     livekit_rpc_return_ok(temp_string);
 }
 
-int join_room()
+void join_room()
 {
     if (room_handle != NULL) {
         ESP_LOGE(TAG, "Room already created");
-        return -1;
+        return;
     }
 
     livekit_room_options_t room_options = {
@@ -124,7 +124,7 @@ int join_room()
     };
     if (livekit_room_create(&room_handle, &room_options) != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to create room");
-        return -1;
+        return;
     }
 
     // Register RPC handlers so they can be invoked by remote participants.
@@ -142,7 +142,7 @@ int join_room()
     };
     if (!livekit_sandbox_generate(&gen_options, &res)) {
         ESP_LOGE(TAG, "Failed to generate sandbox token");
-        return -1;
+        return;
     }
     connect_res = livekit_room_connect(room_handle, res.server_url, res.token);
     livekit_sandbox_res_free(&res);
@@ -153,25 +153,21 @@ int join_room()
 
     if (connect_res != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to connect to room");
-        return -1;
     }
-    return 0;
 }
 
-int leave_room()
+void leave_room()
 {
     if (room_handle == NULL) {
         ESP_LOGE(TAG, "Room not created");
-        return -1;
+        return;
     }
     if (livekit_room_close(room_handle) != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to leave room");
-        return -1;
     }
     if (livekit_room_destroy(room_handle) != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to destroy room");
-        return -1;
+        return;
     }
     room_handle = NULL;
-    return 0;
 }
