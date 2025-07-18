@@ -409,3 +409,21 @@ signal_err_t signal_send_add_track(signal_handle_t handle, livekit_pb_add_track_
     req.message.add_track = *add_track_req;
     return send_request(sg, &req);
 }
+
+signal_err_t signal_send_update_subscription(signal_handle_t handle, const char *sid, bool subscribe)
+{
+    if (sid == NULL || handle == NULL) {
+        return SIGNAL_ERR_INVALID_ARG;
+    }
+    signal_t *sg = (signal_t *)handle;
+    livekit_pb_signal_request_t req = LIVEKIT_PB_SIGNAL_REQUEST_INIT_ZERO;
+
+    livekit_pb_update_subscription_t subscription = {
+        .track_sids = {sid},
+        .track_sids_count = 1,
+        .subscribe = subscribe
+    };
+    req.which_message = LIVEKIT_PB_SIGNAL_REQUEST_SUBSCRIPTION_TAG;
+    req.message.subscription = subscription;
+    return send_request(sg, &req);
+}
