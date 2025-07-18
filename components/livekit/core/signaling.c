@@ -1,5 +1,6 @@
 #include <inttypes.h>
 #include <cJSON.h>
+#define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
 #include "esp_log.h"
 #include "esp_peer_signaling.h"
 #include "esp_netif.h"
@@ -25,7 +26,6 @@ static const char *TAG = "livekit_signaling";
 #define SIGNAL_WS_CLOSE_TIMEOUT_MS     250
 
 typedef struct {
-    char* url;
     esp_websocket_client_handle_t ws;
     signal_options_t         options;
     esp_timer_handle_t            ping_timer;
@@ -317,14 +317,13 @@ signal_err_t signal_connect(signal_handle_t handle, const char* server_url, cons
     }
     signal_t *sg = (signal_t *)handle;
 
-    if (!url_build(server_url, token, &sg->url)) {
+    char* url;
+    if (!url_build(server_url, token, &url)) {
         return SIGNAL_ERR_INVALID_URL;
     }
+    esp_websocket_client_set_uri(sg->ws, url);
+    free(url);
 
-    if (esp_websocket_client_set_uri(sg->ws, sg->url) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to set WebSocket URI");
-        return SIGNAL_ERR_WEBSOCKET;
-    }
     if (esp_websocket_client_start(sg->ws) != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start WebSocket");
         return SIGNAL_ERR_WEBSOCKET;
@@ -344,10 +343,6 @@ signal_err_t signal_close(signal_handle_t handle)
         esp_websocket_client_close(sg->ws, pdMS_TO_TICKS(SIGNAL_WS_CLOSE_TIMEOUT_MS)) != ESP_OK) {
         ESP_LOGE(TAG, "Failed to close WebSocket");
         return SIGNAL_ERR_WEBSOCKET;
-    }
-    if (sg->url != NULL) {
-        free(sg->url);
-        sg->url = NULL;
     }
     return SIGNAL_ERR_NONE;
 }
