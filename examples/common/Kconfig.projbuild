@@ -67,12 +67,12 @@ menu "LiveKit Example"
                 The ID of the sandbox token server to use.
         config LK_SANDBOX_ROOM_NAME
             depends on LK_USE_SANDBOX
-            string "Room name"
+            string "Room name (optional)"
             help
                 Specific room name sandbox tokens will be generated with.
         config LK_SANDBOX_PARTICIPANT_NAME
             depends on LK_USE_SANDBOX
-            string "Participant name"
+            string "Participant name (optional)"
             help
                 Specific participant name sandbox tokens will be generated with.
     endmenu
