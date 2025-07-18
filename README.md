@@ -32,7 +32,7 @@ dependencies:
     version: <current version tag>
 ```
 
-In the future, this SDK will be added to the [ESP component registry](https://components.espressif.com).
+Please be sure to pin to a specific version tag as subsequent 0.x.x releases may have breaking changes. In the future, this SDK will be added to the [ESP component registry](https://components.espressif.com).
 
 ## Examples
 
