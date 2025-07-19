@@ -37,11 +37,11 @@ void board_init()
     ESP_ERROR_CHECK(temperature_sensor_install(&temp_sensor_config, &temp_sensor));
     ESP_ERROR_CHECK(temperature_sensor_enable(temp_sensor));
 
-    // Initialize codec board support (must be performed after BSP initialization)
+    // Initialize codec board
     set_codec_board_type(CONFIG_CODEC_BOARD_TYPE);
-    // When using performing recording and playback at the same time,
-    // reuse_dev must be set to false.
     codec_init_cfg_t cfg = {
+        .in_mode = CODEC_I2S_MODE_TDM,
+        .in_use_tdm = true,
         .reuse_dev = false
     };
 

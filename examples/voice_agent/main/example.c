@@ -14,9 +14,7 @@ static livekit_room_handle_t room_handle;
 /// Invoked when the room's connection state changes.
 static void on_state_changed(livekit_connection_state_t state, void* ctx)
 {
-    if (state == LIVEKIT_CONNECTION_STATE_CONNECTED) {
-        ESP_LOGI(TAG, "Connected to room");
-    }
+    ESP_LOGI(TAG, "Room state: %s", livekit_connection_state_str(state));
 }
 
 /// Invoked when participant information is received.
@@ -26,54 +24,68 @@ static void on_participant_info(const livekit_participant_info_t* info, void* ct
         // Only handle agent participants for this example.
         return;
     }
+    char* verb;
     switch (info->state) {
         case LIVEKIT_PARTICIPANT_STATE_ACTIVE:
-            ESP_LOGI(TAG, "Agent has joined the room");
+            verb = "joined";
             break;
         case LIVEKIT_PARTICIPANT_STATE_DISCONNECTED:
-            ESP_LOGI(TAG, "Agent has left the room");
+            verb = "left";
             break;
         default:
-            break;
+            return;
     }
+    ESP_LOGI(TAG, "Agent has %s the room", verb);
 }
 
 /// Invoked by a remote participant to set the state of an on-board LED.
 static void set_led_state(const livekit_rpc_invocation_t* invocation, void* ctx)
 {
+    if (invocation->payload == NULL) {
+        livekit_rpc_return_error("Missing payload");
+        return;
+    }
     cJSON *root = cJSON_Parse(invocation->payload);
     if (!root) {
         livekit_rpc_return_error("Invalid JSON");
         return;
     }
-    const cJSON *color_entry = cJSON_GetObjectItemCaseSensitive(root, "color");
-    const cJSON *state_entry = cJSON_GetObjectItemCaseSensitive(root, "state");
-    if (!cJSON_IsString(color_entry) || !cJSON_IsBool(state_entry)) {
-        livekit_rpc_return_error("Unexpected JSON format");
-        cJSON_Delete(root);
-        return;
-    }
 
-    const char *color = color_entry->valuestring;
-    bool state = cJSON_IsTrue(state_entry);
+    char* error = NULL;
+    do {
+        const cJSON *color_entry = cJSON_GetObjectItemCaseSensitive(root, "color");
+        const cJSON *state_entry = cJSON_GetObjectItemCaseSensitive(root, "state");
+        if (!cJSON_IsString(color_entry) || !cJSON_IsBool(state_entry)) {
+            error = "Unexpected JSON format";
+            break;
+        }
 
-    bsp_led_t led;
-    if (strncmp(color, "red", 3) == 0) {
-        led = BSP_LED_RED;
-    } else if (strncmp(color, "blue", 4) == 0) {
-        led = BSP_LED_BLUE;
+        const char *color = color_entry->valuestring;
+        bool state = cJSON_IsTrue(state_entry);
+
+        bsp_led_t led;
+        if (strncmp(color, "red", 3) == 0) {
+            led = BSP_LED_RED;
+        } else if (strncmp(color, "blue", 4) == 0) {
+            led = BSP_LED_BLUE;
+        } else {
+            error = "Unsupported color";
+            break;
+        }
+        // There is a known bug in the BSP component, so we need to invert the state for now.
+        // See https://github.com/espressif/esp-bsp/pull/610.
+        if (bsp_led_set(led, !state) != ESP_OK) {
+            error = "Failed to set LED state";
+            break;
+        }
+    } while (0);
+
+    if (!error) {
+        livekit_rpc_return_ok(NULL);
     } else {
-        livekit_rpc_return_error("Unsupported color");
-        cJSON_Delete(root);
-        return;
+        livekit_rpc_return_error(error);
     }
-    if (bsp_led_set(led, !state) != ESP_OK) {
-        livekit_rpc_return_error("Failed to set LED state");
-        cJSON_Delete(root);
-        return;
-    }
-
-    livekit_rpc_return_ok(NULL);
+    // Perform necessary cleanup after returning an RPC result.
     cJSON_Delete(root);
 }
 
@@ -86,8 +98,13 @@ static void get_cpu_temp(const livekit_rpc_invocation_t* invocation, void* ctx)
     livekit_rpc_return_ok(temp_string);
 }
 
-int join_room()
+void join_room()
 {
+    if (room_handle != NULL) {
+        ESP_LOGE(TAG, "Room already created");
+        return;
+    }
+
     livekit_room_options_t room_options = {
         .publish = {
             .kind = LIVEKIT_MEDIA_TYPE_AUDIO,
@@ -103,19 +120,14 @@ int join_room()
             .renderer = media_get_renderer()
         },
         .on_state_changed = on_state_changed,
-        .on_participant_info = on_participant_info,
-        .ctx = NULL // Not used for this example
+        .on_participant_info = on_participant_info
     };
-
-    if (room_handle != NULL) {
-        ESP_LOGE(TAG, "Room already created");
-        return -1;
-    }
     if (livekit_room_create(&room_handle, &room_options) != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to create room");
-        return -1;
+        return;
     }
 
+    // Register RPC handlers so they can be invoked by remote participants.
     livekit_room_rpc_register(room_handle, "set_led_state", set_led_state);
     livekit_room_rpc_register(room_handle, "get_cpu_temp", get_cpu_temp);
 
@@ -130,7 +142,7 @@ int join_room()
     };
     if (!livekit_sandbox_generate(&gen_options, &res)) {
         ESP_LOGE(TAG, "Failed to generate sandbox token");
-        return -1;
+        return;
     }
     connect_res = livekit_room_connect(room_handle, res.server_url, res.token);
     livekit_sandbox_res_free(&res);
@@ -141,25 +153,21 @@ int join_room()
 
     if (connect_res != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to connect to room");
-        return -1;
     }
-    return 0;
 }
 
-int leave_room()
+void leave_room()
 {
     if (room_handle == NULL) {
         ESP_LOGE(TAG, "Room not created");
-        return -1;
+        return;
     }
     if (livekit_room_close(room_handle) != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to leave room");
-        return -1;
     }
     if (livekit_room_destroy(room_handle) != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to destroy room");
-        return -1;
+        return;
     }
     room_handle = NULL;
-    return 0;
 }

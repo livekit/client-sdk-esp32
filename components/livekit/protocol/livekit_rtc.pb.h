@@ -103,9 +103,9 @@ typedef struct livekit_pb_participant_update {
 } livekit_pb_participant_update_t;
 
 typedef struct livekit_pb_update_subscription {
-    pb_callback_t track_sids;
+    pb_size_t track_sids_count;
+    char **track_sids;
     bool subscribe;
-    pb_callback_t participant_tracks;
 } livekit_pb_update_subscription_t;
 
 typedef struct livekit_pb_update_track_settings {
@@ -532,7 +532,7 @@ extern "C" {
 #define LIVEKIT_PB_TRACK_UNPUBLISHED_RESPONSE_INIT_DEFAULT {{{NULL}, NULL}}
 #define LIVEKIT_PB_SESSION_DESCRIPTION_INIT_DEFAULT {"", NULL, 0}
 #define LIVEKIT_PB_PARTICIPANT_UPDATE_INIT_DEFAULT {0, NULL}
-#define LIVEKIT_PB_UPDATE_SUBSCRIPTION_INIT_DEFAULT {{{NULL}, NULL}, 0, {{NULL}, NULL}}
+#define LIVEKIT_PB_UPDATE_SUBSCRIPTION_INIT_DEFAULT {0, NULL, 0}
 #define LIVEKIT_PB_UPDATE_TRACK_SETTINGS_INIT_DEFAULT {{{NULL}, NULL}, 0, _LIVEKIT_PB_VIDEO_QUALITY_MIN, 0, 0, 0, 0}
 #define LIVEKIT_PB_UPDATE_LOCAL_AUDIO_TRACK_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_UPDATE_LOCAL_VIDEO_TRACK_INIT_DEFAULT {{{NULL}, NULL}, 0, 0}
@@ -576,7 +576,7 @@ extern "C" {
 #define LIVEKIT_PB_TRACK_UNPUBLISHED_RESPONSE_INIT_ZERO {{{NULL}, NULL}}
 #define LIVEKIT_PB_SESSION_DESCRIPTION_INIT_ZERO {"", NULL, 0}
 #define LIVEKIT_PB_PARTICIPANT_UPDATE_INIT_ZERO  {0, NULL}
-#define LIVEKIT_PB_UPDATE_SUBSCRIPTION_INIT_ZERO {{{NULL}, NULL}, 0, {{NULL}, NULL}}
+#define LIVEKIT_PB_UPDATE_SUBSCRIPTION_INIT_ZERO {0, NULL, 0}
 #define LIVEKIT_PB_UPDATE_TRACK_SETTINGS_INIT_ZERO {{{NULL}, NULL}, 0, _LIVEKIT_PB_VIDEO_QUALITY_MIN, 0, 0, 0, 0}
 #define LIVEKIT_PB_UPDATE_LOCAL_AUDIO_TRACK_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_UPDATE_LOCAL_VIDEO_TRACK_INIT_ZERO {{{NULL}, NULL}, 0, 0}
@@ -637,7 +637,6 @@ extern "C" {
 #define LIVEKIT_PB_PARTICIPANT_UPDATE_PARTICIPANTS_TAG 1
 #define LIVEKIT_PB_UPDATE_SUBSCRIPTION_TRACK_SIDS_TAG 1
 #define LIVEKIT_PB_UPDATE_SUBSCRIPTION_SUBSCRIBE_TAG 2
-#define LIVEKIT_PB_UPDATE_SUBSCRIPTION_PARTICIPANT_TRACKS_TAG 3
 #define LIVEKIT_PB_UPDATE_TRACK_SETTINGS_TRACK_SIDS_TAG 1
 #define LIVEKIT_PB_UPDATE_TRACK_SETTINGS_DISABLED_TAG 3
 #define LIVEKIT_PB_UPDATE_TRACK_SETTINGS_QUALITY_TAG 4
@@ -942,12 +941,10 @@ X(a, POINTER,  REPEATED, MESSAGE,  participants,      1)
 #define livekit_pb_participant_update_t_participants_MSGTYPE livekit_pb_participant_info_t
 
 #define LIVEKIT_PB_UPDATE_SUBSCRIPTION_FIELDLIST(X, a) \
-X(a, CALLBACK, REPEATED, STRING,   track_sids,        1) \
-X(a, STATIC,   SINGULAR, BOOL,     subscribe,         2) \
-X(a, CALLBACK, REPEATED, MESSAGE,  participant_tracks,   3)
-#define LIVEKIT_PB_UPDATE_SUBSCRIPTION_CALLBACK pb_default_field_callback
+X(a, POINTER,  REPEATED, STRING,   track_sids,        1) \
+X(a, STATIC,   SINGULAR, BOOL,     subscribe,         2)
+#define LIVEKIT_PB_UPDATE_SUBSCRIPTION_CALLBACK NULL
 #define LIVEKIT_PB_UPDATE_SUBSCRIPTION_DEFAULT NULL
-#define livekit_pb_update_subscription_t_participant_tracks_MSGTYPE livekit_pb_participant_tracks_t
 
 #define LIVEKIT_PB_UPDATE_TRACK_SETTINGS_FIELDLIST(X, a) \
 X(a, CALLBACK, REPEATED, STRING,   track_sids,        1) \

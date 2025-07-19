@@ -180,8 +180,13 @@ typedef struct {
     livekit_participant_state_t state;
 } livekit_participant_info_t;
 
-/// Options for a room passed to @ref livekit_room_create.
+/// Options for creating a room.
+///
+/// This is the main way a room is configured. It is passed to
+/// @ref livekit_room_create.
+///
 /// @ingroup Lifecycle
+///
 typedef struct {
     /// Options for publishing media.
     /// @note Only required if the room publishes media.
@@ -282,6 +287,13 @@ livekit_err_t livekit_room_close(livekit_room_handle_t handle);
 /// @return Current connection state.
 ///
 livekit_connection_state_t livekit_room_get_state(livekit_room_handle_t handle);
+
+/// Gets a string representation of a connection state.
+///
+/// @param state[in] Connection state.
+/// @return String representation of the connection state.
+///
+const char* livekit_connection_state_str(livekit_connection_state_t state);
 
 /// @}
 

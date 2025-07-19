@@ -22,7 +22,7 @@ static const char *TAG = "livekit_url";
     "&os=" URL_PARAM_OS \
     "&os_version=%s" \
     "&device_model=%d" \
-    "&auto_subscribe=true" \
+    "&auto_subscribe=false" \
     "&protocol=" URL_PARAM_PROTOCOL \
     "&access_token=%s" // Keep at the end for log redaction
 
@@ -49,27 +49,19 @@ bool url_build(const char *server_url, const char *token, char **out_url)
     int model_code = chip_info.model;
     const char* idf_version = esp_get_idf_version();
 
-    int final_len = snprintf(NULL, 0, URL_FORMAT,
+    int final_len = asprintf(out_url, URL_FORMAT,
         server_url,
         separator,
         idf_version,
         model_code,
         token
     );
-    *out_url = (char *)malloc(final_len + 1);
     if (*out_url == NULL) {
         return false;
     }
-    sprintf(*out_url, URL_FORMAT,
-        server_url,
-        separator,
-        idf_version,
-        model_code,
-        token
-    );
-
     // Token is redacted from logging for security
-    size_t token_len = strlen(token);
-    ESP_LOGI(TAG, "Built signaling URL: %.*s[REDACTED]", (int)(final_len - token_len), *out_url);
+    ESP_LOGI(TAG, "Built signaling URL: %.*s[REDACTED]",
+        (int)((size_t)final_len - strlen(token)),
+        *out_url);
     return true;
 }

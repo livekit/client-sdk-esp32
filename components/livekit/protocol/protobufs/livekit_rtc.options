@@ -39,3 +39,6 @@ livekit_pb.TrackPublishedResponse.cid type:FT_POINTER
 livekit_pb.TrackPublishedResponse.track label_override:LABEL_REQUIRED
 
 livekit_pb.ParticipantUpdate.participants type:FT_POINTER
+
+livekit_pb.UpdateSubscription.track_sids type:FT_POINTER
+livekit_pb.UpdateSubscription.participant_tracks type:FT_IGNORE

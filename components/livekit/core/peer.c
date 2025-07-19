@@ -214,7 +214,7 @@ static int on_channel_close(esp_peer_data_channel_info_t *ch, void *ctx)
 static int on_data(esp_peer_data_frame_t *frame, void *ctx)
 {
     peer_t *peer = (peer_t *)ctx;
-    ESP_LOGI(TAG(peer), "Data received: size=%d, stream_id=%d", frame->size, frame->stream_id);
+    ESP_LOGD(TAG(peer), "Data received: size=%d, stream_id=%d", frame->size, frame->stream_id);
 
     if (peer->options.on_packet_received == NULL) {
         ESP_LOGE(TAG(peer), "Packet received handler is not set");

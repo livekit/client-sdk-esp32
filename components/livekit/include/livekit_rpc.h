@@ -78,7 +78,10 @@ typedef struct {
     char* caller_identity;
 
     /// Caller provided payload.
-    /// @note The payload must be less than or equal to @ref LIVEKIT_RPC_MAX_PAYLOAD_BYTES bytes.
+    ///
+    /// If no payload is provided, this field will be NULL. Otherwise,
+    /// it is guaranteed to be a valid NULL-terminated string.
+    ///
     char* payload;
 
     /// Sends the result of the invocation to the caller.

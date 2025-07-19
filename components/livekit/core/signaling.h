@@ -47,6 +47,7 @@ signal_err_t signal_send_offer(signal_handle_t handle, const char *sdp);
 signal_err_t signal_send_answer(signal_handle_t handle, const char *sdp);
 
 signal_err_t signal_send_add_track(signal_handle_t handle, livekit_pb_add_track_request_t *req);
+signal_err_t signal_send_update_subscription(signal_handle_t handle, const char *sid, bool subscribe);
 
 #ifdef __cplusplus
 }

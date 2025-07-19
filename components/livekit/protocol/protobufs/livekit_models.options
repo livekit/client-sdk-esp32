@@ -4,7 +4,7 @@ livekit_pb.ClientConfiguration.disabled_codecs type:FT_IGNORE
 
 livekit_pb.ParticipantInfo.sid type:FT_POINTER
 livekit_pb.ParticipantInfo.identity type:FT_POINTER
-livekit_pb.ParticipantInfo.tracks type:FT_IGNORE
+livekit_pb.ParticipantInfo.tracks type:FT_POINTER
 livekit_pb.ParticipantInfo.metadata type:FT_POINTER
 livekit_pb.ParticipantInfo.joined_at type:FT_IGNORE
 livekit_pb.ParticipantInfo.joined_at_ms type:FT_IGNORE
@@ -77,7 +77,7 @@ livekit_pb.TrackInfo.simulcast type:FT_IGNORE
 livekit_pb.TrackInfo.disable_dtx type:FT_IGNORE
 livekit_pb.TrackInfo.source type:FT_IGNORE
 livekit_pb.TrackInfo.layers type:FT_IGNORE
-livekit_pb.TrackInfo.mime_type type:FT_IGNORE
+livekit_pb.TrackInfo.mime_type type:FT_POINTER
 livekit_pb.TrackInfo.mid type:FT_IGNORE
 livekit_pb.TrackInfo.codecs type:FT_IGNORE
 livekit_pb.TrackInfo.disable_red type:FT_IGNORE
