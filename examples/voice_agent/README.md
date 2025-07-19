@@ -41,7 +41,7 @@ With *menuconfig* open, navigate to the *LiveKit Example* menu and configure the
 - Network → Wi-Fi password
 - Room connection → Sandbox ID
 
-For more information about available options, please refer to [this guide](./examples/README.md#configuration).
+For more information about available options, please refer to [this guide](../README.md#configuration).
 
 ### 2. Build & flash
 
@@ -58,12 +58,12 @@ Once running on device, the example will establish a network connection and then
 I (19508) livekit_example: Room state: connected
 ```
 
-If you encounter any issues during this process, please refer to the example [troubleshooting guide](./examples/README.md/#troubleshooting).
+If you encounter any issues during this process, please refer to the example [troubleshooting guide](../README.md/#troubleshooting).
 
 ## Run agent
 
 With the example running on your board, the next step is to run the agent so it can join the room.
-Begin by navigating to the agent's source directory in your terminal: *[examples/voice_agent/agent](./examples/voice_agent/agent)*.
+Begin by navigating to the agent's source directory in your terminal: *[examples/voice_agent/agent](../voice_agent/agent)*.
 
 In this directory, create a *.env* file containing the required API keys:
 
