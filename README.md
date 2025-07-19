@@ -48,7 +48,7 @@ Please refer to the [LiveKit Docs](https://docs.livekit.io/home/) for an introdu
 
 ## Known Issues
 
-- In some cases, a remote participant leaving the room can lead to lead to a disconnect.
+- In some cases, a remote participant leaving the room can lead to a disconnect.
 
 ## Getting Help & Contributing
 
