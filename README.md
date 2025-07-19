@@ -44,7 +44,7 @@ One of the best ways to get started with LiveKit is by reviewing the examples an
 
 ## Documentation
 
-Please refer to the [LiveKit Docs](https://docs.livekit.io/home/) for an introduction to the platform and its features, or to the API reference (*TODO: Not published yet*) for specifics about this SDK.
+Please refer to the [LiveKit Docs](https://docs.livekit.io/home/) for an introduction to the platform and its features, or see the [API Reference](https://livekit.github.io/client-sdk-esp32/) for specifics about this SDK.
 
 ## Known Issues
 
