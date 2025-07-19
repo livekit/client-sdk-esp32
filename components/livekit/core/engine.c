@@ -43,6 +43,7 @@ typedef struct {
     connection_state_t sub_state; /// Subscriber peer state
 
     bool is_subscriber_primary;
+    char local_participant_sid[16];
 } engine_t;
 
 static void recalculate_state(engine_t *eng)
@@ -486,12 +487,15 @@ static void on_sig_join(livekit_pb_join_response_t *join_res, void *ctx)
         return;
     }
 
+    // Store fields from join response required for later use
+    strncpy(eng->local_participant_sid, join_res->participant.sid, sizeof(eng->local_participant_sid));
+
     // Join response contains initial room and participant info (both local and remote);
     // extract and invoke the appropriate handlers.
     eng->options.on_room_info(&join_res->room, eng->options.ctx);
-    eng->options.on_participant_info(&join_res->participant, eng->options.ctx);
+    eng->options.on_participant_info(&join_res->participant, true, eng->options.ctx);
     for (int i = 0; i < join_res->other_participants_count; i++) {
-        eng->options.on_participant_info(&join_res->other_participants[i], eng->options.ctx);
+        eng->options.on_participant_info(&join_res->other_participants[i], false, eng->options.ctx);
     }
 }
 
@@ -501,6 +505,8 @@ static void on_sig_leave(livekit_pb_disconnect_reason_t reason, livekit_pb_leave
     // TODO: Handle reconnect, update engine state
     disconnect_peer(&eng->pub_peer);
     disconnect_peer(&eng->sub_peer);
+
+    memset(eng->local_participant_sid, 0, sizeof(eng->local_participant_sid));
 }
 
 static void on_sig_room_update(const livekit_pb_room_t* info, void *ctx)
@@ -512,7 +518,8 @@ static void on_sig_room_update(const livekit_pb_room_t* info, void *ctx)
 static void on_sig_participant_update(const livekit_pb_participant_info_t* info, void *ctx)
 {
     engine_t *eng = (engine_t *)ctx;
-    eng->options.on_participant_info(info, eng->options.ctx);
+    bool is_local = strncmp(info->sid, eng->local_participant_sid, sizeof(eng->local_participant_sid)) == 0;
+    eng->options.on_participant_info(info, is_local, eng->options.ctx);
 }
 
 static void on_sig_answer(const char *sdp, void *ctx)

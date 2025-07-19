@@ -162,7 +162,7 @@ static void on_eng_room_info(const livekit_pb_room_t* info, void *ctx)
     room->options.on_room_info(&room_info, room->options.ctx);
 }
 
-static void on_eng_participant_info(const livekit_pb_participant_info_t* info, void *ctx)
+static void on_eng_participant_info(const livekit_pb_participant_info_t* info, bool is_local, void *ctx)
 {
     livekit_room_t *room = (livekit_room_t *)ctx;
     if (room->options.on_participant_info == NULL) {
