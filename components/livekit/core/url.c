@@ -22,7 +22,7 @@ static const char *TAG = "livekit_url";
     "&os=" URL_PARAM_OS \
     "&os_version=%s" \
     "&device_model=%d" \
-    "&auto_subscribe=true" \
+    "&auto_subscribe=false" \
     "&protocol=" URL_PARAM_PROTOCOL \
     "&access_token=%s" // Keep at the end for log redaction
 
