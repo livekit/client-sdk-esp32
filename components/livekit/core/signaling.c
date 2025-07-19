@@ -419,7 +419,7 @@ signal_err_t signal_send_update_subscription(signal_handle_t handle, const char 
     livekit_pb_signal_request_t req = LIVEKIT_PB_SIGNAL_REQUEST_INIT_ZERO;
 
     livekit_pb_update_subscription_t subscription = {
-        .track_sids = {sid},
+        .track_sids = (char*[]){(char*)sid},
         .track_sids_count = 1,
         .subscribe = subscribe
     };
