@@ -6,7 +6,7 @@ INPUT                  = ../README.md \
                          ../docs \
                          ../components/livekit/include \
                          ../components/livekit_sandbox/include
-USE_MDFILE_AS_MAINPAGE = ../README.md
+USE_MDFILE_AS_MAINPAGE = ./index.md
 FILE_PATTERNS          = *.h *.md
 EXTRACT_ALL            = YES
 RECURSIVE              = YES
