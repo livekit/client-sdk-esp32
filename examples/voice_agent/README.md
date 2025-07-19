@@ -11,7 +11,7 @@ Example application combining this SDK with [LiveKit Agents](https://docs.liveki
 > **User:** Turn on the yellow LED. \
 > **Agent:** I'm sorry, the board does not have a yellow LED.
 
-### Requirements
+## Requirements
 
 - Software:
     - [IDF](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/index.html) release v5.4 or later
@@ -24,11 +24,11 @@ Example application combining this SDK with [LiveKit Agents](https://docs.liveki
     - Two micro USB cables: one for power, one for flashing
     - Mono enclosed speaker (example from [Adafruit](https://www.adafruit.com/product/3351))
 
-### Run example
+## Run example
 
 To run the example on your board, begin in your terminal by navigating to the example's root directory: *[examples/voice_agent](./examples/voice_agent/)*.
 
-#### 1. Configuration
+### 1. Configuration
 
 The example requires a network connection and Sandbox ID from your [LiveKit Cloud Project](https://cloud.livekit.io/projects/p_/sandbox/templates/token-server). To configure these settings from your terminal, launch *menuconfig*:
 ```sh
@@ -43,7 +43,7 @@ With *menuconfig* open, navigate to the *LiveKit Example* menu and configure the
 
 For more information about available options, please refer to [this guide](./examples/README.md#configuration).
 
-#### 2. Build & flash
+### 2. Build & flash
 
 Begin by connecting your dev board via USB. With the board connected, use the following command
 to build the example, flash it to your board, and monitor serial output:
@@ -60,7 +60,7 @@ I (19508) livekit_example: Room state: connected
 
 If you encounter any issues during this process, please refer to the example [troubleshooting guide](./examples/README.md/#troubleshooting).
 
-### Run agent
+## Run agent
 
 With the example running on your board, the next step is to run the agent so it can join the room.
 Begin by navigating to the agent's source directory in your terminal: *[examples/voice_agent/agent](./examples/voice_agent/agent)*.
