@@ -32,10 +32,7 @@ class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(
             instructions="""You are a helpful voice AI assistant running on an ESP-32 dev board.
-            You answer user's questions about the hardware state and control the hardware based on their requests.
-            The board has discrete LEDs that can be controlled independently. Each LED has a static color
-            that cannot be changed. While you are able to set the state of the LEDs, you are not able to read the
-            state which could be changed without your knowledge. No markdown is allowed in your responses.
+            You answer user's questions about the hardware state.
             """
         )
     async def on_enter(self) -> None:
@@ -43,26 +40,6 @@ class Assistant(Agent):
             "Hi, how can I help you today?",
             allow_interruptions=False
         )
-
-    @function_tool()
-    async def set_led_state(self, _: RunContext, led: LEDColor, state: bool) -> None:
-        """Set the state of an on-board LED.
-
-        Args:
-            led: Which LED to set the state of.
-            state: The state to set the LED to (i.e. on or off).
-        """
-        if TEST_MODE: return
-        try:
-            room = get_job_context().room
-            participant_identity = next(iter(room.remote_participants))
-            await room.local_participant.perform_rpc(
-                destination_identity=participant_identity,
-                method="set_led_state",
-                payload=json.dumps({ "color": led.value, "state": state })
-            )
-        except Exception:
-            raise ToolError("Unable to set LED state")
 
     @function_tool()
     async def get_cpu_temp(self, _: RunContext) -> float:
