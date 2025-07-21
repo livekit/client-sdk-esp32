@@ -16,9 +16,9 @@ void board_init()
 
     // Initialize board support package and LEDs
     bsp_i2c_init();
-    bsp_leds_init();
-    bsp_led_set(BSP_LED_RED, true);
-    bsp_led_set(BSP_LED_BLUE, true);
+    // bsp_leds_init();
+    // bsp_led_set(BSP_LED_RED, true);
+    // bsp_led_set(BSP_LED_BLUE, true);
 
     // Initialize temperature sensor
     temperature_sensor_config_t temp_sensor_config = TEMPERATURE_SENSOR_CONFIG_DEFAULT(10, 50);
@@ -26,7 +26,7 @@ void board_init()
     ESP_ERROR_CHECK(temperature_sensor_enable(temp_sensor));
 
     // Initialize codec board
-    set_codec_board_type(CONFIG_CODEC_BOARD_TYPE);
+    set_codec_board_type("ESP32_S3_BOX_3");
     codec_init_cfg_t cfg = {
         .in_mode = CODEC_I2S_MODE_TDM,
         .in_use_tdm = true,
