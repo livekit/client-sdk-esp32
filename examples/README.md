@@ -1,6 +1,6 @@
 # Examples
 
-This directory contains example applications using the LiveKit ESP-32 SDK, demonstrating various features and
+This directory contains example applications using the LiveKit ESP32 SDK, demonstrating various features and
 use cases. For setup instructions specific to each example, see the example's README.
 
 ## Configuration
