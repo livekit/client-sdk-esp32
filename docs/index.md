@@ -1,6 +1,6 @@
 # Introduction
 
-This site contains API reference for the LiveKit ESP-32 SDK.
+This site contains API reference for the LiveKit ESP32 SDK.
 
 > [!WARNING]
 > This SDK is currently in Developer Preview mode and not ready for production use.
