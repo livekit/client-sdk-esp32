@@ -18,6 +18,7 @@ void board_init()
     ESP_LOGI(TAG, "Initializing board");
 
     // Initialize board support package, LCD, and UI.
+    bsp_i2c_init();
     bsp_display_start();
 
     bsp_display_lock(0);
