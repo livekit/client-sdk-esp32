@@ -38,57 +38,6 @@ static void on_participant_info(const livekit_participant_info_t* info, void* ct
     ESP_LOGI(TAG, "Agent has %s the room", verb);
 }
 
-/// Invoked by a remote participant to set the state of an on-board LED.
-static void set_led_state(const livekit_rpc_invocation_t* invocation, void* ctx)
-{
-    if (invocation->payload == NULL) {
-        livekit_rpc_return_error("Missing payload");
-        return;
-    }
-    cJSON *root = cJSON_Parse(invocation->payload);
-    if (!root) {
-        livekit_rpc_return_error("Invalid JSON");
-        return;
-    }
-
-    char* error = NULL;
-    do {
-        const cJSON *color_entry = cJSON_GetObjectItemCaseSensitive(root, "color");
-        const cJSON *state_entry = cJSON_GetObjectItemCaseSensitive(root, "state");
-        if (!cJSON_IsString(color_entry) || !cJSON_IsBool(state_entry)) {
-            error = "Unexpected JSON format";
-            break;
-        }
-
-        const char *color = color_entry->valuestring;
-        bool state = cJSON_IsTrue(state_entry);
-
-        bsp_led_t led;
-        if (strncmp(color, "red", 3) == 0) {
-            led = BSP_LED_RED;
-        } else if (strncmp(color, "blue", 4) == 0) {
-            led = BSP_LED_BLUE;
-        } else {
-            error = "Unsupported color";
-            break;
-        }
-        // There is a known bug in the BSP component, so we need to invert the state for now.
-        // See https://github.com/espressif/esp-bsp/pull/610.
-        if (bsp_led_set(led, !state) != ESP_OK) {
-            error = "Failed to set LED state";
-            break;
-        }
-    } while (0);
-
-    if (!error) {
-        livekit_rpc_return_ok(NULL);
-    } else {
-        livekit_rpc_return_error(error);
-    }
-    // Perform necessary cleanup after returning an RPC result.
-    cJSON_Delete(root);
-}
-
 /// Invoked by a remote participant to get the current CPU temperature.
 static void get_cpu_temp(const livekit_rpc_invocation_t* invocation, void* ctx)
 {
@@ -128,7 +77,6 @@ void join_room()
     }
 
     // Register RPC handlers so they can be invoked by remote participants.
-    livekit_room_rpc_register(room_handle, "set_led_state", set_led_state);
     livekit_room_rpc_register(room_handle, "get_cpu_temp", get_cpu_temp);
 
     livekit_err_t connect_res;

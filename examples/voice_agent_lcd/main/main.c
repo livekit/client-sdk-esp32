@@ -24,6 +24,7 @@ static int network_event_handler(bool connected)
 void app_main(void)
 {
     esp_log_level_set("*", ESP_LOG_INFO);
+    ESP_LOGI("main", "** [1]");
     livekit_system_init();
     board_init();
     media_init();

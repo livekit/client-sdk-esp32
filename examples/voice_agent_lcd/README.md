@@ -49,7 +49,7 @@ Begin by connecting your dev board via USB. With the board connected, use the fo
 to build the example, flash it to your board, and monitor serial output:
 
 ```sh
-idf.py flash monitor
+idf.py -D SDKCONFIG_DEFAULTS=sdkconfig.bsp.{board} flash monitor
 ```
 
 Once running on device, the example will establish a network connection and then connect to a LiveKit room. Once connected, you will see the following log message:
