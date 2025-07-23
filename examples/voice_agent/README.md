@@ -84,3 +84,14 @@ python agent.py dev
 ```
 
 With the agent running, it will discover and join the room, and you will now be able to engage in two-way conversation. Try asking some of the questions shown above.
+
+## ESP32-S3-Touch-AMOLED-1.8
+
+Add the following to `components/third_party/esp-webrtc-solution/components/codec_board/board_cfg.txt`:
+
+```
+Board: WAVESHARE_ESP32_S3_AMOLED_1_8
+i2c: {sda: 15, scl: 14}
+i2s: {mclk: 16, bclk: 9, ws: 45, dout: 8, din: 10}
+in_out: {codec: ES8311, pa: 46, use_mclk: 1, pa_gain: 6}
+```
