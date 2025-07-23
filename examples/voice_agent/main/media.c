@@ -1,6 +1,7 @@
 #include "esp_check.h"
 #include "esp_log.h"
 #include "codec_init.h"
+#include "codec_board.h"  // Add codec_board header for board configuration
 #include "esp_capture_path_simple.h"
 #include "esp_capture_audio_enc.h"
 #include "av_render_default.h"
@@ -102,11 +103,32 @@ static int build_renderer_system(void)
 
 int media_init(void)
 {
-    // Register default audio encoder and decoder
+    ESP_LOGI(TAG, "Initializing media system for Waveshare ESP32-S3-Touch-AMOLED-1.8");
+    
+    // 1. Set codec board type for Waveshare ESP32-S3-Touch-AMOLED-1.8
+    set_codec_board_type("WAVESHARE_ESP32_S3_AMOLED_1_8");
+    ESP_LOGI(TAG, "Set codec board type to WAVESHARE_ESP32_S3_AMOLED_1_8");
+    
+    // 2. Initialize codec with proper I2S configuration
+    codec_init_cfg_t codec_cfg = {
+        .in_mode = CODEC_I2S_MODE_STD,    // Standard I2S mode for input
+        .out_mode = CODEC_I2S_MODE_STD,   // Standard I2S mode for output  
+        .in_use_tdm = false,              // Don't use TDM mode
+        .reuse_dev = true,                // Reuse same device for input/output (ES8311 supports both)
+    };
+    
+    int ret = init_codec(&codec_cfg);
+    if (ret != 0) {
+        ESP_LOGE(TAG, "Failed to initialize codec: %d", ret);
+        return ret;
+    }
+    ESP_LOGI(TAG, "Codec initialized successfully");
+
+    // 3. Register default audio encoder and decoder
     esp_audio_enc_register_default();
     esp_audio_dec_register_default();
 
-    // Build capturer and renderer systems
+    // 4. Build capturer and renderer systems
     build_capturer_system();
     build_renderer_system();
     return 0;

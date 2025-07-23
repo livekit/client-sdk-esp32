@@ -1,6 +1,7 @@
 #include "esp_log.h"
 #include "cJSON.h"
-#include "bsp/esp-bsp.h"
+// Remove BSP dependency: #include "bsp/esp-bsp.h"
+#include "driver/gpio.h"
 #include "livekit.h"
 #include "livekit_sandbox.h"
 #include "media.h"
@@ -10,6 +11,10 @@
 static const char *TAG = "livekit_example";
 
 static livekit_room_handle_t room_handle;
+
+// LED pin definitions for Waveshare ESP32-S3-Touch-AMOLED-1.8
+#define LED_RED_PIN     GPIO_NUM_48   // RGB LED is on GPIO48 according to specs
+#define LED_BLUE_PIN    GPIO_NUM_48   // Same RGB LED, different color control
 
 /// Invoked when the room's connection state changes.
 static void on_state_changed(livekit_connection_state_t state, void* ctx)
@@ -63,21 +68,20 @@ static void set_led_state(const livekit_rpc_invocation_t* invocation, void* ctx)
         const char *color = color_entry->valuestring;
         bool state = cJSON_IsTrue(state_entry);
 
-        bsp_led_t led;
+        gpio_num_t led_pin;
         if (strncmp(color, "red", 3) == 0) {
-            led = BSP_LED_RED;
+            led_pin = LED_RED_PIN;
         } else if (strncmp(color, "blue", 4) == 0) {
-            led = BSP_LED_BLUE;
+            led_pin = LED_BLUE_PIN;
         } else {
             error = "Unsupported color";
             break;
         }
-        // There is a known bug in the BSP component, so we need to invert the state for now.
-        // See https://github.com/espressif/esp-bsp/pull/610.
-        if (bsp_led_set(led, !state) != ESP_OK) {
-            error = "Failed to set LED state";
-            break;
-        }
+        
+        // Set LED state using direct GPIO control
+        gpio_set_level(led_pin, state ? 1 : 0);
+        ESP_LOGI(TAG, "LED %s set to %s", color, state ? "ON" : "OFF");
+        
     } while (0);
 
     if (!error) {

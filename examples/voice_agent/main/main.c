@@ -1,4 +1,6 @@
 #include "esp_log.h"
+#include "esp_err.h"
+#include "nvs_flash.h"
 #include "media_lib_adapter.h"
 #include "media_lib_os.h"
 #include "livekit.h"
@@ -6,6 +8,15 @@
 #include "media.h"
 #include "board.h"
 #include "example.h"
+
+// Default WiFi configuration - can be overridden in menuconfig
+#ifndef CONFIG_WIFI_SSID
+#define CONFIG_WIFI_SSID "your_wifi_ssid"
+#endif
+
+#ifndef CONFIG_WIFI_PASSWORD  
+#define CONFIG_WIFI_PASSWORD "your_wifi_password"
+#endif
 
 static void run_async_join_room(void *arg)
 {
