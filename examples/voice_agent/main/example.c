@@ -154,6 +154,21 @@ void join_room()
     if (connect_res != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to connect to room");
     }
+
+    const char* command = "G5 I0 J3 P0 Q-3 X2 Y3";
+
+    livekit_data_payload_t payload = {
+        .bytes = (uint8_t*)command,
+        .size = strlen(command)
+    };
+    livekit_data_publish_options_t options = {
+        .payload = &payload,
+        .topic = "gcode",
+        .lossy = false,
+        .destination_identities = (char*[]){ "printer-1" },
+        .destination_identities_count = 1
+    };
+    livekit_room_publish_data(room_handle, &options);
 }
 
 void leave_room()
