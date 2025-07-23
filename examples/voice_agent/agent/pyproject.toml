@@ -6,6 +6,7 @@ readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.13"
 dependencies = [
-    "livekit-agents[cartesia,deepgram,openai,silero,turn-detector]~=1.0",
+    "livekit-agents[openai]~=1.0",
+    "livekit-plugins-noise-cancellation~=0.2",
     "python-dotenv>=1.1.1"
 ]
