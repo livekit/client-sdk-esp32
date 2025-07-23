@@ -16,6 +16,13 @@ Use this SDK to add realtime video, audio and data features to your ESP32 projec
 > This SDK is currently in Developer Preview mode and not ready for production use.
 > There will be bugs and APIs may change during this period.
 
+## Examples
+
+One of the best ways to get started with LiveKit is by reviewing the examples and choosing one as a starting point for your project:
+
+### [Voice Agent](./examples/voice_agent/README.md)
+conversational AI voice agent that interacts with hardware based on user requests.
+
 ## Features
 
 - **Supported chipsets**: ESP32-S3 and ESP32-P4
@@ -36,13 +43,6 @@ dependencies:
 ```
 
 Please be sure to pin to a specific version tag as subsequent 0.x.x releases may have breaking changes. In the future, this SDK will be added to the [ESP component registry](https://components.espressif.com).
-
-## Examples
-
-One of the best ways to get started with LiveKit is by reviewing the examples and choosing one as a starting point for your project:
-
-- [Voice Agent](./examples/voice_agent/README.md): conversational AI voice agent that interacts with hardware based on user requests.
-- *More examples coming soon*
 
 ## Documentation
 
