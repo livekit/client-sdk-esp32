@@ -20,7 +20,7 @@ Use this SDK to add realtime video, audio and data features to your ESP32 projec
 
 One of the best ways to get started with LiveKit is by reviewing the examples and choosing one as a starting point for your project:
 
-### [Voice Agent](./examples/voice_agent/README.md)
+### [Voice AI Agent](./examples/voice_agent/README.md)
 conversational AI voice agent that interacts with hardware based on user requests.
 
 ## Features
