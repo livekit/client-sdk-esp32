@@ -4,10 +4,13 @@ dependencies:
     path: ../../../components/livekit
   codec_board:
     path: ../../../components/third_party/esp-webrtc-solution/components/codec_board
-  # Eventually, the BSP will perform all the functions of the codec_board component.
-  # It currently is used because codec_board is required to support AEC.
-  esp32_s3_korvo_2:
-    version: ">=0.1"
+  # EchoEar BSP - provides proper audio configuration for EchoEar
+  echoear:
+    override_path: "../../../speaker/common_components/echoear"
+  # Korvo-2 BSP - temporarily disabled to test EchoEar audio
+  # TODO: Add proper conditional BSP selection
+  # esp32_s3_korvo_2:
+  #   version: ">=0.1"
   render_impl:
     path: ../../../components/third_party/esp-webrtc-solution/components/av_render/render_impl
   livekit_sandbox:

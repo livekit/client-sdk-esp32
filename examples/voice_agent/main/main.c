@@ -1,3 +1,4 @@
+#include "sdkconfig.h"
 #include "esp_log.h"
 #include "media_lib_adapter.h"
 #include "media_lib_os.h"

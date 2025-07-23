@@ -9,6 +9,18 @@
 
 static const char *TAG = "livekit_example";
 
+// Weak symbol declarations for LED functions (not available in EchoEar BSP)
+extern int bsp_led_set(int led, bool state) __attribute__((weak));
+
+// LED type and constants (might not be defined in EchoEar BSP)
+#ifndef BSP_LED_RED
+#define BSP_LED_RED 0
+typedef int bsp_led_t;
+#endif
+#ifndef BSP_LED_BLUE  
+#define BSP_LED_BLUE 1
+#endif
+
 static livekit_room_handle_t room_handle;
 
 /// Invoked when the room's connection state changes.
@@ -72,11 +84,20 @@ static void set_led_state(const livekit_rpc_invocation_t* invocation, void* ctx)
             error = "Unsupported color";
             break;
         }
-        // There is a known bug in the BSP component, so we need to invert the state for now.
-        // See https://github.com/espressif/esp-bsp/pull/610.
-        if (bsp_led_set(led, !state) != ESP_OK) {
-            error = "Failed to set LED state";
-            break;
+        
+        // Check if LED functions are available (not in EchoEar BSP)
+        if (bsp_led_set != NULL) {
+            // There is a known bug in the BSP component, so we need to invert the state for now.
+            // See https://github.com/espressif/esp-bsp/pull/610.
+            if (bsp_led_set(led, !state) != ESP_OK) {
+                error = "Failed to set LED state";
+                break;
+            }
+        } else {
+            ESP_LOGW(TAG, "LED control not available on this board (%s requested to %s)", 
+                     color, state ? "on" : "off");
+            // For EchoEar, we don't have LEDs, but we can still return success
+            // since the RPC call was processed correctly
         }
     } while (0);
 
