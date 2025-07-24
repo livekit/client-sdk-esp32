@@ -1,5 +1,9 @@
 CONFIG_IDF_TARGET="esp32s3"
 
+# Example server with hosted agent
+CONFIG_LK_USE_SANDBOX=y
+CONFIG_LK_SANDBOX_ID="esp32-example-1ef6vq"
+
 # Enable SPIRAM
 CONFIG_SPIRAM=y
 
