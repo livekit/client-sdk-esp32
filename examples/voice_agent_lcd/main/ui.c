@@ -1,6 +1,5 @@
 #include <math.h>
 #include "esp_log.h"
-#include "lvgl.h"
 #include "bsp/esp-bsp.h"
 
 static const char* TAG = "ui";
@@ -36,6 +35,15 @@ static void ui_present_screen(lv_obj_t* scr)
     ui_acquire();
     lv_screen_load_anim(scr, LV_SCR_LOAD_ANIM_FADE_IN, 500, 0, false);
     ui_release();
+}
+
+static void ev_network_connected_changed(bool connected)
+{
+    static bool got_initial_connection = false;
+    if (!got_initial_connection && connected) {
+        ui_present_screen(main_screen);
+        got_initial_connection = true;
+    }
 }
 
 static void ev_start_call_button_clicked(lv_event_t* ev)
@@ -183,6 +191,9 @@ void ui_init()
     call_screen = lv_obj_create(NULL);
     init_call_screen(call_screen);
 
+    lv_subject_init_bool(&ui_is_network_connected, false);
+    lv_subject_subscribe_bool(&ui_is_network_connected, ev_network_connected_changed);
+
     ui_release();
 
 #if BSP_CAPS_BUTTONS
@@ -193,14 +204,4 @@ void ui_init()
         iot_button_register_cb(handles[i], BUTTON_PRESS_DOWN, NULL, ev_hw_button_clicked, (void *)i);
     }
 #endif
-}
-
-int ui_handle_network_event(bool connected)
-{
-    static bool got_initial_connection = false;
-    if (!got_initial_connection && connected) {
-        ui_present_screen(main_screen);
-        got_initial_connection = true;
-    }
-    return 0;
 }

@@ -8,12 +8,18 @@
 #include "board.h"
 #include "example.h"
 
+static int network_event_handler(bool connected)
+{
+    lv_subject_set_bool(&ui_is_network_connected, connected);
+}
+
 void app_main(void)
 {
     esp_log_level_set("*", ESP_LOG_INFO);
+    ESP_LOGI("main", "** [1]");
     livekit_system_init();
     board_init();
     media_init();
     ui_init();
-    network_init(CONFIG_WIFI_SSID, CONFIG_WIFI_PASSWORD, ui_handle_network_event);
+    network_init(CONFIG_WIFI_SSID, CONFIG_WIFI_PASSWORD, network_event_handler);
 }
