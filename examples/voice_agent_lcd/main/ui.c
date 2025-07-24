@@ -31,10 +31,16 @@ static void ui_release(void)
     bsp_display_unlock();
 }
 
+static void ui_present_screen(lv_obj_t* scr)
+{
+    ui_acquire();
+    lv_screen_load_anim(scr, LV_SCR_LOAD_ANIM_FADE_IN, 500, 0, false);
+    ui_release();
+}
+
 static void ev_start_call_button_clicked(lv_event_t* ev)
 {
-    ESP_LOGI(TAG, "Start Call button clicked");
-    lv_screen_load_anim(call_screen, LV_SCR_LOAD_ANIM_FADE_IN, 500, 0, false);
+    ui_present_screen(call_screen);
 }
 
 #if BSP_CAPS_BUTTONS
@@ -47,9 +53,7 @@ static void ev_hw_button_clicked(void *button_handle, void *ctx)
 
     // For Box-3, return to main screen when main button is pressed.
     // This is the red circle button under the LCD.
-    ui_acquire();
-    lv_screen_load_anim(main_screen, LV_SCR_LOAD_ANIM_FADE_IN, 500, 0, false);
-    ui_release();
+    ui_present_screen(main_screen);
 }
 #endif
 
@@ -189,4 +193,14 @@ void ui_init()
         iot_button_register_cb(handles[i], BUTTON_PRESS_DOWN, NULL, ev_hw_button_clicked, (void *)i);
     }
 #endif
+}
+
+int ui_handle_network_event(bool connected)
+{
+    static bool got_initial_connection = false;
+    if (!got_initial_connection && connected) {
+        ui_present_screen(main_screen);
+        got_initial_connection = true;
+    }
+    return 0;
 }
