@@ -8,9 +8,12 @@
 #include "board.h"
 #include "example.h"
 
+extern lv_subject_t ui_is_network_connected;
+
 static int network_event_handler(bool connected)
 {
-    lv_subject_set_bool(&ui_is_network_connected, connected);
+    lv_subject_set_int(&ui_is_network_connected, (int)connected);
+    return 0;
 }
 
 void app_main(void)

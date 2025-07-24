@@ -1,6 +1,7 @@
 #include <math.h>
 #include "esp_log.h"
 #include "bsp/esp-bsp.h"
+#include "ui.h"
 
 static const char* TAG = "ui";
 
@@ -20,6 +21,8 @@ static lv_obj_t* boot_screen;
 static lv_obj_t* main_screen;
 static lv_obj_t* call_screen;
 
+lv_subject_t ui_is_network_connected;
+
 static void ui_acquire(void)
 {
     bsp_display_lock(0);
@@ -37,10 +40,12 @@ static void ui_present_screen(lv_obj_t* scr)
     ui_release();
 }
 
-static void ev_network_connected_changed(bool connected)
+static void ev_network_connected_changed(lv_observer_t* observer, lv_subject_t* subject)
 {
     static bool got_initial_connection = false;
-    if (!got_initial_connection && connected) {
+    int32_t is_connected = lv_subject_get_int(subject);
+
+    if (!got_initial_connection && is_connected) {
         ui_present_screen(main_screen);
         got_initial_connection = true;
     }
@@ -191,8 +196,8 @@ void ui_init()
     call_screen = lv_obj_create(NULL);
     init_call_screen(call_screen);
 
-    lv_subject_init_bool(&ui_is_network_connected, false);
-    lv_subject_subscribe_bool(&ui_is_network_connected, ev_network_connected_changed);
+    lv_subject_init_int(&ui_is_network_connected, 0);
+    lv_subject_add_observer(&ui_is_network_connected, ev_network_connected_changed, NULL);
 
     ui_release();
 
