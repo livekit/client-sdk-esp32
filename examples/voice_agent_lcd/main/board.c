@@ -3,7 +3,6 @@
 #include "codec_board.h"
 #include "driver/temperature_sensor.h"
 #include "bsp/esp-bsp.h"
-#include "lvgl.h"
 
 #include "board.h"
 
@@ -20,12 +19,6 @@ void board_init()
     // Initialize board support package, LCD, and UI.
     bsp_i2c_init();
     bsp_display_start();
-
-    bsp_display_lock(0);
-    lv_obj_t *scr = lv_disp_get_scr_act(NULL);
-    example_ui(scr);
-
-    bsp_display_unlock();
     bsp_display_backlight_on();
 
     // Initialize codec board
