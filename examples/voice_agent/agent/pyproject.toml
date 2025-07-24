@@ -1,7 +1,7 @@
 [project]
 name = "esp-example-agent"
 version = "0.1.0"
-description = "Example agent for interacting with the ESP-32 voice chat example."
+description = "Example agent for ESP32 voice agent example."
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.13"
