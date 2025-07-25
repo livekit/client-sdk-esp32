@@ -31,12 +31,12 @@ lv_subject_t ui_is_network_connected;
 lv_subject_t ui_room_state;
 lv_subject_t ui_is_call_active;
 
-static void ui_acquire(void)
+void ui_acquire(void)
 {
     bsp_display_lock(0);
 }
 
-static void ui_release(void)
+void ui_release(void)
 {
     bsp_display_unlock();
 }

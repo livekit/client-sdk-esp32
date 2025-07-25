@@ -12,7 +12,9 @@ extern lv_subject_t ui_is_network_connected;
 
 static int network_event_handler(bool connected)
 {
+    ui_acquire();
     lv_subject_set_int(&ui_is_network_connected, (int)connected);
+    ui_release();
     return 0;
 }
 

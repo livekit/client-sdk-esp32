@@ -1,11 +1,11 @@
 #include "esp_log.h"
 #include "cJSON.h"
 #include "bsp/esp-bsp.h"
-#include "lvgl.h"
 #include "livekit.h"
 #include "livekit_sandbox.h"
 #include "media.h"
 #include "board.h"
+#include "ui.h"
 #include "example.h"
 
 static const char *TAG = "livekit_example";
@@ -19,7 +19,9 @@ extern lv_subject_t ui_is_call_active;
 static void on_state_changed(livekit_connection_state_t state, void* ctx)
 {
     ESP_LOGI(TAG, "Room state: %s", livekit_connection_state_str(state));
+    ui_acquire();
     lv_subject_set_int(&ui_room_state, (int)state);
+    ui_release();
 }
 
 /// Invoked when participant information is received.
@@ -78,7 +80,7 @@ static void init_room()
     livekit_room_rpc_register(room_handle, "get_cpu_temp", get_cpu_temp);
 }
 
-static void connect_room()
+static void connect_room_async(void* arg)
 {
     livekit_err_t connect_res;
 #ifdef CONFIG_LK_USE_SANDBOX
@@ -103,21 +105,23 @@ static void connect_room()
     if (connect_res != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to connect to room");
     }
+    media_lib_thread_destroy(NULL);
 }
 
-static void close_room()
+static void close_room_async(void* arg)
 {
     livekit_room_close(room_handle);
+    media_lib_thread_destroy(NULL);
 }
 
 static void on_ui_is_call_active_changed(lv_observer_t* observer, lv_subject_t* subject)
 {
     bool is_call_active = lv_subject_get_int(subject);
-    if (is_call_active) {
-        connect_room();
-    } else {
-        close_room();
-    }
+    ESP_LOGI(TAG, "Call active changed: %d", is_call_active);
+
+    const char* name = is_call_active ? "connect" : "close";
+    void (*body)(void*) = is_call_active ? connect_room_async : close_room_async;
+    ESP_ERROR_CHECK(media_lib_thread_create_from_scheduler(NULL, name, body, NULL));
 }
 
 void example_init()
