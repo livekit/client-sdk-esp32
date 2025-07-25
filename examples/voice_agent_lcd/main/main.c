@@ -24,5 +24,6 @@ void app_main(void)
     board_init();
     media_init();
     ui_init();
+    example_init();
     network_init(CONFIG_WIFI_SSID, CONFIG_WIFI_PASSWORD, network_event_handler);
 }

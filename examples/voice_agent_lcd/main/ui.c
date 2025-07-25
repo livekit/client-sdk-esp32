@@ -1,6 +1,7 @@
 #include <math.h>
 #include "esp_log.h"
 #include "bsp/esp-bsp.h"
+#include "livekit.h"
 #include "ui.h"
 
 static const char* TAG = "ui";
@@ -17,11 +18,18 @@ static const char* TAG = "ui";
 LV_IMG_DECLARE(img_logo)
 LV_IMG_DECLARE(img_waveform)
 
-static lv_obj_t* boot_screen;
-static lv_obj_t* main_screen;
-static lv_obj_t* call_screen;
+typedef enum {
+    SCREEN_BOOT,
+    SCREEN_MAIN,
+    SCREEN_CALL
+} screen_t;
+
+#define SCREEN_NUM 3
+static lv_obj_t* screens[SCREEN_NUM];
 
 lv_subject_t ui_is_network_connected;
+lv_subject_t ui_room_state;
+lv_subject_t ui_is_call_active;
 
 static void ui_acquire(void)
 {
@@ -33,11 +41,11 @@ static void ui_release(void)
     bsp_display_unlock();
 }
 
-static void ui_present_screen(lv_obj_t* scr)
+static void ui_present_screen(screen_t target)
 {
-    ui_acquire();
-    lv_screen_load_anim(scr, LV_SCR_LOAD_ANIM_FADE_IN, 500, 0, false);
-    ui_release();
+    bool is_call_active = target == SCREEN_CALL;
+    lv_subject_set_int(&ui_is_call_active, is_call_active);
+    lv_screen_load_anim(screens[target], LV_SCR_LOAD_ANIM_FADE_IN, 500, 0, false);
 }
 
 static void ev_network_connected_changed(lv_observer_t* observer, lv_subject_t* subject)
@@ -46,14 +54,22 @@ static void ev_network_connected_changed(lv_observer_t* observer, lv_subject_t* 
     int32_t is_connected = lv_subject_get_int(subject);
 
     if (!got_initial_connection && is_connected) {
-        ui_present_screen(main_screen);
+        ui_acquire();
+        ui_present_screen(SCREEN_MAIN);
+        ui_release();
         got_initial_connection = true;
     }
 }
 
+static void ev_room_state_changed(lv_observer_t* observer, lv_subject_t* subject)
+{
+    livekit_connection_state_t room_state = (livekit_connection_state_t)lv_subject_get_int(subject);
+    ESP_LOGI(TAG, "Room state: %s", livekit_connection_state_str(room_state));
+}
+
 static void ev_start_call_button_clicked(lv_event_t* ev)
 {
-    ui_present_screen(call_screen);
+    ui_present_screen(SCREEN_CALL);
 }
 
 #if BSP_CAPS_BUTTONS
@@ -66,7 +82,7 @@ static void ev_hw_button_clicked(void *button_handle, void *ctx)
 
     // For Box-3, return to main screen when main button is pressed.
     // This is the red circle button under the LCD.
-    ui_present_screen(main_screen);
+    ui_present_screen(SCREEN_MAIN);
 }
 #endif
 
@@ -187,17 +203,21 @@ void ui_init()
 {
     ui_acquire();
 
-    boot_screen = lv_disp_get_scr_act(NULL);
-    init_boot_screen(boot_screen);
+    screens[SCREEN_BOOT] = lv_disp_get_scr_act(NULL);
+    init_boot_screen(screens[SCREEN_BOOT]);
 
-    main_screen = lv_obj_create(NULL);
-    init_main_screen(main_screen);
+    screens[SCREEN_MAIN] = lv_obj_create(NULL);
+    init_main_screen(screens[SCREEN_MAIN]);
 
-    call_screen = lv_obj_create(NULL);
-    init_call_screen(call_screen);
+    screens[SCREEN_CALL] = lv_obj_create(NULL);
+    init_call_screen(screens[SCREEN_CALL]);
 
-    lv_subject_init_int(&ui_is_network_connected, 0);
+    lv_subject_init_int(&ui_is_network_connected, false);
+    lv_subject_init_int(&ui_room_state, LIVEKIT_CONNECTION_STATE_DISCONNECTED);
+    lv_subject_init_int(&ui_is_call_active, false);
+
     lv_subject_add_observer(&ui_is_network_connected, ev_network_connected_changed, NULL);
+    lv_subject_add_observer(&ui_room_state, ev_room_state_changed, NULL);
 
     ui_release();
 

@@ -1,6 +1,7 @@
 #include "esp_log.h"
 #include "cJSON.h"
 #include "bsp/esp-bsp.h"
+#include "lvgl.h"
 #include "livekit.h"
 #include "livekit_sandbox.h"
 #include "media.h"
@@ -11,10 +12,14 @@ static const char *TAG = "livekit_example";
 
 static livekit_room_handle_t room_handle;
 
+extern lv_subject_t ui_room_state;
+extern lv_subject_t ui_is_call_active;
+
 /// Invoked when the room's connection state changes.
 static void on_state_changed(livekit_connection_state_t state, void* ctx)
 {
     ESP_LOGI(TAG, "Room state: %s", livekit_connection_state_str(state));
+    lv_subject_set_int(&ui_room_state, (int)state);
 }
 
 /// Invoked when participant information is received.
@@ -47,13 +52,9 @@ static void get_cpu_temp(const livekit_rpc_invocation_t* invocation, void* ctx)
     livekit_rpc_return_ok(temp_string);
 }
 
-void join_room()
+/// Creates and configures the LiveKit room object.
+static void init_room()
 {
-    if (room_handle != NULL) {
-        ESP_LOGE(TAG, "Room already created");
-        return;
-    }
-
     livekit_room_options_t room_options = {
         .publish = {
             .kind = LIVEKIT_MEDIA_TYPE_AUDIO,
@@ -71,14 +72,14 @@ void join_room()
         .on_state_changed = on_state_changed,
         .on_participant_info = on_participant_info
     };
-    if (livekit_room_create(&room_handle, &room_options) != LIVEKIT_ERR_NONE) {
-        ESP_LOGE(TAG, "Failed to create room");
-        return;
-    }
+    ESP_ERROR_CHECK(livekit_room_create(&room_handle, &room_options));
 
     // Register RPC handlers so they can be invoked by remote participants.
     livekit_room_rpc_register(room_handle, "get_cpu_temp", get_cpu_temp);
+}
 
+static void connect_room()
+{
     livekit_err_t connect_res;
 #ifdef CONFIG_LK_USE_SANDBOX
     // Option A: Sandbox token server.
@@ -104,18 +105,25 @@ void join_room()
     }
 }
 
-void leave_room()
+static void close_room()
 {
-    if (room_handle == NULL) {
-        ESP_LOGE(TAG, "Room not created");
-        return;
+    livekit_room_close(room_handle);
+}
+
+static void on_ui_is_call_active_changed(lv_observer_t* observer, lv_subject_t* subject)
+{
+    bool is_call_active = lv_subject_get_int(subject);
+    if (is_call_active) {
+        connect_room();
+    } else {
+        close_room();
     }
-    if (livekit_room_close(room_handle) != LIVEKIT_ERR_NONE) {
-        ESP_LOGE(TAG, "Failed to leave room");
-    }
-    if (livekit_room_destroy(room_handle) != LIVEKIT_ERR_NONE) {
-        ESP_LOGE(TAG, "Failed to destroy room");
-        return;
-    }
-    room_handle = NULL;
+}
+
+void example_init()
+{
+    init_room();
+
+    // Observe UI state changes
+    lv_subject_add_observer(&ui_is_call_active, on_ui_is_call_active_changed, NULL);
 }
