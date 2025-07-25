@@ -82,9 +82,9 @@ static int build_renderer_system(void)
     // For this example, this only includes an audio renderer.
     av_render_cfg_t render_cfg = {
         .audio_render = renderer_system.audio_renderer,
-        .audio_raw_fifo_size = 8 * 4096,
+        .audio_raw_fifo_size = 16 * 4096,
         .audio_render_fifo_size = 100 * 1024,
-        .allow_drop_data = false,
+        .allow_drop_data = true,
     };
     renderer_system.av_renderer_handle = av_render_open(&render_cfg);
     NULL_CHECK(renderer_system.av_renderer_handle, "Failed to create AV renderer");
