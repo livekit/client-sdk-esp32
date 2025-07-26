@@ -18,6 +18,9 @@ static const char* TAG = "ui";
 LV_IMG_DECLARE(img_logo)
 LV_IMG_DECLARE(img_waveform)
 
+LV_FONT_DECLARE(public_sans_medium_16);
+LV_FONT_DECLARE(commit_mono_700_14);
+
 typedef enum {
     SCREEN_BOOT,
     SCREEN_MAIN,
@@ -128,6 +131,7 @@ static void init_main_screen(lv_obj_t* scr)
 
     lv_obj_t* label = lv_label_create(scr);
     lv_label_set_text(label, "Chat live with your voice AI agent");
+    lv_obj_set_style_text_font(label, &public_sans_medium_16, LV_PART_MAIN);
     lv_obj_set_style_text_color(scr, lv_color_hex(LK_PALETTE_FG1), LV_PART_MAIN);
 
     lv_obj_t* btn = lv_button_create(scr);
@@ -139,6 +143,8 @@ static void init_main_screen(lv_obj_t* scr)
 
     lv_obj_t* btn_label = lv_label_create(btn);
     lv_label_set_text(btn_label, "START CALL");
+    lv_obj_set_style_text_letter_space(btn_label, 1, LV_PART_MAIN);
+    lv_obj_set_style_text_font(btn_label, &commit_mono_700_14, LV_PART_MAIN);
     lv_obj_center(btn_label);
 }
 
@@ -196,6 +202,7 @@ static void init_call_screen(lv_obj_t* scr)
 
     lv_obj_t* status_label = lv_label_create(scr);
     lv_label_set_text(status_label, "Agent is listening, ask it a question");
+    lv_obj_set_style_text_font(status_label, &public_sans_medium_16, LV_PART_MAIN);
     lv_obj_set_style_text_color(status_label, lv_color_hex(LK_PALETTE_FG1), LV_PART_MAIN);
 }
 
