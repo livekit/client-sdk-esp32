@@ -30,6 +30,9 @@ typedef enum {
 #define SCREEN_NUM 3
 static lv_obj_t* screens[SCREEN_NUM];
 
+static lv_style_t style_btn_base;
+static lv_style_t style_btn_pressed;
+
 lv_subject_t ui_is_network_connected;
 lv_subject_t ui_room_state;
 lv_subject_t ui_is_call_active;
@@ -89,6 +92,26 @@ static void ev_hw_button_clicked(void *button_handle, void *ctx)
 }
 #endif
 
+static void init_global_styles(void)
+{
+    static lv_style_transition_dsc_t btn_transition;
+    static const lv_style_prop_t btn_transition_props[] = {LV_STYLE_BG_OPA, 0};
+    lv_style_transition_dsc_init(&btn_transition, btn_transition_props, lv_anim_path_linear, 100, 0, NULL);
+
+    lv_style_init(&style_btn_base);
+    lv_style_set_radius(&style_btn_base, 24);
+    lv_style_set_bg_opa(&style_btn_base, LV_OPA_COVER);
+    lv_style_set_bg_color(&style_btn_base, lv_color_hex(LK_PALETTE_FG_ACCENT));
+    lv_style_set_text_color(&style_btn_base, lv_color_white());
+    lv_style_set_text_font(&style_btn_base, &commit_mono_700_14);
+    lv_style_set_text_letter_space(&style_btn_base, 1);
+
+    lv_style_set_transition(&style_btn_base, &btn_transition);
+
+    lv_style_init(&style_btn_pressed);
+    lv_style_set_bg_opa(&style_btn_pressed, LV_OPA_70);
+}
+
 static void init_boot_screen(lv_obj_t* scr)
 {
     lv_obj_t *img = lv_img_create(scr);
@@ -108,22 +131,6 @@ static void init_main_screen(lv_obj_t* scr)
     lv_style_set_flex_cross_place(&container_style, LV_FLEX_ALIGN_CENTER);
     lv_style_set_layout(&container_style, LV_LAYOUT_FLEX);
 
-    static lv_style_transition_dsc_t start_btn_transition;
-    static const lv_style_prop_t start_btn_transition_props[] = {LV_STYLE_BG_OPA, 0};
-    lv_style_transition_dsc_init(&start_btn_transition, start_btn_transition_props, lv_anim_path_linear, 100, 0, NULL);
-
-    static lv_style_t start_btn_style;
-    lv_style_init(&start_btn_style);
-    lv_style_set_radius(&start_btn_style, 24);
-    lv_style_set_bg_opa(&start_btn_style, LV_OPA_COVER);
-    lv_style_set_bg_color(&start_btn_style, lv_color_hex(LK_PALETTE_FG_ACCENT));
-    lv_style_set_text_color(&start_btn_style, lv_color_white());
-    lv_style_set_transition(&start_btn_style, &start_btn_transition);
-
-    static lv_style_t start_btn_style_pressed;
-    lv_style_init(&start_btn_style_pressed);
-    lv_style_set_bg_opa(&start_btn_style_pressed, LV_OPA_70);
-
     lv_obj_add_style(scr, &container_style, LV_PART_MAIN);
 
     lv_obj_t *img = lv_img_create(scr);
@@ -136,15 +143,13 @@ static void init_main_screen(lv_obj_t* scr)
 
     lv_obj_t* btn = lv_button_create(scr);
     lv_obj_remove_style_all(btn);
-    lv_obj_add_style(btn, &start_btn_style, LV_PART_MAIN);
-    lv_obj_add_style(btn, &start_btn_style_pressed, LV_STATE_PRESSED);
+    lv_obj_add_style(btn, &style_btn_base, LV_PART_MAIN);
+    lv_obj_add_style(btn, &style_btn_pressed, LV_STATE_PRESSED);
     lv_obj_set_size(btn, 232, 44);
     lv_obj_add_event_cb(btn, ev_start_call_button_clicked, LV_EVENT_CLICKED, NULL);
 
     lv_obj_t* btn_label = lv_label_create(btn);
     lv_label_set_text(btn_label, "START CALL");
-    lv_obj_set_style_text_letter_space(btn_label, 1, LV_PART_MAIN);
-    lv_obj_set_style_text_font(btn_label, &commit_mono_700_14, LV_PART_MAIN);
     lv_obj_center(btn_label);
 }
 
@@ -209,6 +214,8 @@ static void init_call_screen(lv_obj_t* scr)
 void ui_init()
 {
     ui_acquire();
+
+    init_global_styles();
 
     screens[SCREEN_BOOT] = lv_disp_get_scr_act(NULL);
     init_boot_screen(screens[SCREEN_BOOT]);
