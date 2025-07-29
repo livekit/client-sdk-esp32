@@ -1,5 +1,5 @@
 dependencies:
-  idf: ">=5.4"
+  idf: '>=5.4'
   livekit:
     path: ../../../components/livekit
   codec_board:
@@ -8,8 +8,10 @@ dependencies:
   # It currently is used because codec_board is required to support AEC.
   espressif/esp-box-3: ^3.0.1
   render_impl:
-    path: ../../../components/third_party/esp-webrtc-solution/components/av_render/render_impl
+    path: 
+      ../../../components/third_party/esp-webrtc-solution/components/av_render/render_impl
   livekit_sandbox:
     path: ../../../components/livekit_sandbox
   common:
     path: ../../common
+  espressif/esp_audio_effects: ^1.1.0
