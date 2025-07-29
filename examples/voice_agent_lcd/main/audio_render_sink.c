@@ -1,5 +1,4 @@
 #include "av_render.h"
-#include "esp_ae_mixer.h"
 #include "esp_capture.h"
 
 #include "av_render_default.h"
@@ -45,7 +44,7 @@ static audio_render_handle_t au_render_sink_init(void *cfg, int cfg_size) {
 }
 
 static int au_render_sink_open(audio_render_handle_t render,
-                             av_render_audio_frame_info_t *info) {
+                               av_render_audio_frame_info_t *info) {
   int ret = 0;
   if (real_render != NULL) {
     ret = audio_render_open(real_render, info);
@@ -54,23 +53,23 @@ static int au_render_sink_open(audio_render_handle_t render,
 }
 
 static int au_render_sink_write(audio_render_handle_t render,
-                              av_render_audio_frame_t *audio_data) {
+                                av_render_audio_frame_t *audio_data) {
   if (real_render) {
     ESP_LOGE(TAG, "Write audio data: pts=%lu, size=%d", audio_data->pts,
              audio_data->size);
-    //TODO: Add audio processing if needed
+    // TODO: Add audio processing if needed
     audio_render_write(real_render, audio_data);
   }
   return 0;
 }
 
 static int au_render_sink_get_latency(audio_render_handle_t render,
-                                    uint32_t *latency) {
+                                      uint32_t *latency) {
   return audio_render_get_latency(real_render, latency);
 }
 
 static int au_render_sink_get_frame_info(audio_render_handle_t render,
-                                       av_render_audio_frame_info_t *info) {
+                                         av_render_audio_frame_info_t *info) {
   return audio_render_get_frame_info(real_render, info);
 }
 

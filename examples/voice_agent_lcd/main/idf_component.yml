@@ -14,4 +14,3 @@ dependencies:
     path: ../../../components/livekit_sandbox
   common:
     path: ../../common
-  espressif/esp_audio_effects: ^1.1.0
