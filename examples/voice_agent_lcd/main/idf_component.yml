@@ -14,3 +14,5 @@ dependencies:
     path: ../../../components/livekit_sandbox
   common:
     path: ../../common
+  espp/math: ^1.0.17
+  espressif/dl_fft: ^0.2.0

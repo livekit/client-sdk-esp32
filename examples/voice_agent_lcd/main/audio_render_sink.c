@@ -13,10 +13,14 @@
 #include "media_lib_os.h"
 
 #include "audio_render_sink.h"
+#include "fft.h"
 #include "media.h"
+
+#include "audio_sink.h"
 
 audio_render_handle_t real_render = NULL;
 static const char *TAG = "au_render_sink";
+
 
 typedef struct {
   audio_render_handle_t audio_renderer;
@@ -55,9 +59,10 @@ static int au_render_sink_open(audio_render_handle_t render,
 static int au_render_sink_write(audio_render_handle_t render,
                                 av_render_audio_frame_t *audio_data) {
   if (real_render) {
-    ESP_LOGE(TAG, "Write audio data: pts=%lu, size=%d", audio_data->pts,
-             audio_data->size);
-    // TODO: Add audio processing if needed
+    //ESP_LOGE(TAG, "Write audio data: pts=%lu, size=%d", audio_data->pts,
+    //         audio_data->size);
+    audio_visualizer_process(audio_data->data, audio_data->size);
+    // Write audio data to the render
     audio_render_write(real_render, audio_data);
   }
   return 0;
