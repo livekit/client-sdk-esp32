@@ -18,18 +18,16 @@
 
 #include "audio_visualizer.h"
 
-audio_render_handle_t real_render = NULL;
-static const char *TAG = "au_render_sink";
-
-
 typedef struct {
   audio_render_handle_t audio_renderer;
   av_render_handle_t av_renderer_handle;
 } renderer_system_t;
 
-static renderer_system_t renderer_system;
 
-av_render_audio_frame_info_t frame_info = {
+static audio_render_handle_t real_render = NULL;
+static const char *TAG = "au_render_sink";
+static renderer_system_t renderer_system;
+static av_render_audio_frame_info_t frame_info = {
     .sample_rate = 16000,
     .channel = 2,
     .bits_per_sample = 16,
@@ -98,8 +96,6 @@ static int au_render_sink_close(audio_render_handle_t render) {
   }
   return ret;
 }
-
-int media_sys_set_audio_focus(int src) { return 0; }
 
 static audio_render_handle_t
 av_render_alloc_au_render_sink(i2s_render_cfg_t *i2s_cfg) {
