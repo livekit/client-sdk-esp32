@@ -16,7 +16,7 @@
 #include "fft.h"
 #include "media.h"
 
-#include "audio_sink.h"
+#include "audio_visualizer.h"
 
 audio_render_handle_t real_render = NULL;
 static const char *TAG = "au_render_sink";
@@ -44,6 +44,8 @@ static audio_render_handle_t au_render_sink_init(void *cfg, int cfg_size) {
     real_render = av_render_alloc_i2s_render((i2s_render_cfg_t *)cfg);
   }
 
+  audio_visualizer_init();
+
   return (audio_render_handle_t)real_render;
 }
 
@@ -61,7 +63,7 @@ static int au_render_sink_write(audio_render_handle_t render,
   if (real_render) {
     //ESP_LOGE(TAG, "Write audio data: pts=%lu, size=%d", audio_data->pts,
     //         audio_data->size);
-    audio_visualizer_process(audio_data->data, audio_data->size);
+    audio_visualizer_processing(audio_data->data, audio_data->size);
     // Write audio data to the render
     audio_render_write(real_render, audio_data);
   }
@@ -90,6 +92,9 @@ static int au_render_sink_close(audio_render_handle_t render) {
       ESP_LOGE(TAG, "Failed to close render: %d", ret);
     }
     real_render = NULL;
+
+    audio_visualizer_deinit();
+    ESP_LOGI(TAG, "Audio render sink closed");
   }
   return ret;
 }

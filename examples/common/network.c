@@ -145,9 +145,10 @@ int network_init(const char *ssid, const char *password, network_connect_cb cb)
                                                         NULL,
                                                         &instance_got_ip));
     wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
-    if (load_from_nvs()) {
+    wifi_config.sta.sae_pwe_h2e = WPA3_SAE_PWE_BOTH;
+    /*if (load_from_nvs()) {
         ESP_LOGI(TAG, "Force to use wifi config from nvs");
-    } else {
+    } else*/ {
         if (ssid) {
             memcpy(wifi_config.sta.ssid, ssid, strlen(ssid) + 1);
         }
