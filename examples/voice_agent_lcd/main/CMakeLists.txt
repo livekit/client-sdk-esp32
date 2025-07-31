@@ -1,4 +1,4 @@
-file(GLOB_RECURSE ALL_SOURCES ./*.c)
+file(GLOB_RECURSE ALL_SOURCES ./*.c ./*.cpp)
 
 idf_component_register(SRC_DIRS "." "fonts" "images")
 
