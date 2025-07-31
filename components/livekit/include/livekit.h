@@ -368,9 +368,7 @@ typedef struct {
 ///
 /// Example usage:
 /// @code
-/// const char* command = "G5 I0 J3 P0 Q-3 X2 Y3";
-///
-/// livekit_payload_t payload = {
+/// livekit_data_payload_t payload = {
 ///     .bytes = (uint8_t*)command,
 ///     .size = strlen(command)
 /// };
