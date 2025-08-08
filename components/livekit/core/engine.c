@@ -7,6 +7,7 @@
 #include "esp_log.h"
 #include "url.h"
 #include "signaling.h"
+#include "peer.h"
 #include "engine.h"
 
 // MARK: - Constants
@@ -26,15 +27,17 @@ typedef struct {
     engine_options_t options;
 
     signal_handle_t signal_handle;
-    // peer_handle_t pub_peer_handle;
+    peer_handle_t pub_peer_handle;
     // peer_handle_t sub_peer_handle;
 
     connection_state_t signal_state;
+    connection_state_t pub_peer_state;
 
     // Session state
     livekit_pb_disconnect_reason_t disconnect_reason;
     livekit_pb_leave_request_action_t leave_action;
     bool is_subscriber_primary;
+    bool force_relay;
 
     SemaphoreHandle_t state_mutex;
     char* server_url;
@@ -59,6 +62,8 @@ static void on_signal_join(livekit_pb_join_response_t *join_res, void *ctx)
 {
     engine_t *eng = (engine_t *)ctx;
     eng->is_subscriber_primary = join_res->subscriber_primary;
+    eng->force_relay = join_res->has_client_configuration &&
+                       join_res->client_configuration.force_relay == LIVEKIT_PB_CLIENT_CONFIG_SETTING_ENABLED;
     // TODO: Retain other fields
     xEventGroupSetBits(eng->event_group, ENGINE_EV_JOIN_RECEIVED);
 }
@@ -69,6 +74,78 @@ static void on_signal_leave(livekit_pb_disconnect_reason_t reason, livekit_pb_le
     eng->disconnect_reason = reason;
     eng->leave_action = action;
     xEventGroupSetBits(eng->event_group, ENGINE_EV_LEAVE_RECEIVED);
+}
+
+// MARK: - Peer event handlers
+
+static void on_peer_ice_candidate(const char *candidate, void *ctx)
+{
+    ESP_LOGI(TAG, "ICE candidate");
+    // TODO: Handle ICE candidate
+}
+
+static void on_peer_packet_received(livekit_pb_data_packet_t* packet, void *ctx)
+{
+    ESP_LOGI(TAG, "Packet received");
+    // TODO: Handle packet
+}
+
+static void on_peer_pub_state_changed(connection_state_t state, void *ctx)
+{
+    engine_t *eng = (engine_t *)ctx;
+    eng->pub_peer_state = state;
+    xEventGroupSetBits(eng->event_group, ENGINE_EV_COMPONENT_STATE_CHANGED);
+}
+
+static void on_peer_pub_offer(const char *sdp, void *ctx)
+{
+    ESP_LOGI(TAG, "Publisher peer offer");
+    // TODO: Handle offer
+}
+
+// MARK: - Peer lifecycle
+
+static bool disconnect_peer(peer_handle_t *peer)
+{
+    if (*peer == NULL) return false;
+    if (peer_disconnect(*peer) != PEER_ERR_NONE) return false;
+    if (peer_destroy(*peer) != PEER_ERR_NONE) return false;
+    *peer = NULL;
+    return true;
+}
+
+static bool connect_peer(engine_t *eng, peer_options_t *options, peer_handle_t *peer)
+{
+    disconnect_peer(peer);
+    if (peer_create(peer, options) != PEER_ERR_NONE) return false;
+    if (peer_connect(*peer) != PEER_ERR_NONE) return false;
+    return true;
+}
+
+static bool connect_peers(engine_t *eng)
+{
+    peer_options_t options = {
+        // Options common to both peers
+        .force_relay = eng->force_relay,
+        .media = &eng->options.media,
+        // .server_list = eng->ice_servers,
+        //.server_count = eng->ice_server_count,
+        .on_ice_candidate = on_peer_ice_candidate,
+        .on_packet_received = on_peer_packet_received,
+        .ctx = eng
+    };
+
+    // 1. Publisher peer
+    options.is_primary = !eng->is_subscriber_primary;
+    options.target = LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER;
+    options.on_state_changed = on_peer_pub_state_changed;
+    options.on_sdp = on_peer_pub_offer;
+
+    if (!connect_peer(eng, &options, &eng->pub_peer_handle)) {
+        ESP_LOGE(TAG, "Failed to connect publisher peer");
+        return false;
+    }
+    return true;
 }
 
 // MARK: - State machine
@@ -181,7 +258,46 @@ static void handle_state_connecting(engine_t *eng)
         }
     }
 
-    // TODO: Connect pub/sub (just go directly to connected for now)
+    // 3. Start peer connections, wait for primary connected
+    if (!connect_peers(eng)) {
+        eng->state = ENGINE_STATE_DISCONNECTING;
+        return;
+    }
+    while (1) {
+        EventBits_t bits = xEventGroupWaitBits(
+            eng->event_group,
+            ENGINE_EV_CLOSE_CMD | ENGINE_EV_COMPONENT_STATE_CHANGED | ENGINE_EV_LEAVE_RECEIVED,
+            pdTRUE,
+            pdFALSE,
+            portMAX_DELAY
+        );
+        if (bits & ENGINE_EV_CLOSE_CMD) {
+            eng->state = ENGINE_STATE_DISCONNECTING;
+            return;
+        }
+        if (bits & ENGINE_EV_COMPONENT_STATE_CHANGED) {
+            if (eng->signal_state != CONNECTION_STATE_CONNECTED ||
+                eng->pub_peer_state == CONNECTION_STATE_FAILED) {
+                eng->state = ENGINE_STATE_RECONNECTING;
+                return;
+            }
+            if (eng->pub_peer_state == CONNECTION_STATE_CONNECTED) {
+                break;
+            }
+        }
+        if (bits & ENGINE_EV_LEAVE_RECEIVED) {
+            // TODO: Factor out this common code
+            switch (eng->leave_action) {
+                case LIVEKIT_PB_LEAVE_REQUEST_ACTION_RECONNECT:
+                case LIVEKIT_PB_LEAVE_REQUEST_ACTION_RESUME:
+                    eng->state = ENGINE_STATE_RECONNECTING;
+                    break;
+                default:
+                    eng->state = ENGINE_STATE_DISCONNECTING;
+            }
+            return;
+        }
+    }
     eng->state = ENGINE_STATE_CONNECTED;
 }
 
@@ -214,7 +330,6 @@ static void handle_state_connected(engine_t *eng)
                 break;
             default:
                 eng->state = ENGINE_STATE_DISCONNECTING;
-                break;
         }
         return;
     }
@@ -244,6 +359,8 @@ static void handle_state_reconnecting(engine_t *eng)
 static void handle_state_disconnecting(engine_t *eng)
 {
     // TODO: Send leave if user initiated
+
+    disconnect_peer(&eng->pub_peer_handle);
 
     if (eng->signal_state != CONNECTION_STATE_DISCONNECTED) {
         signal_close(eng->signal_handle);
@@ -315,6 +432,7 @@ engine_err_t engine_destroy(engine_handle_t handle)
     }
 
     signal_destroy(eng->signal_handle);
+    peer_destroy(eng->pub_peer_handle);
 
     xSemaphoreTake(eng->state_mutex, portMAX_DELAY);
     if (eng->server_url != NULL) {
