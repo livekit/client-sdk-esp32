@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "protocol.h"
 #include "common.h"
 
 #ifdef __cplusplus

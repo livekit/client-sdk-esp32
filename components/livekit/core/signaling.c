@@ -107,21 +107,28 @@ static void handle_res(signal_t *sg, livekit_pb_signal_response_t *res)
             sg->ping_timeout_ms = join_res->ping_timeout * 1000;
             esp_timer_start_periodic(sg->ping_timer, sg->ping_interval_ms * 1000);
 
-            sg->options.on_join(join_res, sg->options.ctx);
+            if (sg->options.on_join != NULL) {
+                sg->options.on_join(join_res, sg->options.ctx);
+            }
             break;
         case LIVEKIT_PB_SIGNAL_RESPONSE_LEAVE_TAG:
             livekit_pb_leave_request_t *leave_res = &res->message.leave;
             ESP_LOGI(TAG, "Leave: reason=%d, action=%d", leave_res->reason, leave_res->action);
             esp_timer_stop(sg->ping_timer);
-            sg->options.on_leave(leave_res->reason, leave_res->action, sg->options.ctx);
+            if (sg->options.on_leave != NULL) {
+                sg->options.on_leave(leave_res->reason, leave_res->action, sg->options.ctx);
+            }
             break;
         case LIVEKIT_PB_SIGNAL_RESPONSE_ROOM_UPDATE_TAG:
             livekit_pb_room_update_t *room_update = &res->message.room_update;
             if (!room_update->has_room) break;
-            sg->options.on_room_update(&room_update->room, sg->options.ctx);
+            if (sg->options.on_room_update != NULL) {
+                sg->options.on_room_update(&room_update->room, sg->options.ctx);
+            }
             break;
         case LIVEKIT_PB_SIGNAL_RESPONSE_UPDATE_TAG:
             livekit_pb_participant_update_t *participant_update = &res->message.update;
+            if (sg->options.on_participant_update == NULL) break;
             for (int i = 0; i < participant_update->participants_count; i++) {
                 sg->options.on_participant_update(&participant_update->participants[i], sg->options.ctx);
             }
@@ -129,12 +136,16 @@ static void handle_res(signal_t *sg, livekit_pb_signal_response_t *res)
         case LIVEKIT_PB_SIGNAL_RESPONSE_OFFER_TAG:
             livekit_pb_session_description_t *offer = &res->message.offer;
             ESP_LOGI(TAG, "Offer: id=%" PRIu32 "\n%s", offer->id, offer->sdp);
-            sg->options.on_offer(offer->sdp, sg->options.ctx);
+            if (sg->options.on_offer != NULL) {
+                sg->options.on_offer(offer->sdp, sg->options.ctx);
+            }
             break;
         case LIVEKIT_PB_SIGNAL_RESPONSE_ANSWER_TAG:
             livekit_pb_session_description_t *answer = &res->message.answer;
             ESP_LOGI(TAG, "Answer: id=%" PRIu32 "\n%s", answer->id, answer->sdp);
-            sg->options.on_answer(answer->sdp, sg->options.ctx);
+            if (sg->options.on_answer != NULL) {
+                sg->options.on_answer(answer->sdp, sg->options.ctx);
+            }
             break;
         case LIVEKIT_PB_SIGNAL_RESPONSE_TRICKLE_TAG:
             livekit_pb_trickle_request_t *trickle = &res->message.trickle;
@@ -162,7 +173,9 @@ static void handle_res(signal_t *sg, livekit_pb_signal_response_t *res)
                     trickle->final,
                     candidate->valuestring
                 );
-                sg->options.on_trickle(candidate->valuestring, trickle->target, sg->options.ctx);
+                if (sg->options.on_trickle != NULL) {
+                    sg->options.on_trickle(candidate->valuestring, trickle->target, sg->options.ctx);
+                }
             } while (0);
             cJSON_Delete(candidate_init);
             break;
@@ -240,15 +253,7 @@ signal_err_t signal_create(signal_handle_t *handle, signal_options_t *options)
         return SIGNAL_ERR_INVALID_ARG;
     }
 
-    if (options->on_state_changed      == NULL ||
-        options->on_join               == NULL ||
-        options->on_leave              == NULL ||
-        options->on_room_update        == NULL ||
-        options->on_participant_update == NULL ||
-        options->on_offer              == NULL ||
-        options->on_answer             == NULL ||
-        options->on_trickle            == NULL
-    ) {
+    if (options->on_state_changed == NULL) {
         ESP_LOGE(TAG, "Missing required event handlers");
         return SIGNAL_ERR_INVALID_ARG;
     }
@@ -276,6 +281,7 @@ signal_err_t signal_create(signal_handle_t *handle, signal_options_t *options)
         .disable_pingpong_discon = true,
         .reconnect_timeout_ms = SIGNAL_WS_RECONNECT_TIMEOUT_MS,
         .network_timeout_ms = SIGNAL_WS_NETWORK_TIMEOUT_MS,
+        .disable_auto_reconnect = true,
 #ifdef CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
         .crt_bundle_attach = esp_crt_bundle_attach
 #endif
