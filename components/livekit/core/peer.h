@@ -2,7 +2,6 @@
 #pragma once
 
 #include "common.h"
-#include "engine.h"
 #include "protocol.h"
 
 #define PEER_THREAD_NAME_PREFIX "lk_peer_"

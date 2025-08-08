@@ -1,0 +1,6 @@
+menu "LiveKit"
+    config LK_MAX_RETRIES
+        int "Maximum connection retries"
+        range 0 100
+        default 7
+endmenu
