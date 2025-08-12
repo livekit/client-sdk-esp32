@@ -3,4 +3,7 @@ menu "LiveKit"
         int "Maximum connection retries"
         range 0 100
         default 7
+    config LK_ENGINE_QUEUE_SIZE
+        int "Number of engine events to queue"
+        default 32
 endmenu

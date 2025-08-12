@@ -13,14 +13,29 @@
 // MARK: - Constants
 static const char* TAG = "livekit_engine";
 
-// MARK: - Event bits
-#define ENGINE_EV_CONNECT_CMD             (1 << 0)
-#define ENGINE_EV_CLOSE_CMD               (1 << 1)
-#define ENGINE_EV_COMPONENT_STATE_CHANGED (1 << 2)
-#define ENGINE_EV_JOIN_RECEIVED           (1 << 3)
-#define ENGINE_EV_LEAVE_RECEIVED          (1 << 4)
-
 // MARK: - Type definitions
+
+typedef enum {
+    EV_CMD_CONNECT,
+    EV_CMD_CLOSE,
+    EV_SIG_STATE,
+    EV_SIG_JOIN,
+    EV_SIG_LEAVE,
+    EV_PEER_STATE,
+    _EV_STATE_ENTER,
+    _EV_STATE_EXIT,
+} engine_event_type_t;
+
+typedef struct {
+    engine_event_type_t type;
+    union {
+        struct { const char *server_url; const char *token; } cmd_connect;
+        struct { connection_state_t state; } sig_state;
+        struct { bool subscriber_primary; bool force_relay; } sig_join;
+        struct { livekit_pb_disconnect_reason_t reason; livekit_pb_leave_request_action_t action; } sig_leave;
+        struct { connection_state_t state; } peer_state;
+    } detail;
+} engine_event_t;
 
 typedef struct {
     engine_state_t state;
@@ -30,50 +45,66 @@ typedef struct {
     peer_handle_t pub_peer_handle;
     // peer_handle_t sub_peer_handle;
 
-    connection_state_t signal_state;
-    connection_state_t pub_peer_state;
-
     // Session state
-    livekit_pb_disconnect_reason_t disconnect_reason;
-    livekit_pb_leave_request_action_t leave_action;
     bool is_subscriber_primary;
     bool force_relay;
 
-    SemaphoreHandle_t state_mutex;
     char* server_url;
     char* token;
 
     TaskHandle_t task_handle;
-    EventGroupHandle_t event_group;
+    QueueHandle_t event_queue;
     bool is_running;
     int retry_count;
 } engine_t;
+
+static void event_free(engine_event_t *ev)
+{
+    if (ev == NULL) return;
+    switch (ev->type) {
+        // Free event types that contain dynamic payloads
+        case EV_CMD_CONNECT:
+            free((char *)ev->detail.cmd_connect.server_url);
+            free((char *)ev->detail.cmd_connect.token);
+            break;
+        default: break;
+    }
+}
 
 // MARK: - Signal event handlers
 
 static void on_signal_state_changed(connection_state_t state, void *ctx)
 {
     engine_t *eng = (engine_t *)ctx;
-    eng->signal_state = state;
-    xEventGroupSetBits(eng->event_group, ENGINE_EV_COMPONENT_STATE_CHANGED);
+    engine_event_t ev = {
+        .type = EV_SIG_STATE,
+        .detail.sig_state = { .state = state }
+    };
+    xQueueSendToFront(eng->event_queue, &ev, 0);
 }
 
 static void on_signal_join(livekit_pb_join_response_t *join_res, void *ctx)
 {
     engine_t *eng = (engine_t *)ctx;
-    eng->is_subscriber_primary = join_res->subscriber_primary;
-    eng->force_relay = join_res->has_client_configuration &&
-                       join_res->client_configuration.force_relay == LIVEKIT_PB_CLIENT_CONFIG_SETTING_ENABLED;
-    // TODO: Retain other fields
-    xEventGroupSetBits(eng->event_group, ENGINE_EV_JOIN_RECEIVED);
+    engine_event_t ev = {
+        .type = EV_SIG_JOIN,
+        .detail.sig_join = {
+            .subscriber_primary = join_res->subscriber_primary,
+            .force_relay = join_res->has_client_configuration &&
+                           join_res->client_configuration.force_relay == LIVEKIT_PB_CLIENT_CONFIG_SETTING_ENABLED
+        }
+    };
+    xQueueSendToFront(eng->event_queue, &ev, 0);
 }
 
 static void on_signal_leave(livekit_pb_disconnect_reason_t reason, livekit_pb_leave_request_action_t action, void *ctx)
 {
     engine_t *eng = (engine_t *)ctx;
-    eng->disconnect_reason = reason;
-    eng->leave_action = action;
-    xEventGroupSetBits(eng->event_group, ENGINE_EV_LEAVE_RECEIVED);
+    engine_event_t ev = {
+        .type = EV_SIG_LEAVE,
+        .detail.sig_leave = { .reason = reason, .action = action }
+    };
+    xQueueSendToFront(eng->event_queue, &ev, 0);
 }
 
 // MARK: - Peer event handlers
@@ -93,8 +124,11 @@ static void on_peer_packet_received(livekit_pb_data_packet_t* packet, void *ctx)
 static void on_peer_pub_state_changed(connection_state_t state, void *ctx)
 {
     engine_t *eng = (engine_t *)ctx;
-    eng->pub_peer_state = state;
-    xEventGroupSetBits(eng->event_group, ENGINE_EV_COMPONENT_STATE_CHANGED);
+    engine_event_t ev = {
+        .type = EV_PEER_STATE,
+        .detail.peer_state = { .state = state }
+    };
+    xQueueSendToFront(eng->event_queue, &ev, 0);
 }
 
 static void on_peer_pub_offer(const char *sdp, void *ctx)
@@ -136,7 +170,6 @@ static bool connect_peers(engine_t *eng)
     };
 
     // 1. Publisher peer
-    options.is_primary = !eng->is_subscriber_primary;
     options.target = LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER;
     options.on_state_changed = on_peer_pub_state_changed;
     options.on_sdp = on_peer_pub_offer;
@@ -150,192 +183,111 @@ static bool connect_peers(engine_t *eng)
 
 // MARK: - State machine
 
-static void handle_state_disconnected(engine_t *eng);
-static void handle_state_connecting(engine_t *eng);
-static void handle_state_connected(engine_t *eng);
-static void handle_state_reconnecting(engine_t *eng);
-static void handle_state_disconnecting(engine_t *eng);
+static bool handle_state_any(engine_t *eng, const engine_event_t *ev);
+static void handle_state(engine_t *eng, engine_event_t *ev, engine_state_t state);
+static void flush_event_queue(engine_t *eng);
 
 static void engine_task(void *arg)
 {
     engine_t *eng = (engine_t *)arg;
     while (eng->is_running) {
-        engine_state_t state = eng->state;
-        switch (state) {
-            case ENGINE_STATE_DISCONNECTED:  handle_state_disconnected(eng);  break;
-            case ENGINE_STATE_CONNECTING:    handle_state_connecting(eng);    break;
-            case ENGINE_STATE_CONNECTED:     handle_state_connected(eng);     break;
-            case ENGINE_STATE_RECONNECTING:  handle_state_reconnecting(eng);  break;
-            case ENGINE_STATE_DISCONNECTING: handle_state_disconnecting(eng); break;
-            default: break;
-        }
-        if (eng->state != state) {
-            ESP_LOGI(TAG, "State changed: %d -> %d", state, eng->state);
-            // TODO: Dispatch change event
+        engine_event_t ev;
+        if (!xQueueReceive(eng->event_queue, &ev, portMAX_DELAY)) {
+            ESP_LOGE(TAG, "Failed to receive event");
             continue;
         }
-        ESP_LOGI(TAG, "Re-entering state %d", eng->state);
+        assert(ev.type != EV_STATE_ENTER && ev.type != EV_STATE_EXIT);
+        ESP_LOGI(TAG, "Event: %d", ev.type);
+
+        engine_state_t state = eng->state;
+        do {
+            if (handle_state_any(eng, &ev)) {
+                break;
+            }
+            handle_state(eng, &ev, state);
+        } while (0);
+
+        if (eng->state != state) {
+            ESP_LOGI(TAG, "State changed: %d -> %d", state, eng->state);
+
+            state = eng->state;
+            handle_state(eng, &(engine_event_t){ .type = _EV_STATE_EXIT }, state);
+            assert(eng->state == state);
+
+            handle_state(eng, &(engine_event_t){ .type = _EV_STATE_ENTER }, eng->state);
+            assert(eng->state == state);
+        }
+        event_free(&ev);
     }
+    flush_event_queue(eng);
     vTaskDelete(NULL);
 }
 
-static void handle_state_disconnected(engine_t *eng)
+static bool handle_state_any(engine_t *eng, const engine_event_t *ev)
 {
-    EventBits_t bits = xEventGroupWaitBits(
-        eng->event_group,
-        ENGINE_EV_CONNECT_CMD | ENGINE_EV_CLOSE_CMD,
-        pdTRUE,
-        pdFALSE,
-        portMAX_DELAY
-    );
-    if (bits & ENGINE_EV_CONNECT_CMD) {
+    // Handle transitions from any state here.
+    // Return true if the event was handled, false otherwise.
+    return false;
+}
+
+static void handle_state_disconnected(engine_t *eng, const engine_event_t *ev)
+{
+    if (ev->type == EV_CMD_CONNECT) {
+        const char *server_url = ev->detail.cmd_connect.server_url;
+        const char *token = ev->detail.cmd_connect.token;
+
+        if (eng->server_url != NULL) free(eng->server_url);
+        if (eng->token != NULL) free(eng->token);
+        eng->server_url = strdup(server_url);
+        eng->token = strdup(token);
+
         eng->state = ENGINE_STATE_CONNECTING;
     }
 }
 
-static void handle_state_connecting(engine_t *eng)
+static void handle_state_connecting(engine_t *eng, const engine_event_t *ev)
 {
-    if (xSemaphoreTake(eng->state_mutex, pdMS_TO_TICKS(100)) != pdPASS) {
-        eng->state = ENGINE_STATE_DISCONNECTED;
-        return;
-    }
-    if (signal_connect(eng->signal_handle, eng->server_url, eng->token) != SIGNAL_ERR_NONE) {
-        ESP_LOGE(TAG, "Failed to connect signal client");
-        eng->state = ENGINE_STATE_DISCONNECTED;
-        xSemaphoreGive(eng->state_mutex);
-        return;
-    }
-    xSemaphoreGive(eng->state_mutex);
-
-    // 1. Wait for signal connected
-    while (1) {
-        EventBits_t bits = xEventGroupWaitBits(
-            eng->event_group,
-            ENGINE_EV_CLOSE_CMD | ENGINE_EV_COMPONENT_STATE_CHANGED,
-            pdTRUE,
-            pdFALSE,
-            portMAX_DELAY
-        );
-
-        if (bits & ENGINE_EV_CLOSE_CMD) {
-            eng->state = ENGINE_STATE_DISCONNECTING;
-            return;
-        }
-        if (bits & ENGINE_EV_COMPONENT_STATE_CHANGED) {
-            if (eng->signal_state == CONNECTION_STATE_CONNECTED) {
-                break;
-            }
-            if (eng->signal_state == CONNECTION_STATE_FAILED ||
-                eng->signal_state == CONNECTION_STATE_DISCONNECTED) {
-                // TODO: Check error code (4xx is user error and should go to disconnecting)
-                eng->state = ENGINE_STATE_RECONNECTING;
-                return;
-            }
-        }
-    }
-
-    // 2. Wait for join response
-    while (1) {
-        EventBits_t bits = xEventGroupWaitBits(
-            eng->event_group,
-            ENGINE_EV_CLOSE_CMD | ENGINE_EV_COMPONENT_STATE_CHANGED | ENGINE_EV_JOIN_RECEIVED,
-            pdTRUE,
-            pdFALSE,
-            portMAX_DELAY
-        );
-        if (bits & ENGINE_EV_CLOSE_CMD) {
-            eng->state = ENGINE_STATE_DISCONNECTING;
-            return;
-        }
-        if (bits & ENGINE_EV_COMPONENT_STATE_CHANGED) {
-            if (eng->signal_state != CONNECTION_STATE_CONNECTED) {
-                eng->state = ENGINE_STATE_RECONNECTING;
-                return;
-            }
-        }
-        if (bits & ENGINE_EV_JOIN_RECEIVED) {
+    switch (ev->type) {
+        case _EV_STATE_ENTER:
+            signal_connect(eng->signal_handle, eng->server_url, eng->token);
             break;
-        }
-    }
-
-    // 3. Start peer connections, wait for primary connected
-    if (!connect_peers(eng)) {
-        eng->state = ENGINE_STATE_DISCONNECTING;
-        return;
-    }
-    while (1) {
-        EventBits_t bits = xEventGroupWaitBits(
-            eng->event_group,
-            ENGINE_EV_CLOSE_CMD | ENGINE_EV_COMPONENT_STATE_CHANGED | ENGINE_EV_LEAVE_RECEIVED,
-            pdTRUE,
-            pdFALSE,
-            portMAX_DELAY
-        );
-        if (bits & ENGINE_EV_CLOSE_CMD) {
-            eng->state = ENGINE_STATE_DISCONNECTING;
-            return;
-        }
-        if (bits & ENGINE_EV_COMPONENT_STATE_CHANGED) {
-            if (eng->signal_state != CONNECTION_STATE_CONNECTED ||
-                eng->pub_peer_state == CONNECTION_STATE_FAILED) {
+        case EV_SIG_STATE:
+            // TODO: Check error code (4xx should go to disconnected)
+            if (ev->detail.sig_state.state == CONNECTION_STATE_FAILED ||
+                ev->detail.sig_state.state == CONNECTION_STATE_DISCONNECTED) {
                 eng->state = ENGINE_STATE_RECONNECTING;
-                return;
             }
-            if (eng->pub_peer_state == CONNECTION_STATE_CONNECTED) {
+            break;
+        case EV_SIG_LEAVE:
+            ESP_LOGI(TAG, "Server sent leave before fully connected");
+            eng->state = ENGINE_STATE_DISCONNECTING;
+            break;
+        case EV_SIG_JOIN:
+            if (!connect_peers(eng)) {
+                ESP_LOGE(TAG, "Failed to connect peers");
+                eng->state = ENGINE_STATE_DISCONNECTING;
                 break;
             }
-        }
-        if (bits & ENGINE_EV_LEAVE_RECEIVED) {
-            // TODO: Factor out this common code
-            switch (eng->leave_action) {
-                case LIVEKIT_PB_LEAVE_REQUEST_ACTION_RECONNECT:
-                case LIVEKIT_PB_LEAVE_REQUEST_ACTION_RESUME:
-                    eng->state = ENGINE_STATE_RECONNECTING;
-                    break;
-                default:
-                    eng->state = ENGINE_STATE_DISCONNECTING;
+            eng->state = ENGINE_STATE_CONNECTED;
+            break;
+        case EV_PEER_STATE:
+            if (ev->detail.peer_state.state == CONNECTION_STATE_CONNECTED) {
+                eng->state = ENGINE_STATE_CONNECTED; // Fully connected
+            } else if (ev->detail.peer_state.state == CONNECTION_STATE_FAILED ||
+                       ev->detail.peer_state.state == CONNECTION_STATE_DISCONNECTED) {
+                eng->state = ENGINE_STATE_RECONNECTING;
             }
-            return;
-        }
+            break;
+        default: break;
     }
-    eng->state = ENGINE_STATE_CONNECTED;
 }
 
-static void handle_state_connected(engine_t *eng)
+static void handle_state_connected(engine_t *eng, const engine_event_t *ev)
 {
     // TODO: Track pub/sub
-
-    EventBits_t bits = xEventGroupWaitBits(
-        eng->event_group,
-        ENGINE_EV_CLOSE_CMD | ENGINE_EV_COMPONENT_STATE_CHANGED | ENGINE_EV_LEAVE_RECEIVED,
-        pdTRUE,
-        pdFALSE,
-        portMAX_DELAY
-    );
-    if (bits & ENGINE_EV_CLOSE_CMD) {
-        eng->state = ENGINE_STATE_DISCONNECTING;
-        return;
-    }
-    if (bits & ENGINE_EV_COMPONENT_STATE_CHANGED) {
-        if (eng->signal_state != CONNECTION_STATE_CONNECTED) {
-            eng->state = ENGINE_STATE_RECONNECTING;
-        }
-        return;
-    }
-    if (bits & ENGINE_EV_LEAVE_RECEIVED) {
-        switch (eng->leave_action) {
-            case LIVEKIT_PB_LEAVE_REQUEST_ACTION_RECONNECT:
-            case LIVEKIT_PB_LEAVE_REQUEST_ACTION_RESUME:
-                eng->state = ENGINE_STATE_RECONNECTING;
-                break;
-            default:
-                eng->state = ENGINE_STATE_DISCONNECTING;
-        }
-        return;
-    }
 }
 
-static void handle_state_reconnecting(engine_t *eng)
+static void handle_state_reconnecting(engine_t *eng, const engine_event_t *ev)
 {
     if (eng->retry_count >= CONFIG_LK_MAX_RETRIES) {
         ESP_LOGW(TAG, "Max retries reached");
@@ -343,7 +295,7 @@ static void handle_state_reconnecting(engine_t *eng)
         return;
     }
 
-     // TODO: Exponential backoff
+    // TODO: Use timer, exponential backoff
     uint32_t backoff_ms = 1000;
 
     ESP_LOGI(TAG, "Attempting reconnect %d/%d in %" PRIu32 "ms",
@@ -352,21 +304,37 @@ static void handle_state_reconnecting(engine_t *eng)
     vTaskDelay(pdMS_TO_TICKS(backoff_ms));
     eng->retry_count++;
 
-    // TODO: Try connection, transition to connected if successful
-    // - Handle full vs partial reconnect
+    eng->state = ENGINE_STATE_CONNECTING;
 }
 
-static void handle_state_disconnecting(engine_t *eng)
+static void handle_state_disconnecting(engine_t *eng, const engine_event_t *ev)
 {
-    // TODO: Send leave if user initiated
-
     disconnect_peer(&eng->pub_peer_handle);
 
-    if (eng->signal_state != CONNECTION_STATE_DISCONNECTED) {
-        signal_close(eng->signal_handle);
-        // TODO: Wait until disconnected
-    }
+    signal_close(eng->signal_handle);
+    // TODO: Wait for normal signal closure
+    flush_event_queue(eng);
     eng->state = ENGINE_STATE_DISCONNECTED;
+}
+
+static void handle_state(engine_t *eng, engine_event_t *ev, engine_state_t state)
+{
+    switch (state) {
+        case ENGINE_STATE_DISCONNECTED:  handle_state_disconnected(eng, ev);  break;
+        case ENGINE_STATE_CONNECTING:    handle_state_connecting(eng, ev);    break;
+        case ENGINE_STATE_CONNECTED:     handle_state_connected(eng, ev);     break;
+        case ENGINE_STATE_RECONNECTING:  handle_state_reconnecting(eng, ev);  break;
+        case ENGINE_STATE_DISCONNECTING: handle_state_disconnecting(eng, ev); break;
+        default: break;
+    }
+}
+
+static void flush_event_queue(engine_t *eng)
+{
+    engine_event_t ev;
+    while (xQueueReceive(eng->event_queue, &ev, 0) == pdPASS) {
+        event_free(&ev);
+    }
 }
 
 // MARK: - Public API
@@ -377,14 +345,9 @@ engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options)
     if (eng == NULL) {
         return ENGINE_ERR_NO_MEM;
     }
-    eng->state_mutex = xSemaphoreCreateMutex();
-    if (eng->state_mutex == NULL) {
-        free(eng);
-        return ENGINE_ERR_NO_MEM;
-    }
-    eng->event_group = xEventGroupCreate();
-    if (eng->event_group == NULL) {
-        vSemaphoreDelete(eng->state_mutex);
+
+    eng->event_queue = xQueueCreate(CONFIG_LK_ENGINE_QUEUE_SIZE, sizeof(engine_event_t));
+    if (eng->event_queue == NULL) {
         free(eng);
         return ENGINE_ERR_NO_MEM;
     }
@@ -397,8 +360,7 @@ engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options)
         // TODO: Add other handlers
     };
     if (signal_create(&eng->signal_handle, &signal_options) != SIGNAL_ERR_NONE) {
-        vEventGroupDelete(eng->event_group);
-        vSemaphoreDelete(eng->state_mutex);
+        free(eng->event_queue);
         free(eng);
         return ENGINE_ERR_SIGNALING;
     }
@@ -408,8 +370,7 @@ engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options)
     eng->is_running = true;
 
     if (xTaskCreate(engine_task, "engine_task", 4096, eng, 5, &eng->task_handle) != pdPASS) {
-        vEventGroupDelete(eng->event_group);
-        vSemaphoreDelete(eng->state_mutex);
+        free(eng->event_queue);
         free(eng);
         return ENGINE_ERR_NO_MEM;
     }
@@ -434,15 +395,8 @@ engine_err_t engine_destroy(engine_handle_t handle)
     signal_destroy(eng->signal_handle);
     peer_destroy(eng->pub_peer_handle);
 
-    xSemaphoreTake(eng->state_mutex, portMAX_DELAY);
-    if (eng->server_url != NULL) {
-        free(eng->server_url);
-    }
-    if (eng->token != NULL) {
-        free(eng->token);
-    }
-    vSemaphoreDelete(eng->state_mutex);
-    vEventGroupDelete(eng->event_group);
+    if (eng->server_url != NULL) free(eng->server_url);
+    if (eng->token != NULL) free(eng->token);
     // TODO: Free other resources
     free(eng);
     return ENGINE_ERR_NONE;
@@ -455,20 +409,13 @@ engine_err_t engine_connect(engine_handle_t handle, const char* server_url, cons
     }
     engine_t *eng = (engine_t *)handle;
 
-    if (xSemaphoreTake(eng->state_mutex, pdMS_TO_TICKS(100)) != pdPASS) {
+    engine_event_t ev = {
+        .type = EV_CMD_CONNECT,
+        .detail.cmd_connect = { .server_url = strdup(server_url), .token = strdup(token) }
+    };
+    if (xQueueSendToFront(eng->event_queue, &ev, 0) != pdPASS) {
         return ENGINE_ERR_OTHER;
     }
-    if (eng->server_url != NULL) {
-        free(eng->server_url);
-    }
-    if (eng->token != NULL) {
-        free(eng->token);
-    }
-    eng->server_url = strdup(server_url);
-    eng->token = strdup(token);
-    xSemaphoreGive(eng->state_mutex);
-
-    xEventGroupSetBits(eng->event_group, ENGINE_EV_CONNECT_CMD);
     return ENGINE_ERR_NONE;
 }
 
@@ -479,7 +426,10 @@ engine_err_t engine_close(engine_handle_t handle)
     }
     engine_t *eng = (engine_t *)handle;
 
-    xEventGroupSetBits(eng->event_group, ENGINE_EV_CLOSE_CMD);
+    engine_event_t ev = { .type = EV_CMD_CLOSE };
+    if (xQueueSendToFront(eng->event_queue, &ev, 0) != pdPASS) {
+        return ENGINE_ERR_OTHER;
+    }
     return ENGINE_ERR_NONE;
 }
 
