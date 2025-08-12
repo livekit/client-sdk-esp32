@@ -22,6 +22,7 @@ typedef enum {
     EV_SIG_JOIN,
     EV_SIG_LEAVE,
     EV_PEER_STATE,
+    EV_TIMER_EXP,
     _EV_STATE_ENTER,
     _EV_STATE_EXIT,
 } engine_event_type_t;
@@ -54,6 +55,7 @@ typedef struct {
 
     TaskHandle_t task_handle;
     QueueHandle_t event_queue;
+    TimerHandle_t timer;
     bool is_running;
     int retry_count;
 } engine_t;
@@ -135,6 +137,15 @@ static void on_peer_pub_offer(const char *sdp, void *ctx)
 {
     ESP_LOGI(TAG, "Publisher peer offer");
     // TODO: Handle offer
+}
+
+// MARK: - Timer expired handler
+
+static void on_timer_expired(TimerHandle_t timer)
+{
+    engine_t *eng = (engine_t *)pvTimerGetTimerID(timer);
+    engine_event_t ev = { .type = EV_TIMER_EXP };
+    xQueueSend(eng->event_queue, &ev, 0);
 }
 
 // MARK: - Peer lifecycle
@@ -352,6 +363,19 @@ engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options)
         return ENGINE_ERR_NO_MEM;
     }
 
+    eng->timer = xTimerCreate(
+        "lk_engine_timer",
+        pdMS_TO_TICKS(1000),
+        pdTRUE,
+        eng,
+        on_timer_expired);
+
+    if (eng->timer == NULL) {
+        free(eng->event_queue);
+        free(eng);
+        return ENGINE_ERR_NO_MEM;
+    }
+
     signal_options_t signal_options = {
         .ctx = eng,
         .on_state_changed = on_signal_state_changed,
@@ -391,6 +415,10 @@ engine_err_t engine_destroy(engine_handle_t handle)
         // TODO: Wait for disconnected state or timeout
         vTaskDelay(pdMS_TO_TICKS(100));
     }
+
+    xTimerDelete(eng->timer, 0);
+    vQueueDelete(eng->event_queue);
+    vTaskDelete(eng->task_handle);
 
     signal_destroy(eng->signal_handle);
     peer_destroy(eng->pub_peer_handle);
