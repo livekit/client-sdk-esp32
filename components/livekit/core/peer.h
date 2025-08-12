@@ -35,10 +35,6 @@ typedef struct {
     /// Weather to force the use of relay ICE candidates.
     bool force_relay;
 
-    /// Whether the peer is the primary peer.
-    /// @note This determines which peer controls the data channels.
-    bool is_primary;
-
     /// Media options used for creating SDP messages.
     engine_media_options_t* media;
 

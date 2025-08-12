@@ -27,7 +27,6 @@ static const char *PUB_TAG = "livekit_peer.pub";
 
 typedef struct {
     peer_options_t options;
-    bool is_primary;
     esp_peer_role_t ice_role;
     esp_peer_handle_t connection;
 
