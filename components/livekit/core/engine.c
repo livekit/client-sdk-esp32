@@ -272,12 +272,12 @@ static void handle_state_connecting(engine_t *eng, const engine_event_t *ev)
             break;
         case EV_SIG_LEAVE:
             ESP_LOGI(TAG, "Server sent leave before fully connected");
-            eng->state = ENGINE_STATE_DISCONNECTING;
+            eng->state = ENGINE_STATE_DISCONNECTED;
             break;
         case EV_SIG_JOIN:
             if (!connect_peers(eng)) {
                 ESP_LOGE(TAG, "Failed to connect peers");
-                eng->state = ENGINE_STATE_DISCONNECTING;
+                eng->state = ENGINE_STATE_DISCONNECTED;
                 break;
             }
             eng->state = ENGINE_STATE_CONNECTED;
@@ -331,15 +331,6 @@ static void handle_state_reconnecting(engine_t *eng, const engine_event_t *ev)
     }
 }
 
-static void handle_state_disconnecting(engine_t *eng, const engine_event_t *ev)
-{
-    disconnect_peer(&eng->pub_peer_handle);
-
-    // TODO: Wait for normal signal closure
-    flush_event_queue(eng);
-    eng->state = ENGINE_STATE_DISCONNECTED;
-}
-
 static void handle_state(engine_t *eng, engine_event_t *ev, engine_state_t state)
 {
     switch (state) {
@@ -347,7 +338,6 @@ static void handle_state(engine_t *eng, engine_event_t *ev, engine_state_t state
         case ENGINE_STATE_CONNECTING:    handle_state_connecting(eng, ev);    break;
         case ENGINE_STATE_CONNECTED:     handle_state_connected(eng, ev);     break;
         case ENGINE_STATE_RECONNECTING:  handle_state_reconnecting(eng, ev);  break;
-        case ENGINE_STATE_DISCONNECTING: handle_state_disconnecting(eng, ev); break;
         default: break;
     }
 }
