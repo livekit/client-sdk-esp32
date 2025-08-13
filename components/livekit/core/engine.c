@@ -23,6 +23,7 @@ typedef enum {
     EV_SIG_LEAVE,
     EV_PEER_STATE,
     EV_TIMER_EXP,
+    EV_MAX_RETRIES_REACHED,
     _EV_STATE_ENTER,
     _EV_STATE_EXIT,
 } engine_event_type_t;
@@ -300,29 +301,40 @@ static void handle_state_connected(engine_t *eng, const engine_event_t *ev)
 
 static void handle_state_reconnecting(engine_t *eng, const engine_event_t *ev)
 {
-    if (eng->retry_count >= CONFIG_LK_MAX_RETRIES) {
-        ESP_LOGW(TAG, "Max retries reached");
-        eng->state = ENGINE_STATE_DISCONNECTED;
-        return;
+    switch (ev->type) {
+        case _EV_STATE_ENTER:
+            if (eng->retry_count >= CONFIG_LK_MAX_RETRIES) {
+                ESP_LOGW(TAG, "Max retries reached");
+                xQueueSendToFront(eng->event_queue, &(engine_event_t){ .type = EV_MAX_RETRIES_REACHED }, 0);
+                break;
+            }
+            // TODO: Exponential backoff
+            uint32_t backoff_ms = 1000;
+
+            ESP_LOGI(TAG, "Attempting reconnect %d/%d in %" PRIu32 "ms",
+                eng->retry_count + 1, CONFIG_LK_MAX_RETRIES, backoff_ms);
+
+            xTimerChangePeriod(eng->timer, pdMS_TO_TICKS(backoff_ms), 0);
+            xTimerStart(eng->timer, 0);
+            break;
+        case EV_MAX_RETRIES_REACHED:
+            eng->state = ENGINE_STATE_DISCONNECTED;
+            break;
+        case EV_TIMER_EXP:
+            eng->retry_count++;
+            eng->state = ENGINE_STATE_CONNECTING;
+            break;
+        case _EV_STATE_EXIT:
+            xTimerStop(eng->timer, portMAX_DELAY);
+            break;
+        default: break;
     }
-
-    // TODO: Use timer, exponential backoff
-    uint32_t backoff_ms = 1000;
-
-    ESP_LOGI(TAG, "Attempting reconnect %d/%d in %" PRIu32 "ms",
-        eng->retry_count + 1, CONFIG_LK_MAX_RETRIES, backoff_ms);
-
-    vTaskDelay(pdMS_TO_TICKS(backoff_ms));
-    eng->retry_count++;
-
-    eng->state = ENGINE_STATE_CONNECTING;
 }
 
 static void handle_state_disconnecting(engine_t *eng, const engine_event_t *ev)
 {
     disconnect_peer(&eng->pub_peer_handle);
 
-    signal_close(eng->signal_handle);
     // TODO: Wait for normal signal closure
     flush_event_queue(eng);
     eng->state = ENGINE_STATE_DISCONNECTED;
@@ -366,7 +378,7 @@ engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options)
     eng->timer = xTimerCreate(
         "lk_engine_timer",
         pdMS_TO_TICKS(1000),
-        pdTRUE,
+        pdFALSE,
         eng,
         on_timer_expired);
 
