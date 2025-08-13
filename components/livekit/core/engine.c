@@ -371,8 +371,8 @@ engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options)
         on_timer_expired);
 
     if (eng->timer == NULL) {
-        free(eng->event_queue);
         free(eng);
+        free(eng->event_queue);
         return ENGINE_ERR_NO_MEM;
     }
 
@@ -384,8 +384,9 @@ engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options)
         // TODO: Add other handlers
     };
     if (signal_create(&eng->signal_handle, &signal_options) != SIGNAL_ERR_NONE) {
-        free(eng->event_queue);
         free(eng);
+        free(eng->event_queue);
+        free(eng->timer);
         return ENGINE_ERR_SIGNALING;
     }
 
@@ -394,8 +395,9 @@ engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options)
     eng->is_running = true;
 
     if (xTaskCreate(engine_task, "engine_task", 4096, eng, 5, &eng->task_handle) != pdPASS) {
-        free(eng->event_queue);
         free(eng);
+        free(eng->event_queue);
+        free(eng->timer);
         return ENGINE_ERR_NO_MEM;
     }
 
@@ -415,13 +417,15 @@ engine_err_t engine_destroy(engine_handle_t handle)
         // TODO: Wait for disconnected state or timeout
         vTaskDelay(pdMS_TO_TICKS(100));
     }
-
-    xTimerDelete(eng->timer, 0);
-    vQueueDelete(eng->event_queue);
     vTaskDelete(eng->task_handle);
 
+    xTimerDelete(eng->timer, portMAX_DELAY);
+    vQueueDelete(eng->event_queue);
+
     signal_destroy(eng->signal_handle);
-    peer_destroy(eng->pub_peer_handle);
+    if (eng->pub_peer_handle != NULL) {
+        peer_destroy(eng->pub_peer_handle);
+    }
 
     if (eng->server_url != NULL) free(eng->server_url);
     if (eng->token != NULL) free(eng->token);
