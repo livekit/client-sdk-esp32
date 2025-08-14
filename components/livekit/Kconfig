@@ -6,4 +6,13 @@ menu "LiveKit"
     config LK_ENGINE_QUEUE_SIZE
         int "Number of engine events to queue"
         default 32
+    config LK_PUB_INTERVAL_MS
+        int "How often to capture and send AV frames"
+        default 20
+    config LK_PUB_AUDIO_TRACK_NAME
+        string "Name of the published audio track"
+        default "Audio"
+    config LK_PUB_VIDEO_TRACK_NAME
+        string "Name of the published video track"
+        default "Video"
 endmenu

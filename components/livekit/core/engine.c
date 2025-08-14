@@ -2,6 +2,8 @@
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "freertos/event_groups.h"
+#include "media_lib_os.h"
+#include "esp_codec_dev.h"
 #include <inttypes.h>
 #include <stdlib.h>
 #include "esp_log.h"
@@ -15,25 +17,28 @@ static const char* TAG = "livekit_engine";
 
 // MARK: - Type definitions
 
+/// Type of event processed by the engine state machine.
 typedef enum {
     EV_CMD_CONNECT,
     EV_CMD_CLOSE,
     EV_SIG_STATE,
     EV_SIG_JOIN,
     EV_SIG_LEAVE,
-    EV_PEER_STATE,
+    EV_PEER_PUB_STATE,
+    EV_PEER_SUB_STATE,
     EV_TIMER_EXP,
     EV_MAX_RETRIES_REACHED,
     _EV_STATE_ENTER,
     _EV_STATE_EXIT,
 } engine_event_type_t;
 
+/// An event processed by the engine state machine.
 typedef struct {
     engine_event_type_t type;
     union {
         struct { const char *server_url; const char *token; } cmd_connect;
         struct { connection_state_t state; } sig_state;
-        struct { bool subscriber_primary; bool force_relay; } sig_join;
+        struct { bool subscriber_primary; bool force_relay; char local_participant_sid[32]; } sig_join;
         struct { livekit_pb_disconnect_reason_t reason; livekit_pb_leave_request_action_t action; } sig_leave;
         struct { connection_state_t state; } peer_state;
     } detail;
@@ -45,7 +50,12 @@ typedef struct {
 
     signal_handle_t signal_handle;
     peer_handle_t pub_peer_handle;
-    // peer_handle_t sub_peer_handle;
+    peer_handle_t sub_peer_handle;
+
+    esp_capture_path_handle_t capturer_path;
+    bool is_media_streaming;
+
+    esp_codec_dev_handle_t    renderer_handle;
 
     // Session state
     bool is_subscriber_primary;
@@ -61,17 +71,222 @@ typedef struct {
     int retry_count;
 } engine_t;
 
+/// Frees engine events that contain dynamic payloads.
 static void event_free(engine_event_t *ev)
 {
     if (ev == NULL) return;
     switch (ev->type) {
-        // Free event types that contain dynamic payloads
         case EV_CMD_CONNECT:
             free((char *)ev->detail.cmd_connect.server_url);
             free((char *)ev->detail.cmd_connect.token);
             break;
         default: break;
     }
+}
+
+// MARK: - Subscribed media
+
+/// Converts `esp_peer_audio_codec_t` to equivalent `av_render_audio_codec_t` value.
+static inline av_render_audio_codec_t get_dec_codec(esp_peer_audio_codec_t codec)
+{
+    switch (codec) {
+        case ESP_PEER_AUDIO_CODEC_G711A: return AV_RENDER_AUDIO_CODEC_G711A;
+        case ESP_PEER_AUDIO_CODEC_G711U: return AV_RENDER_AUDIO_CODEC_G711U;
+        case ESP_PEER_AUDIO_CODEC_OPUS:  return AV_RENDER_AUDIO_CODEC_OPUS;
+        default:                         return AV_RENDER_AUDIO_CODEC_NONE;
+    }
+}
+
+/// Maps `esp_peer_audio_stream_info_t` to `av_render_audio_info_t`.
+static inline void convert_dec_aud_info(esp_peer_audio_stream_info_t *info, av_render_audio_info_t *dec_info)
+{
+    dec_info->codec = get_dec_codec(info->codec);
+    if (info->codec == ESP_PEER_AUDIO_CODEC_G711A || info->codec == ESP_PEER_AUDIO_CODEC_G711U) {
+        dec_info->sample_rate = 8000;
+        dec_info->channel = 1;
+    } else {
+        dec_info->sample_rate = info->sample_rate;
+        dec_info->channel = info->channel;
+    }
+    dec_info->bits_per_sample = 16;
+}
+
+// MARK: - Published media
+
+/// Converts `esp_peer_audio_codec_t` to equivalent `esp_capture_codec_type_t` value.
+static inline esp_capture_codec_type_t capture_audio_codec_type(esp_peer_audio_codec_t peer_codec)
+{
+    switch (peer_codec) {
+        case ESP_PEER_AUDIO_CODEC_G711A: return ESP_CAPTURE_CODEC_TYPE_G711A;
+        case ESP_PEER_AUDIO_CODEC_G711U: return ESP_CAPTURE_CODEC_TYPE_G711U;
+        case ESP_PEER_AUDIO_CODEC_OPUS:  return ESP_CAPTURE_CODEC_TYPE_OPUS;
+        default:                         return ESP_CAPTURE_CODEC_TYPE_NONE;
+    }
+}
+
+/// Converts `esp_peer_video_codec_t` to equivalent `esp_capture_codec_type_t` value.
+static inline esp_capture_codec_type_t capture_video_codec_type(esp_peer_video_codec_t peer_codec)
+{
+    switch (peer_codec) {
+        case ESP_PEER_VIDEO_CODEC_H264:  return ESP_CAPTURE_CODEC_TYPE_H264;
+        case ESP_PEER_VIDEO_CODEC_MJPEG: return ESP_CAPTURE_CODEC_TYPE_MJPEG;
+        default:                         return ESP_CAPTURE_CODEC_TYPE_NONE;
+    }
+}
+
+/// Captures and sends a single audio frame over the peer connection.
+__attribute__((always_inline))
+static inline void _media_stream_send_audio(engine_t *eng)
+{
+    esp_capture_stream_frame_t audio_frame = {
+        .stream_type = ESP_CAPTURE_STREAM_TYPE_AUDIO,
+    };
+    while (esp_capture_acquire_path_frame(eng->capturer_path, &audio_frame, true) == ESP_CAPTURE_ERR_OK) {
+        esp_peer_audio_frame_t audio_send_frame = {
+            .pts = audio_frame.pts,
+            .data = audio_frame.data,
+            .size = audio_frame.size,
+        };
+        peer_send_audio(eng->pub_peer_handle, &audio_send_frame);
+        esp_capture_release_path_frame(eng->capturer_path, &audio_frame);
+    }
+}
+
+/// Captures and sends a single video frame over the peer connection.
+__attribute__((always_inline))
+static inline void _media_stream_send_video(engine_t *eng)
+{
+    esp_capture_stream_frame_t video_frame = {
+        .stream_type = ESP_CAPTURE_STREAM_TYPE_VIDEO,
+    };
+    if (esp_capture_acquire_path_frame(eng->capturer_path, &video_frame, true) == ESP_CAPTURE_ERR_OK) {
+        esp_peer_video_frame_t video_send_frame = {
+            .pts = video_frame.pts,
+            .data = video_frame.data,
+            .size = video_frame.size,
+        };
+        peer_send_video(eng->pub_peer_handle, &video_send_frame);
+        esp_capture_release_path_frame(eng->capturer_path, &video_frame);
+    }
+}
+
+static void media_stream_task(void *arg)
+{
+    engine_t *eng = (engine_t *)arg;
+    while (eng->is_media_streaming) {
+        if (eng->options.media.audio_info.codec != ESP_PEER_AUDIO_CODEC_NONE) {
+            _media_stream_send_audio(eng);
+        }
+        if (eng->options.media.video_info.codec != ESP_PEER_VIDEO_CODEC_NONE) {
+            _media_stream_send_video(eng);
+        }
+        media_lib_thread_sleep(CONFIG_LK_PUB_INTERVAL_MS);
+    }
+    media_lib_thread_destroy(NULL);
+}
+
+static engine_err_t media_stream_begin(engine_t *eng)
+{
+    if (esp_capture_start(eng->options.media.capturer) != ESP_CAPTURE_ERR_OK) {
+        ESP_LOGE(TAG, "Failed to start capture");
+        return ENGINE_ERR_MEDIA;
+    }
+    media_lib_thread_handle_t handle = NULL;
+    eng->is_media_streaming = true;
+    if (media_lib_thread_create_from_scheduler(&handle, STREAM_THREAD_NAME, media_stream_task, eng) != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to create media stream thread");
+        eng->is_media_streaming = false;
+        return ENGINE_ERR_MEDIA;
+    }
+    return ENGINE_ERR_NONE;
+}
+
+static engine_err_t media_stream_end(engine_t *eng)
+{
+    if (!eng->is_media_streaming) {
+        return ENGINE_ERR_NONE;
+    }
+    eng->is_media_streaming = false;
+    esp_capture_stop(eng->options.media.capturer);
+    return ENGINE_ERR_NONE;
+}
+
+static engine_err_t send_add_audio_track(engine_t *eng)
+{
+    bool is_stereo = eng->options.media.audio_info.channel == 2;
+    livekit_pb_add_track_request_t req = {
+        .cid = "a0",
+        .name = CONFIG_LK_PUB_AUDIO_TRACK_NAME,
+        .type = LIVEKIT_PB_TRACK_TYPE_AUDIO,
+        .source = LIVEKIT_PB_TRACK_SOURCE_MICROPHONE,
+        .muted = false,
+        .audio_features_count = is_stereo ? 1 : 0,
+        .audio_features = { LIVEKIT_PB_AUDIO_TRACK_FEATURE_TF_STEREO },
+        .layers_count = 0
+    };
+
+    if (signal_send_add_track(eng->signal_handle, &req) != SIGNAL_ERR_NONE) {
+        ESP_LOGE(TAG, "Failed to publish audio track");
+        return ENGINE_ERR_SIGNALING;
+    }
+    return ENGINE_ERR_NONE;
+}
+
+static engine_err_t send_add_video_track(engine_t *eng)
+{
+    livekit_pb_video_layer_t video_layer = {
+        .quality = LIVEKIT_PB_VIDEO_QUALITY_HIGH,
+        .width = eng->options.media.video_info.width,
+        .height = eng->options.media.video_info.height
+    };
+    livekit_pb_add_track_request_t req = {
+        .cid = "v0",
+        .name = CONFIG_LK_PUB_VIDEO_TRACK_NAME,
+        .type = LIVEKIT_PB_TRACK_TYPE_VIDEO,
+        .source = LIVEKIT_PB_TRACK_SOURCE_CAMERA,
+        .muted = false,
+        .layers_count = 1,
+        .layers = { video_layer },
+        .audio_features_count = 0
+    };
+
+    if (signal_send_add_track(eng->signal_handle, &req) != SIGNAL_ERR_NONE) {
+        ESP_LOGE(TAG, "Failed to publish video track");
+        return ENGINE_ERR_SIGNALING;
+    }
+    return ENGINE_ERR_NONE;
+}
+
+/// Begins media streaming and sends add track requests.
+static engine_err_t publish_tracks(engine_t *eng)
+{
+    if (eng->options.media.audio_info.codec == ESP_PEER_AUDIO_CODEC_NONE &&
+        eng->options.media.video_info.codec == ESP_PEER_VIDEO_CODEC_NONE) {
+        ESP_LOGI(TAG, "No media tracks to publish");
+        return ENGINE_ERR_NONE;
+    }
+
+    int ret = ENGINE_ERR_OTHER;
+    do {
+        if (media_stream_begin(eng) != ENGINE_ERR_NONE) {
+            ret = ENGINE_ERR_MEDIA;
+            break;
+        }
+        if (eng->options.media.audio_info.codec != ESP_PEER_AUDIO_CODEC_NONE &&
+            send_add_audio_track(eng) != ENGINE_ERR_NONE) {
+            ret = ENGINE_ERR_SIGNALING;
+            break;
+        }
+        if (eng->options.media.video_info.codec != ESP_PEER_VIDEO_CODEC_NONE &&
+            send_add_video_track(eng) != ENGINE_ERR_NONE) {
+            ret = ENGINE_ERR_SIGNALING;
+            break;
+        }
+        return ENGINE_ERR_NONE;
+    } while (0);
+
+    media_stream_end(eng);
+    return ret;
 }
 
 // MARK: - Signal event handlers
@@ -110,25 +325,69 @@ static void on_signal_leave(livekit_pb_disconnect_reason_t reason, livekit_pb_le
     xQueueSendToFront(eng->event_queue, &ev, 0);
 }
 
-// MARK: - Peer event handlers
-
-static void on_peer_ice_candidate(const char *candidate, void *ctx)
+static void on_signal_answer(const char *sdp, void *ctx)
 {
-    ESP_LOGI(TAG, "ICE candidate");
-    // TODO: Handle ICE candidate
+    engine_t *eng = (engine_t *)ctx;
+    peer_handle_sdp(eng->pub_peer_handle, sdp);
 }
+
+static void on_signal_offer(const char *sdp, void *ctx)
+{
+    engine_t *eng = (engine_t *)ctx;
+    peer_handle_sdp(eng->sub_peer_handle, sdp);
+}
+
+static void on_signal_trickle(const char *ice_candidate, livekit_pb_signal_target_t target, void *ctx)
+{
+    engine_t *eng = (engine_t *)ctx;
+    peer_handle_t target_peer = target == LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER ?
+        eng->sub_peer_handle : eng->pub_peer_handle;
+    peer_handle_ice_candidate(target_peer, ice_candidate);
+}
+
+static void on_signal_room_update(const livekit_pb_room_t* info, void *ctx)
+{
+    engine_t *eng = (engine_t *)ctx;
+    if (eng->options.on_room_info) {
+        eng->options.on_room_info(info, eng->options.ctx);
+    }
+}
+
+static void on_signal_participant_update(const livekit_pb_participant_info_t* info, void *ctx)
+{
+    // engine_t *eng = (engine_t *)ctx;
+    // TODO: Subscribe
+    // bool is_local = strncmp(info->sid, eng->local_participant_sid, sizeof(eng->local_participant_sid)) == 0;
+    // if (eng->options.on_participant_info) {
+    //     eng->options.on_participant_info(info, is_local, eng->options.ctx);
+    //}
+
+    // if (is_local) return;
+    // subscribe_tracks(eng, info->tracks, info->tracks_count);
+}
+
+// MARK: - Common peer event handlers
 
 static void on_peer_packet_received(livekit_pb_data_packet_t* packet, void *ctx)
 {
-    ESP_LOGI(TAG, "Packet received");
-    // TODO: Handle packet
+    engine_t *eng = (engine_t *)ctx;
+    if (eng->options.on_data_packet) {
+        eng->options.on_data_packet(packet, eng->options.ctx);
+    }
 }
+
+static void on_peer_ice_candidate(const char *candidate, void *ctx)
+{
+    // TODO: Handle ICE candidate
+}
+
+// MARK: - Publisher peer event handlers
 
 static void on_peer_pub_state_changed(connection_state_t state, void *ctx)
 {
     engine_t *eng = (engine_t *)ctx;
     engine_event_t ev = {
-        .type = EV_PEER_STATE,
+        .type = EV_PEER_PUB_STATE,
         .detail.peer_state = { .state = state }
     };
     xQueueSendToFront(eng->event_queue, &ev, 0);
@@ -136,8 +395,55 @@ static void on_peer_pub_state_changed(connection_state_t state, void *ctx)
 
 static void on_peer_pub_offer(const char *sdp, void *ctx)
 {
-    ESP_LOGI(TAG, "Publisher peer offer");
-    // TODO: Handle offer
+    engine_t *eng = (engine_t *)ctx;
+    signal_send_offer(eng->signal_handle, sdp);
+}
+
+// MARK: - Subscriber peer event handlers
+
+static void on_peer_sub_state_changed(connection_state_t state, void *ctx)
+{
+    engine_t *eng = (engine_t *)ctx;
+    engine_event_t ev = {
+        .type = EV_PEER_SUB_STATE,
+        .detail.peer_state = { .state = state }
+    };
+    xQueueSendToFront(eng->event_queue, &ev, 0);
+}
+
+static void on_peer_sub_answer(const char *sdp, void *ctx)
+{
+    engine_t *eng = (engine_t *)ctx;
+    signal_send_answer(eng->signal_handle, sdp);
+}
+
+static void on_peer_sub_audio_info(esp_peer_audio_stream_info_t* info, void *ctx)
+{
+    engine_t *eng = (engine_t *)ctx;
+    if (eng->state != ENGINE_STATE_CONNECTED) return;
+
+    av_render_audio_info_t render_info = {};
+    convert_dec_aud_info(info, &render_info);
+    ESP_LOGD(TAG, "Audio render info: codec=%d, sample_rate=%" PRIu32 ", channels=%" PRIu8,
+        render_info.codec, render_info.sample_rate, render_info.channel);
+
+    if (av_render_add_audio_stream(eng->renderer_handle, &render_info) != ESP_MEDIA_ERR_OK) {
+        ESP_LOGE(TAG, "Failed to add audio stream to renderer");
+        return;
+    }
+}
+
+static void on_peer_sub_audio_frame(esp_peer_audio_frame_t* frame, void *ctx)
+{
+    engine_t *eng = (engine_t *)ctx;
+    if (eng->state != ENGINE_STATE_CONNECTED) return;
+
+    av_render_audio_data_t audio_data = {
+        .pts = frame->pts,
+        .data = frame->data,
+        .size = frame->size,
+    };
+    av_render_add_audio_data(eng->renderer_handle, &audio_data);
 }
 
 // MARK: - Timer expired handler
@@ -151,49 +457,65 @@ static void on_timer_expired(TimerHandle_t timer)
 
 // MARK: - Peer lifecycle
 
-static bool disconnect_peer(peer_handle_t *peer)
+static inline void _create_and_connect_peer(peer_options_t *options, peer_handle_t *peer)
 {
-    if (*peer == NULL) return false;
-    if (peer_disconnect(*peer) != PEER_ERR_NONE) return false;
-    if (peer_destroy(*peer) != PEER_ERR_NONE) return false;
+    if (peer_create(peer, options) != PEER_ERR_NONE)
+        return;
+    if (peer_connect(*peer) != PEER_ERR_NONE) {
+        peer_destroy(*peer);
+        *peer = NULL;
+    }
+}
+
+static inline void _disconnect_and_destroy_peer(peer_handle_t *peer)
+{
+    if (!peer || !*peer) return;
+    peer_disconnect(*peer);
+    peer_destroy(*peer);
     *peer = NULL;
-    return true;
 }
 
-static bool connect_peer(engine_t *eng, peer_options_t *options, peer_handle_t *peer)
+static void destroy_peer_connections(engine_t *eng)
 {
-    disconnect_peer(peer);
-    if (peer_create(peer, options) != PEER_ERR_NONE) return false;
-    if (peer_connect(*peer) != PEER_ERR_NONE) return false;
-    return true;
+    _disconnect_and_destroy_peer(&eng->pub_peer_handle);
+    _disconnect_and_destroy_peer(&eng->sub_peer_handle);
 }
 
-static bool connect_peers(engine_t *eng)
+static bool establish_peer_connections(engine_t *eng)
 {
     peer_options_t options = {
-        // Options common to both peers
-        .force_relay = eng->force_relay,
-        .media = &eng->options.media,
-        // .server_list = eng->ice_servers,
-        //.server_count = eng->ice_server_count,
-        .on_ice_candidate = on_peer_ice_candidate,
+        .force_relay        = eng->force_relay,
+        .media              = &eng->options.media,
+        .on_ice_candidate   = on_peer_ice_candidate,
         .on_packet_received = on_peer_packet_received,
-        .ctx = eng
+        .ctx                = eng
     };
 
-    // 1. Publisher peer
-    options.target = LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER;
+    // Publisher
+    options.target           = LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER;
     options.on_state_changed = on_peer_pub_state_changed;
-    options.on_sdp = on_peer_pub_offer;
+    options.on_sdp           = on_peer_pub_offer;
 
-    if (!connect_peer(eng, &options, &eng->pub_peer_handle)) {
-        ESP_LOGE(TAG, "Failed to connect publisher peer");
+    _create_and_connect_peer(&options, &eng->pub_peer_handle);
+    if (eng->pub_peer_handle == NULL)
+        return false;
+
+    // Subscriber
+    options.target           = LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER;
+    options.on_state_changed = on_peer_sub_state_changed;
+    options.on_sdp           = on_peer_sub_answer;
+    options.on_audio_info    = on_peer_sub_audio_info;
+    options.on_audio_frame   = on_peer_sub_audio_frame;
+
+    _create_and_connect_peer(&options, &eng->sub_peer_handle);
+    if (eng->sub_peer_handle == NULL) {
+        _disconnect_and_destroy_peer(&eng->pub_peer_handle);
         return false;
     }
     return true;
 }
 
-// MARK: - State machine
+// MARK: - Connection state machine
 
 static bool handle_state_any(engine_t *eng, const engine_event_t *ev);
 static void handle_state(engine_t *eng, engine_event_t *ev, engine_state_t state);
@@ -208,7 +530,7 @@ static void engine_task(void *arg)
             ESP_LOGE(TAG, "Failed to receive event");
             continue;
         }
-        assert(ev.type != EV_STATE_ENTER && ev.type != EV_STATE_EXIT);
+        assert(ev.type != _EV_STATE_ENTER && ev.type != _EV_STATE_EXIT);
         ESP_LOGI(TAG, "Event: %d", ev.type);
 
         engine_state_t state = eng->state;
@@ -244,16 +566,25 @@ static bool handle_state_any(engine_t *eng, const engine_event_t *ev)
 
 static void handle_state_disconnected(engine_t *eng, const engine_event_t *ev)
 {
-    if (ev->type == EV_CMD_CONNECT) {
-        const char *server_url = ev->detail.cmd_connect.server_url;
-        const char *token = ev->detail.cmd_connect.token;
+    switch (ev->type) {
+        case _EV_STATE_ENTER:
+            media_stream_end(eng);
+            signal_close(eng->signal_handle);
+            destroy_peer_connections(eng);
+            eng->retry_count = 0;
+            break;
+        case EV_CMD_CONNECT:
+            const char *server_url = ev->detail.cmd_connect.server_url;
+            const char *token = ev->detail.cmd_connect.token;
 
-        if (eng->server_url != NULL) free(eng->server_url);
-        if (eng->token != NULL) free(eng->token);
-        eng->server_url = strdup(server_url);
-        eng->token = strdup(token);
+            if (eng->server_url != NULL) free(eng->server_url);
+            if (eng->token != NULL) free(eng->token);
+            eng->server_url = strdup(server_url);
+            eng->token = strdup(token);
 
-        eng->state = ENGINE_STATE_CONNECTING;
+            eng->state = ENGINE_STATE_CONNECTING;
+            break;
+        default: break;
     }
 }
 
@@ -275,18 +606,30 @@ static void handle_state_connecting(engine_t *eng, const engine_event_t *ev)
             eng->state = ENGINE_STATE_DISCONNECTED;
             break;
         case EV_SIG_JOIN:
-            if (!connect_peers(eng)) {
-                ESP_LOGE(TAG, "Failed to connect peers");
+            eng->is_subscriber_primary = ev->detail.sig_join.subscriber_primary;
+            eng->force_relay = ev->detail.sig_join.force_relay;
+
+            if (!establish_peer_connections(eng)) {
+                ESP_LOGE(TAG, "Failed to establish peer connections");
                 eng->state = ENGINE_STATE_DISCONNECTED;
                 break;
             }
-            eng->state = ENGINE_STATE_CONNECTED;
             break;
-        case EV_PEER_STATE:
-            if (ev->detail.peer_state.state == CONNECTION_STATE_CONNECTED) {
-                eng->state = ENGINE_STATE_CONNECTED; // Fully connected
-            } else if (ev->detail.peer_state.state == CONNECTION_STATE_FAILED ||
-                       ev->detail.peer_state.state == CONNECTION_STATE_DISCONNECTED) {
+        case EV_PEER_PUB_STATE:
+            connection_state_t pub_state = ev->detail.peer_state.state;
+            if (!eng->is_subscriber_primary && pub_state == CONNECTION_STATE_CONNECTED) {
+                eng->state = ENGINE_STATE_CONNECTED;
+            } else if (pub_state == CONNECTION_STATE_FAILED ||
+                       pub_state == CONNECTION_STATE_DISCONNECTED) {
+                eng->state = ENGINE_STATE_RECONNECTING;
+            }
+            break;
+        case EV_PEER_SUB_STATE:
+            connection_state_t sub_state = ev->detail.peer_state.state;
+            if (eng->is_subscriber_primary && sub_state == CONNECTION_STATE_CONNECTED) {
+                eng->state = ENGINE_STATE_CONNECTED;
+            } else if (sub_state == CONNECTION_STATE_FAILED ||
+                       sub_state == CONNECTION_STATE_DISCONNECTED) {
                 eng->state = ENGINE_STATE_RECONNECTING;
             }
             break;
@@ -296,13 +639,43 @@ static void handle_state_connecting(engine_t *eng, const engine_event_t *ev)
 
 static void handle_state_connected(engine_t *eng, const engine_event_t *ev)
 {
-    // TODO: Track pub/sub
+    switch (ev->type) {
+        case _EV_STATE_ENTER:
+            eng->retry_count = 0;
+            publish_tracks(eng);
+            break;
+        case EV_SIG_STATE:
+            if (ev->detail.sig_state.state == CONNECTION_STATE_FAILED ||
+                ev->detail.sig_state.state == CONNECTION_STATE_DISCONNECTED) {
+                eng->state = ENGINE_STATE_RECONNECTING;
+            }
+            break;
+        case EV_PEER_PUB_STATE:
+            connection_state_t pub_state = ev->detail.peer_state.state;
+            if (pub_state == CONNECTION_STATE_FAILED ||
+                pub_state == CONNECTION_STATE_DISCONNECTED) {
+                eng->state = ENGINE_STATE_RECONNECTING;
+            }
+            break;
+        case EV_PEER_SUB_STATE:
+            connection_state_t sub_state = ev->detail.peer_state.state;
+            if (sub_state == CONNECTION_STATE_FAILED ||
+                sub_state == CONNECTION_STATE_DISCONNECTED) {
+                eng->state = ENGINE_STATE_RECONNECTING;
+            }
+            break;
+        default: break;
+    }
 }
 
 static void handle_state_reconnecting(engine_t *eng, const engine_event_t *ev)
 {
     switch (ev->type) {
         case _EV_STATE_ENTER:
+            media_stream_end(eng);
+            signal_close(eng->signal_handle);
+            destroy_peer_connections(eng);
+
             if (eng->retry_count >= CONFIG_LK_MAX_RETRIES) {
                 ESP_LOGW(TAG, "Max retries reached");
                 xQueueSendToFront(eng->event_queue, &(engine_event_t){ .type = EV_MAX_RETRIES_REACHED }, 0);
@@ -345,9 +718,12 @@ static void handle_state(engine_t *eng, engine_event_t *ev, engine_state_t state
 static void flush_event_queue(engine_t *eng)
 {
     engine_event_t ev;
+    int count = 0;
     while (xQueueReceive(eng->event_queue, &ev, 0) == pdPASS) {
+        count++;
         event_free(&ev);
     }
+    ESP_LOGI(TAG, "Flushed %d events", count);
 }
 
 // MARK: - Public API
@@ -373,8 +749,8 @@ engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options)
         on_timer_expired);
 
     if (eng->timer == NULL) {
-        free(eng);
         free(eng->event_queue);
+        free(eng);
         return ENGINE_ERR_NO_MEM;
     }
 
@@ -383,12 +759,16 @@ engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options)
         .on_state_changed = on_signal_state_changed,
         .on_join = on_signal_join,
         .on_leave = on_signal_leave,
-        // TODO: Add other handlers
+        .on_answer = on_signal_answer,
+        .on_offer = on_signal_offer,
+        .on_trickle = on_signal_trickle,
+        .on_room_update = on_signal_room_update,
+        .on_participant_update = on_signal_participant_update
     };
     if (signal_create(&eng->signal_handle, &signal_options) != SIGNAL_ERR_NONE) {
-        free(eng);
         free(eng->event_queue);
         free(eng->timer);
+        free(eng);
         return ENGINE_ERR_SIGNALING;
     }
 
@@ -397,11 +777,33 @@ engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options)
     eng->is_running = true;
 
     if (xTaskCreate(engine_task, "engine_task", 4096, eng, 5, &eng->task_handle) != pdPASS) {
-        free(eng);
         free(eng->event_queue);
         free(eng->timer);
+        free(eng);
         return ENGINE_ERR_NO_MEM;
     }
+
+    esp_capture_sink_cfg_t sink_cfg = {
+        .audio_info = {
+            .codec = capture_audio_codec_type(eng->options.media.audio_info.codec),
+            .sample_rate = eng->options.media.audio_info.sample_rate,
+            .channel = eng->options.media.audio_info.channel,
+            .bits_per_sample = 16,
+        },
+        .video_info = {
+            .codec = capture_video_codec_type(eng->options.media.video_info.codec),
+            .width = eng->options.media.video_info.width,
+            .height = eng->options.media.video_info.height,
+            .fps = eng->options.media.video_info.fps,
+        },
+    };
+
+    if (options->media.audio_info.codec != ESP_PEER_AUDIO_CODEC_NONE) {
+        // TODO: Can we ensure the renderer is valid? If not, return error.
+        eng->renderer_handle = options->media.renderer;
+    }
+    esp_capture_setup_path(eng->options.media.capturer, ESP_CAPTURE_PATH_PRIMARY, &sink_cfg, &eng->capturer_path);
+    esp_capture_enable_path(eng->capturer_path, ESP_CAPTURE_RUN_TYPE_ALWAYS);
 
     *handle = (engine_handle_t)eng;
     return ENGINE_ERR_NONE;
