@@ -568,6 +568,7 @@ static void handle_state_disconnected(engine_t *eng, const engine_event_t *ev)
 {
     switch (ev->type) {
         case _EV_STATE_ENTER:
+            // Clean up resources from previous connection (if any)
             media_stream_end(eng);
             signal_close(eng->signal_handle);
             destroy_peer_connections(eng);
@@ -593,6 +594,13 @@ static void handle_state_connecting(engine_t *eng, const engine_event_t *ev)
     switch (ev->type) {
         case _EV_STATE_ENTER:
             signal_connect(eng->signal_handle, eng->server_url, eng->token);
+            break;
+        case EV_CMD_CLOSE:
+            // TODO: Send leave request
+            eng->state = ENGINE_STATE_DISCONNECTED;
+            break;
+        case EV_CMD_CONNECT:
+            ESP_LOGW(TAG, "Engine already connecting, ignoring connect command");
             break;
         case EV_SIG_STATE:
             // TODO: Check error code (4xx should go to disconnected)
@@ -644,11 +652,22 @@ static void handle_state_connected(engine_t *eng, const engine_event_t *ev)
             eng->retry_count = 0;
             publish_tracks(eng);
             break;
+        case EV_CMD_CLOSE:
+            // TODO: Send leave request
+            eng->state = ENGINE_STATE_DISCONNECTED;
+            break;
+        case EV_CMD_CONNECT:
+            ESP_LOGW(TAG, "Engine already connected, ignoring connect command");
+            break;
         case EV_SIG_STATE:
             if (ev->detail.sig_state.state == CONNECTION_STATE_FAILED ||
                 ev->detail.sig_state.state == CONNECTION_STATE_DISCONNECTED) {
                 eng->state = ENGINE_STATE_RECONNECTING;
             }
+            break;
+        case EV_SIG_LEAVE:
+            ESP_LOGI(TAG, "Server initiated disconnect");
+            eng->state = ENGINE_STATE_DISCONNECTED;
             break;
         case EV_PEER_PUB_STATE:
             connection_state_t pub_state = ev->detail.peer_state.state;
