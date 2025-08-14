@@ -588,7 +588,12 @@ static bool handle_state_disconnected(engine_t *eng, const engine_event_t *ev)
             media_stream_end(eng);
             signal_close(eng->signal_handle);
             destroy_peer_connections(eng);
+
+            eng->is_subscriber_primary = false;
+            eng->force_relay = false;
+            eng->local_participant_sid[0] = '\0';
             eng->retry_count = 0;
+
             return true;
         case EV_CMD_CONNECT:
             if (eng->server_url != NULL) free(eng->server_url);
