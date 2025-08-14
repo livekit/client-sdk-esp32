@@ -43,11 +43,6 @@ typedef struct {
             char *token;
         } cmd_connect;
 
-        /// Detail for `EV_SIG_STATE`.
-        struct {
-            connection_state_t state;
-        } sig_state;
-
         /// Detail for `EV_SIG_JOIN`.
         struct {
             bool subscriber_primary;
@@ -61,10 +56,8 @@ typedef struct {
             livekit_pb_leave_request_action_t action;
         } sig_leave;
 
-        /// Detail for `EV_PEER_PUB_STATE` and `EV_PEER_SUB_STATE`.
-        struct {
-            connection_state_t state;
-        } peer_state;
+        /// Detail for `EV_SIG_STATE`, `EV_PEER_PUB_STATE` and `EV_PEER_SUB_STATE`.
+        connection_state_t state;
     } detail;
 } engine_event_t;
 
@@ -319,7 +312,7 @@ static void on_signal_state_changed(connection_state_t state, void *ctx)
     engine_t *eng = (engine_t *)ctx;
     engine_event_t ev = {
         .type = EV_SIG_STATE,
-        .detail.sig_state = { .state = state }
+        .detail.state = state
     };
     xQueueSendToFront(eng->event_queue, &ev, 0);
 }
@@ -416,7 +409,7 @@ static void on_peer_pub_state_changed(connection_state_t state, void *ctx)
     engine_t *eng = (engine_t *)ctx;
     engine_event_t ev = {
         .type = EV_PEER_PUB_STATE,
-        .detail.peer_state = { .state = state }
+        .detail.state = state
     };
     xQueueSendToFront(eng->event_queue, &ev, 0);
 }
@@ -434,7 +427,7 @@ static void on_peer_sub_state_changed(connection_state_t state, void *ctx)
     engine_t *eng = (engine_t *)ctx;
     engine_event_t ev = {
         .type = EV_PEER_SUB_STATE,
-        .detail.peer_state = { .state = state }
+        .detail.state = state
     };
     xQueueSendToFront(eng->event_queue, &ev, 0);
 }
@@ -625,8 +618,8 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
             return false;
         case EV_SIG_STATE:
             // TODO: Check error code (4xx should go to disconnected)
-            if (ev->detail.sig_state.state == CONNECTION_STATE_FAILED ||
-                ev->detail.sig_state.state == CONNECTION_STATE_DISCONNECTED) {
+            if (ev->detail.state == CONNECTION_STATE_FAILED ||
+                ev->detail.state == CONNECTION_STATE_DISCONNECTED) {
                 eng->state = ENGINE_STATE_BACKOFF;
             }
             return true;
@@ -650,20 +643,20 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
             }
             return true;
         case EV_PEER_PUB_STATE:
-            connection_state_t pub_state = ev->detail.peer_state.state;
-            if (!eng->is_subscriber_primary && pub_state == CONNECTION_STATE_CONNECTED) {
+            if (!eng->is_subscriber_primary &&
+                ev->detail.state == CONNECTION_STATE_CONNECTED) {
                 eng->state = ENGINE_STATE_CONNECTED;
-            } else if (pub_state == CONNECTION_STATE_FAILED ||
-                       pub_state == CONNECTION_STATE_DISCONNECTED) {
+            } else if (ev->detail.state == CONNECTION_STATE_FAILED ||
+                       ev->detail.state == CONNECTION_STATE_DISCONNECTED) {
                 eng->state = ENGINE_STATE_BACKOFF;
             }
             return true;
         case EV_PEER_SUB_STATE:
-            connection_state_t sub_state = ev->detail.peer_state.state;
-            if (eng->is_subscriber_primary && sub_state == CONNECTION_STATE_CONNECTED) {
+            if (eng->is_subscriber_primary &&
+                ev->detail.state == CONNECTION_STATE_CONNECTED) {
                 eng->state = ENGINE_STATE_CONNECTED;
-            } else if (sub_state == CONNECTION_STATE_FAILED ||
-                       sub_state == CONNECTION_STATE_DISCONNECTED) {
+            } else if (ev->detail.state == CONNECTION_STATE_FAILED ||
+                       ev->detail.state == CONNECTION_STATE_DISCONNECTED) {
                 eng->state = ENGINE_STATE_BACKOFF;
             }
             return true;
@@ -687,8 +680,8 @@ static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
             ESP_LOGW(TAG, "Engine already connected, ignoring connect command");
             return false;
         case EV_SIG_STATE:
-            if (ev->detail.sig_state.state == CONNECTION_STATE_FAILED ||
-                ev->detail.sig_state.state == CONNECTION_STATE_DISCONNECTED) {
+            if (ev->detail.state == CONNECTION_STATE_FAILED ||
+                ev->detail.state == CONNECTION_STATE_DISCONNECTED) {
                 eng->state = ENGINE_STATE_BACKOFF;
             }
             return true;
@@ -698,16 +691,14 @@ static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
             eng->state = ENGINE_STATE_DISCONNECTED;
             return true;
         case EV_PEER_PUB_STATE:
-            connection_state_t pub_state = ev->detail.peer_state.state;
-            if (pub_state == CONNECTION_STATE_FAILED ||
-                pub_state == CONNECTION_STATE_DISCONNECTED) {
+            if (ev->detail.state == CONNECTION_STATE_FAILED ||
+                ev->detail.state == CONNECTION_STATE_DISCONNECTED) {
                 eng->state = ENGINE_STATE_BACKOFF;
             }
             return true;
         case EV_PEER_SUB_STATE:
-            connection_state_t sub_state = ev->detail.peer_state.state;
-            if (sub_state == CONNECTION_STATE_FAILED ||
-                sub_state == CONNECTION_STATE_DISCONNECTED) {
+            if (ev->detail.state == CONNECTION_STATE_FAILED ||
+                ev->detail.state == CONNECTION_STATE_DISCONNECTED) {
                 eng->state = ENGINE_STATE_BACKOFF;
             }
             return true;
