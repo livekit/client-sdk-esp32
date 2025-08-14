@@ -539,7 +539,6 @@ static bool establish_peer_connections(engine_t *eng)
 
 // MARK: - Connection state machine
 
-static bool handle_state_any(engine_t *eng, const engine_event_t *ev);
 static void handle_state(engine_t *eng, engine_event_t *ev, engine_state_t state);
 static void flush_event_queue(engine_t *eng);
 
@@ -556,12 +555,7 @@ static void engine_task(void *arg)
         ESP_LOGI(TAG, "Event: %d", ev.type);
 
         engine_state_t state = eng->state;
-        do {
-            if (handle_state_any(eng, &ev)) {
-                break;
-            }
-            handle_state(eng, &ev, state);
-        } while (0);
+        handle_state(eng, &ev, state);
 
         if (eng->state != state) {
             ESP_LOGI(TAG, "State changed: %d -> %d", state, eng->state);
@@ -577,13 +571,6 @@ static void engine_task(void *arg)
     }
     flush_event_queue(eng);
     vTaskDelete(NULL);
-}
-
-static bool handle_state_any(engine_t *eng, const engine_event_t *ev)
-{
-    // Handle transitions from any state here.
-    // Return true if the event was handled, false otherwise.
-    return false;
 }
 
 static void handle_state_disconnected(engine_t *eng, const engine_event_t *ev)
