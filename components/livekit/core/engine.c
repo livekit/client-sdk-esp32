@@ -19,28 +19,52 @@ static const char* TAG = "livekit_engine";
 
 /// Type of event processed by the engine state machine.
 typedef enum {
-    EV_CMD_CONNECT,
-    EV_CMD_CLOSE,
-    EV_SIG_STATE,
-    EV_SIG_JOIN,
-    EV_SIG_LEAVE,
-    EV_PEER_PUB_STATE,
-    EV_PEER_SUB_STATE,
-    EV_TIMER_EXP,
-    EV_MAX_RETRIES_REACHED,
+    EV_CMD_CONNECT,         /// User-initiated connect.
+    EV_CMD_CLOSE,           /// User-initiated disconnect.
+    EV_SIG_STATE,           /// Signal state changed.
+    EV_SIG_JOIN,            /// Join response received.
+    EV_SIG_LEAVE,           /// Leave request received.
+    EV_PEER_PUB_STATE,      /// Publisher peer state changed.
+    EV_PEER_SUB_STATE,      /// Subscriber peer state changed.
+    EV_TIMER_EXP,           /// Timer expired.
+    EV_MAX_RETRIES_REACHED, /// Maximum number of retry attempts reached.
     _EV_STATE_ENTER,
     _EV_STATE_EXIT,
 } engine_event_type_t;
 
 /// An event processed by the engine state machine.
 typedef struct {
+    /// Type of event, determines which union member is valid in `detail`.
     engine_event_type_t type;
     union {
-        struct { const char *server_url; const char *token; } cmd_connect;
-        struct { connection_state_t state; } sig_state;
-        struct { bool subscriber_primary; bool force_relay; char local_participant_sid[32]; } sig_join;
-        struct { livekit_pb_disconnect_reason_t reason; livekit_pb_leave_request_action_t action; } sig_leave;
-        struct { connection_state_t state; } peer_state;
+        /// Detail for `EV_CMD_CONNECT`.
+        struct {
+            const char *server_url;
+            const char *token;
+        } cmd_connect;
+
+        /// Detail for `EV_SIG_STATE`.
+        struct {
+            connection_state_t state;
+        } sig_state;
+
+        /// Detail for `EV_SIG_JOIN`.
+        struct {
+            bool subscriber_primary;
+            bool force_relay;
+            char local_participant_sid[32];
+        } sig_join;
+
+        /// Detail for `EV_SIG_LEAVE`.
+        struct {
+            livekit_pb_disconnect_reason_t reason;
+            livekit_pb_leave_request_action_t action;
+        } sig_leave;
+
+        /// Detail for `EV_PEER_PUB_STATE` and `EV_PEER_SUB_STATE`.
+        struct {
+            connection_state_t state;
+        } peer_state;
     } detail;
 } engine_event_t;
 
@@ -52,15 +76,13 @@ typedef struct {
     peer_handle_t pub_peer_handle;
     peer_handle_t sub_peer_handle;
 
+    esp_codec_dev_handle_t renderer_handle;
     esp_capture_path_handle_t capturer_path;
     bool is_media_streaming;
-
-    esp_codec_dev_handle_t    renderer_handle;
 
     // Session state
     bool is_subscriber_primary;
     bool force_relay;
-
     char* server_url;
     char* token;
 
@@ -71,7 +93,7 @@ typedef struct {
     int retry_count;
 } engine_t;
 
-/// Frees engine events that contain dynamic payloads.
+/// Frees engine events that contain dynamic fields.
 static void event_free(engine_event_t *ev)
 {
     if (ev == NULL) return;
@@ -667,6 +689,7 @@ static void handle_state_connected(engine_t *eng, const engine_event_t *ev)
             break;
         case EV_SIG_LEAVE:
             ESP_LOGI(TAG, "Server initiated disconnect");
+            // TODO: Handle leave action
             eng->state = ENGINE_STATE_DISCONNECTED;
             break;
         case EV_PEER_PUB_STATE:
