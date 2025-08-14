@@ -52,7 +52,7 @@ typedef struct {
         struct {
             bool subscriber_primary;
             bool force_relay;
-            char local_participant_sid[32];
+            livekit_pb_sid_t local_participant_sid;
         } sig_join;
 
         /// Detail for `EV_SIG_LEAVE`.
@@ -85,6 +85,7 @@ typedef struct {
     bool force_relay;
     char* server_url;
     char* token;
+    livekit_pb_sid_t local_participant_sid;
 
     TaskHandle_t task_handle;
     QueueHandle_t event_queue;
@@ -334,6 +335,11 @@ static void on_signal_join(livekit_pb_join_response_t *join_res, void *ctx)
                            join_res->client_configuration.force_relay == LIVEKIT_PB_CLIENT_CONFIG_SETTING_ENABLED
         }
     };
+    strncpy(
+        ev.detail.sig_join.local_participant_sid,
+        join_res->participant.sid,
+        sizeof(ev.detail.sig_join.local_participant_sid)
+    );
     xQueueSendToFront(eng->event_queue, &ev, 0);
 }
 
@@ -631,6 +637,11 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
         case EV_SIG_JOIN:
             eng->is_subscriber_primary = ev->detail.sig_join.subscriber_primary;
             eng->force_relay = ev->detail.sig_join.force_relay;
+            strncpy(
+                eng->local_participant_sid,
+                ev->detail.sig_join.local_participant_sid,
+                sizeof(eng->local_participant_sid)
+            );
 
             if (!establish_peer_connections(eng)) {
                 ESP_LOGE(TAG, "Failed to establish peer connections");

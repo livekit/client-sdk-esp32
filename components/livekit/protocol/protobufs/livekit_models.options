@@ -2,7 +2,7 @@ livekit_pb.ClientConfiguration.video type:FT_IGNORE
 livekit_pb.ClientConfiguration.screen type:FT_IGNORE
 livekit_pb.ClientConfiguration.disabled_codecs type:FT_IGNORE
 
-livekit_pb.ParticipantInfo.sid type:FT_POINTER
+livekit_pb.ParticipantInfo.sid max_length:15
 livekit_pb.ParticipantInfo.identity type:FT_POINTER
 livekit_pb.ParticipantInfo.tracks type:FT_POINTER
 livekit_pb.ParticipantInfo.metadata type:FT_POINTER

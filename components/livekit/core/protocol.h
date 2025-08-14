@@ -8,3 +8,6 @@
 #include "livekit_models.pb.h"
 #include "livekit_metrics.pb.h"
 #include "timestamp.pb.h"
+
+/// Server identifier (SID) type.
+typedef char livekit_pb_sid_t[16];
