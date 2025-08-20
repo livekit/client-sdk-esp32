@@ -16,14 +16,22 @@ extern "C" {
 /// Server identifier (SID) type.
 typedef char livekit_pb_sid_t[16];
 
+/// Decodes a data packet.
+///
+/// When the packet is no longer needed, free using `protocol_data_packet_free`.
+///
+bool protocol_data_packet_decode(const uint8_t *buf, size_t len, livekit_pb_data_packet_t *out);
+
+/// Frees a data packet.
+void protocol_data_packet_free(livekit_pb_data_packet_t *packet);
+
 /// Decodes a signal response.
-bool protocol_signal_res_decode(const char *buf, size_t len, livekit_pb_signal_response_t* out);
+///
+/// When the response is no longer needed, free using `protocol_signal_res_free`.
+///
+bool protocol_signal_res_decode(const uint8_t *buf, size_t len, livekit_pb_signal_response_t* out);
 
 /// Frees a signal response.
-///
-/// Always use this to discard signal responses, even for messages types that do not have
-/// dynamic fields as they may be added in the future.
-///
 void protocol_signal_res_free(livekit_pb_signal_response_t *res);
 
 /// Extract ICE candidate string from a trickle request.

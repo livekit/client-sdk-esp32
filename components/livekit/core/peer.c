@@ -224,15 +224,13 @@ static int on_data(esp_peer_data_frame_t *frame, void *ctx)
         return -1;
     }
 
-    livekit_pb_data_packet_t packet = {};
-    pb_istream_t stream = pb_istream_from_buffer((const pb_byte_t *)frame->data, frame->size);
-    if (!pb_decode(&stream, LIVEKIT_PB_DATA_PACKET_FIELDS, &packet)) {
-        ESP_LOGE(TAG(peer), "Failed to decode data packet: %s", stream.errmsg);
+    livekit_pb_data_packet_t packet;
+    if (!protocol_data_packet_decode((const uint8_t *)frame->data, frame->size, &packet)) {
+        ESP_LOGE(TAG(peer), "Failed to decode data packet");
         return -1;
     }
-
     peer->options.on_packet_received(&packet, peer->options.ctx);
-    pb_release(LIVEKIT_PB_DATA_PACKET_FIELDS, &packet);
+    protocol_data_packet_free(&packet);
     return 0;
 }
 

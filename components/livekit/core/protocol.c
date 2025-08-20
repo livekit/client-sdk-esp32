@@ -4,7 +4,22 @@
 
 static const char *TAG = "livekit_protocol";
 
-bool protocol_signal_res_decode(const char *buf, size_t len, livekit_pb_signal_response_t* out)
+bool protocol_data_packet_decode(const uint8_t *buf, size_t len, livekit_pb_data_packet_t *out)
+{
+    pb_istream_t stream = pb_istream_from_buffer((const pb_byte_t *)buf, len);
+    if (!pb_decode(&stream, LIVEKIT_PB_DATA_PACKET_FIELDS, out)) {
+        ESP_LOGE(TAG, "Failed to decode data packet: %s", stream.errmsg);
+        return false;
+    }
+    return true;
+}
+
+void protocol_data_packet_free(livekit_pb_data_packet_t *packet)
+{
+    pb_release(LIVEKIT_PB_DATA_PACKET_FIELDS, packet);
+}
+
+bool protocol_signal_res_decode(const uint8_t *buf, size_t len, livekit_pb_signal_response_t* out)
 {
     pb_istream_t stream = pb_istream_from_buffer((const pb_byte_t *)buf, len);
     if (!pb_decode(&stream, LIVEKIT_PB_SIGNAL_RESPONSE_FIELDS, out)) {
