@@ -10,6 +10,7 @@
 #include "url.h"
 #include "signaling.h"
 #include "peer.h"
+#include "utils.h"
 #include "engine.h"
 
 // MARK: - Constants
@@ -77,7 +78,7 @@ typedef struct {
     QueueHandle_t event_queue;
     TimerHandle_t timer;
     bool is_running;
-    int retry_count;
+    uint16_t retry_count;
 } engine_t;
 
 // MARK: - Subscribed media
@@ -755,16 +756,16 @@ static bool handle_state_backoff(engine_t *eng, const engine_event_t *ev)
             signal_close(eng->signal_handle);
             destroy_peer_connections(eng);
 
+            eng->retry_count++;
+
             if (eng->retry_count >= CONFIG_LK_MAX_RETRIES) {
                 ESP_LOGW(TAG, "Max retries reached");
                 xQueueSendToFront(eng->event_queue, &(engine_event_t){ .type = EV_MAX_RETRIES_REACHED }, 0);
                 break;
             }
-            // TODO: Exponential backoff
-            uint32_t backoff_ms = 1000;
-
-            ESP_LOGI(TAG, "Attempting reconnect %d/%d in %" PRIu32 "ms",
-                eng->retry_count + 1, CONFIG_LK_MAX_RETRIES, backoff_ms);
+            uint16_t backoff_ms = backoff_ms_for_attempt(eng->retry_count);
+            ESP_LOGI(TAG, "Attempting reconnect %d/%d in %" PRIu16 "ms",
+                eng->retry_count, CONFIG_LK_MAX_RETRIES, backoff_ms);
 
             xTimerChangePeriod(eng->timer, pdMS_TO_TICKS(backoff_ms), 0);
             xTimerStart(eng->timer, 0);
@@ -773,7 +774,6 @@ static bool handle_state_backoff(engine_t *eng, const engine_event_t *ev)
             eng->state = ENGINE_STATE_DISCONNECTED;
             break;
         case EV_TIMER_EXP:
-            eng->retry_count++;
             eng->state = ENGINE_STATE_CONNECTING;
             break;
         case _EV_STATE_EXIT:
