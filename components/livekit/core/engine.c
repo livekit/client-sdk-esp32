@@ -80,27 +80,6 @@ typedef struct {
     int retry_count;
 } engine_t;
 
-/// Frees engine events that contain dynamic fields.
-static void event_free(engine_event_t *ev)
-{
-    if (ev == NULL) return;
-    switch (ev->type) {
-        case EV_CMD_CONNECT:
-            if (ev->detail.cmd_connect.server_url != NULL)
-                free(ev->detail.cmd_connect.server_url);
-            if (ev->detail.cmd_connect.token != NULL)
-                free(ev->detail.cmd_connect.token);
-            break;
-        case EV_PEER_DATA_PACKET:
-            protocol_data_packet_free(&ev->detail.data_packet);
-            break;
-        case EV_SIG_RES:
-            protocol_signal_res_free(&ev->detail.res);
-            break;
-        default: break;
-    }
-}
-
 // MARK: - Subscribed media
 
 /// Converts `esp_peer_audio_codec_t` to equivalent `av_render_audio_codec_t` value.
@@ -488,8 +467,9 @@ static bool establish_peer_connections(engine_t *eng)
 
 // MARK: - Connection state machine
 
-static void handle_state(engine_t *eng, engine_event_t *ev, engine_state_t state);
+static bool handle_state(engine_t *eng, engine_event_t *ev, engine_state_t state);
 static void flush_event_queue(engine_t *eng);
+static void event_free(engine_event_t *ev);
 
 static void engine_task(void *arg)
 {
@@ -506,9 +486,12 @@ static void engine_task(void *arg)
         engine_state_t state = eng->state;
 
         // Invoke the handler for the current state, passing the event that woke up the
-        // state machine, then free the event once the handler has completed.
-        handle_state(eng, &ev, state);
-        event_free(&ev);
+        // state machine. If the handler returns true, it takes ownership of the event
+        // and is responsible for freeing it, otherwise, it will be freed after the handler
+        // returns.
+        if (!handle_state(eng, &ev, state)) {
+            event_free(&ev);
+        }
 
         // If the state changed, invoke the exit handler for the old state,
         // the enter handler for the new state, and notify.
@@ -544,7 +527,7 @@ static void engine_task(void *arg)
     vTaskDelete(NULL);
 }
 
-static void handle_state_disconnected(engine_t *eng, const engine_event_t *ev)
+static bool handle_state_disconnected(engine_t *eng, const engine_event_t *ev)
 {
     switch (ev->type) {
         case _EV_STATE_ENTER:
@@ -561,17 +544,17 @@ static void handle_state_disconnected(engine_t *eng, const engine_event_t *ev)
         case EV_CMD_CONNECT:
             if (eng->server_url != NULL) free(eng->server_url);
             if (eng->token != NULL) free(eng->token);
-            eng->server_url = strdup(ev->detail.cmd_connect.server_url);
-            eng->token = strdup(ev->detail.cmd_connect.token);
-
+            eng->server_url = ev->detail.cmd_connect.server_url;
+            eng->token = ev->detail.cmd_connect.token;
             eng->state = ENGINE_STATE_CONNECTING;
-            break;
+            return true;
         default:
             break;
     }
+    return false;
 }
 
-static void handle_state_connecting(engine_t *eng, const engine_event_t *ev)
+static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
 {
     switch (ev->type) {
         case _EV_STATE_ENTER:
@@ -662,9 +645,10 @@ static void handle_state_connecting(engine_t *eng, const engine_event_t *ev)
         default:
             break;
     }
+    return false;
 }
 
-static void handle_state_connected(engine_t *eng, const engine_event_t *ev)
+static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
 {
     switch (ev->type) {
         case _EV_STATE_ENTER:
@@ -760,9 +744,10 @@ static void handle_state_connected(engine_t *eng, const engine_event_t *ev)
         default:
             break;
     }
+    return false;
 }
 
-static void handle_state_backoff(engine_t *eng, const engine_event_t *ev)
+static bool handle_state_backoff(engine_t *eng, const engine_event_t *ev)
 {
     switch (ev->type) {
         case _EV_STATE_ENTER:
@@ -797,15 +782,16 @@ static void handle_state_backoff(engine_t *eng, const engine_event_t *ev)
         default:
             break;
     }
+    return false;
 }
 
-static inline void handle_state(engine_t *eng, engine_event_t *ev, engine_state_t state)
+static inline bool handle_state(engine_t *eng, engine_event_t *ev, engine_state_t state)
 {
     switch (state) {
-        case ENGINE_STATE_DISCONNECTED: handle_state_disconnected(eng, ev); break;
-        case ENGINE_STATE_CONNECTING:   handle_state_connecting(eng, ev); break;
-        case ENGINE_STATE_CONNECTED:    handle_state_connected(eng, ev); break;
-        case ENGINE_STATE_BACKOFF:      handle_state_backoff(eng, ev); break;
+        case ENGINE_STATE_DISCONNECTED: return handle_state_disconnected(eng, ev);
+        case ENGINE_STATE_CONNECTING:   return handle_state_connecting(eng, ev);
+        case ENGINE_STATE_CONNECTED:    return handle_state_connected(eng, ev);
+        case ENGINE_STATE_BACKOFF:      return handle_state_backoff(eng, ev);
         default:                        esp_system_abort("Unknown engine state");
     }
 }
@@ -819,6 +805,26 @@ static void flush_event_queue(engine_t *eng)
         event_free(&ev);
     }
     ESP_LOGI(TAG, "Flushed %d events", count);
+}
+
+static void event_free(engine_event_t *ev)
+{
+    if (ev == NULL) return;
+    switch (ev->type) {
+        case EV_CMD_CONNECT:
+            if (ev->detail.cmd_connect.server_url != NULL)
+                free(ev->detail.cmd_connect.server_url);
+            if (ev->detail.cmd_connect.token != NULL)
+                free(ev->detail.cmd_connect.token);
+            break;
+        case EV_PEER_DATA_PACKET:
+            protocol_data_packet_free(&ev->detail.data_packet);
+            break;
+        case EV_SIG_RES:
+            protocol_signal_res_free(&ev->detail.res);
+            break;
+        default: break;
+    }
 }
 
 // MARK: - Public API
