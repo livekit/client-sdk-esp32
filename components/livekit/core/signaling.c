@@ -145,7 +145,7 @@ static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void
                 break;
             }
             if (data->data_len < 1) break;
-            livekit_pb_signal_response_t res;
+            livekit_pb_signal_response_t res = {};
             if (!protocol_signal_res_decode((const uint8_t *)data->data_ptr, data->data_len, &res)) {
                 break;
             }

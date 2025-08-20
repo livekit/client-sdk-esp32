@@ -224,7 +224,7 @@ static int on_data(esp_peer_data_frame_t *frame, void *ctx)
         return -1;
     }
 
-    livekit_pb_data_packet_t packet;
+    livekit_pb_data_packet_t packet = {};
     if (!protocol_data_packet_decode((const uint8_t *)frame->data, frame->size, &packet)) {
         ESP_LOGE(TAG(peer), "Failed to decode data packet");
         return -1;
