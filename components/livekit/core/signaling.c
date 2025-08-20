@@ -141,7 +141,6 @@ static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void
             break;
         case WEBSOCKET_EVENT_DATA:
             if (data->op_code != WS_TRANSPORT_OPCODES_BINARY) {
-                ESP_LOGW(TAG, "Received non-binary message");
                 break;
             }
             if (data->data_len < 1) break;
