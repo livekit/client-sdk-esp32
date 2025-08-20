@@ -342,6 +342,8 @@ static bool on_peer_data_packet(livekit_pb_data_packet_t* packet, void *ctx)
         .type = EV_PEER_DATA_PACKET,
         .detail.data_packet = *packet
     };
+    // Returning true indicates ownership of the packet; it will be freed when
+    // the queue is processed or flushed.
     return xQueueSend(eng->event_queue, &ev, 0) == pdPASS;
 }
 
