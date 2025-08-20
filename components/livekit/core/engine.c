@@ -81,6 +81,17 @@ typedef struct {
     uint16_t retry_count;
 } engine_t;
 
+static inline bool event_enqueue(engine_t *eng, engine_event_t *ev, bool send_to_front)
+{
+    bool enqueued = (send_to_front ?
+        xQueueSendToFront(eng->event_queue, ev, 0) :
+        xQueueSend(eng->event_queue, ev, 0)) == pdPASS;
+    if (!enqueued) {
+        ESP_LOGE(TAG, "Failed to enqueue event: type=%d", ev->type);
+    }
+    return enqueued;
+}
+
 // MARK: - Subscribed media
 
 /// Converts `esp_peer_audio_codec_t` to equivalent `av_render_audio_codec_t` value.
@@ -295,7 +306,7 @@ static void on_signal_state_changed(connection_state_t state, void *ctx)
         .type = EV_SIG_STATE,
         .detail.state = state
     };
-    xQueueSendToFront(eng->event_queue, &ev, 0);
+    event_enqueue(eng, &ev, true);
 }
 
 static bool on_signal_res(livekit_pb_signal_response_t *res, void *ctx)
@@ -307,10 +318,8 @@ static bool on_signal_res(livekit_pb_signal_response_t *res, void *ctx)
     };
     // Returning true takes ownership of the response; it will be freed later when the
     // queue is processed or flushed.
-    if (res->which_message == LIVEKIT_PB_SIGNAL_RESPONSE_LEAVE_TAG) {
-        return xQueueSendToFront(eng->event_queue, &ev, 0) == pdPASS;
-    }
-    return xQueueSend(eng->event_queue, &ev, 0) == pdPASS;
+    bool send_to_front = res->which_message == LIVEKIT_PB_SIGNAL_RESPONSE_LEAVE_TAG;
+    return event_enqueue(eng, &ev, send_to_front);
 }
 
 // MARK: - Common peer event handlers
@@ -324,7 +333,7 @@ static bool on_peer_data_packet(livekit_pb_data_packet_t* packet, void *ctx)
     };
     // Returning true indicates ownership of the packet; it will be freed when
     // the queue is processed or flushed.
-    return xQueueSend(eng->event_queue, &ev, 0) == pdPASS;
+    return event_enqueue(eng, &ev, false);
 }
 
 static void on_peer_ice_candidate(const char *candidate, void *ctx)
@@ -341,7 +350,7 @@ static void on_peer_pub_state_changed(connection_state_t state, void *ctx)
         .type = EV_PEER_PUB_STATE,
         .detail.state = state
     };
-    xQueueSendToFront(eng->event_queue, &ev, 0);
+    event_enqueue(eng, &ev, true);
 }
 
 static void on_peer_pub_offer(const char *sdp, void *ctx)
@@ -359,7 +368,7 @@ static void on_peer_sub_state_changed(connection_state_t state, void *ctx)
         .type = EV_PEER_SUB_STATE,
         .detail.state = state
     };
-    xQueueSendToFront(eng->event_queue, &ev, 0);
+    event_enqueue(eng, &ev, true);
 }
 
 static void on_peer_sub_answer(const char *sdp, void *ctx)
@@ -403,7 +412,7 @@ static void on_timer_expired(TimerHandle_t timer)
 {
     engine_t *eng = (engine_t *)pvTimerGetTimerID(timer);
     engine_event_t ev = { .type = EV_TIMER_EXP };
-    xQueueSend(eng->event_queue, &ev, 0);
+    event_enqueue(eng, &ev, true);
 }
 
 // MARK: - Peer lifecycle
@@ -760,7 +769,7 @@ static bool handle_state_backoff(engine_t *eng, const engine_event_t *ev)
 
             if (eng->retry_count >= CONFIG_LK_MAX_RETRIES) {
                 ESP_LOGW(TAG, "Max retries reached");
-                xQueueSendToFront(eng->event_queue, &(engine_event_t){ .type = EV_MAX_RETRIES_REACHED }, 0);
+                event_enqueue(eng, &(engine_event_t){ .type = EV_MAX_RETRIES_REACHED }, true);
                 break;
             }
             uint16_t backoff_ms = backoff_ms_for_attempt(eng->retry_count);
@@ -944,7 +953,7 @@ engine_err_t engine_connect(engine_handle_t handle, const char* server_url, cons
         .type = EV_CMD_CONNECT,
         .detail.cmd_connect = { .server_url = strdup(server_url), .token = strdup(token) }
     };
-    if (xQueueSendToFront(eng->event_queue, &ev, 0) != pdPASS) {
+    if (!event_enqueue(eng, &ev, true)) {
         return ENGINE_ERR_OTHER;
     }
     return ENGINE_ERR_NONE;
@@ -958,7 +967,7 @@ engine_err_t engine_close(engine_handle_t handle)
     engine_t *eng = (engine_t *)handle;
 
     engine_event_t ev = { .type = EV_CMD_CLOSE };
-    if (xQueueSendToFront(eng->event_queue, &ev, 0) != pdPASS) {
+    if (!event_enqueue(eng, &ev, true)) {
         return ENGINE_ERR_OTHER;
     }
     return ENGINE_ERR_NONE;
