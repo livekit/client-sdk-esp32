@@ -215,7 +215,7 @@ static int on_data(esp_peer_data_frame_t *frame, void *ctx)
     peer_t *peer = (peer_t *)ctx;
     ESP_LOGD(TAG(peer), "Data received: size=%d, stream_id=%d", frame->size, frame->stream_id);
 
-    if (peer->options.on_packet_received == NULL) {
+    if (peer->options.on_data_packet == NULL) {
         ESP_LOGE(TAG(peer), "Packet received handler is not set");
         return -1;
     }
@@ -229,8 +229,10 @@ static int on_data(esp_peer_data_frame_t *frame, void *ctx)
         ESP_LOGE(TAG(peer), "Failed to decode data packet");
         return -1;
     }
-    peer->options.on_packet_received(&packet, peer->options.ctx);
-    protocol_data_packet_free(&packet);
+    if (!peer->options.on_data_packet(&packet, peer->options.ctx)) {
+        // Ownership was not taken.
+        protocol_data_packet_free(&packet);
+    }
     return 0;
 }
 

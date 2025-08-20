@@ -41,15 +41,20 @@ typedef struct {
     /// Invoked when the peer's connection state changes.
     void (*on_state_changed)(connection_state_t state, void *ctx);
 
+    /// Invoked when a data packet is received over the data channel.
+    ///
+    /// The receiver returns true to take ownership of the packet. If
+    /// ownership is not taken (false), the packet will be freed with
+    /// `protocol_data_packet_free` internally.
+    ///
+    bool (*on_data_packet)(livekit_pb_data_packet_t* packet, void *ctx);
+
     /// Invoked when an SDP message is available. This can be either
     /// an offer or answer depending on target configuration.
     void (*on_sdp)(const char *sdp, void *ctx);
 
     /// Invoked when a new ICE candidate is available.
     void (*on_ice_candidate)(const char *candidate, void *ctx);
-
-    /// Invoked when a data packet is received over the data channel.
-    void (*on_packet_received)(livekit_pb_data_packet_t* packet, void *ctx);
 
     /// Invoked when information about an incoming audio stream is available.
     void (*on_audio_info)(esp_peer_audio_stream_info_t* info, void *ctx);

@@ -328,12 +328,14 @@ static bool on_signal_res(livekit_pb_signal_response_t *res, void *ctx)
 
 // MARK: - Common peer event handlers
 
-static void on_peer_packet_received(livekit_pb_data_packet_t* packet, void *ctx)
+static bool on_peer_data_packet(livekit_pb_data_packet_t* packet, void *ctx)
 {
     engine_t *eng = (engine_t *)ctx;
+    // TODO: Process through state machine.
     if (eng->options.on_data_packet) {
         eng->options.on_data_packet(packet, eng->options.ctx);
     }
+    return false;
 }
 
 static void on_peer_ice_candidate(const char *candidate, void *ctx)
@@ -446,8 +448,8 @@ static bool establish_peer_connections(engine_t *eng)
     peer_options_t options = {
         .force_relay        = eng->force_relay,
         .media              = &eng->options.media,
+        .on_data_packet     = on_peer_data_packet,
         .on_ice_candidate   = on_peer_ice_candidate,
-        .on_packet_received = on_peer_packet_received,
         .ctx                = eng
     };
 
