@@ -19,13 +19,6 @@ extern "C" {
 typedef void *engine_handle_t;
 
 typedef enum {
-    ENGINE_STATE_DISCONNECTED,
-    ENGINE_STATE_CONNECTING,
-    ENGINE_STATE_CONNECTED,
-    ENGINE_STATE_BACKOFF
-} engine_state_t;
-
-typedef enum {
     ENGINE_ERR_NONE        =  0,
     ENGINE_ERR_INVALID_ARG = -1,
     ENGINE_ERR_NO_MEM      = -2,

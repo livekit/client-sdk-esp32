@@ -18,6 +18,14 @@ static const char* TAG = "livekit_engine";
 
 // MARK: - Type definitions
 
+/// Engine state machine state.
+typedef enum {
+    ENGINE_STATE_DISCONNECTED,
+    ENGINE_STATE_CONNECTING,
+    ENGINE_STATE_CONNECTED,
+    ENGINE_STATE_BACKOFF
+} engine_state_t;
+
 /// Type of event processed by the engine state machine.
 typedef enum {
     EV_CMD_CONNECT,         /// User-initiated connect.
