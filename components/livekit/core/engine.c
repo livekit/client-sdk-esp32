@@ -25,6 +25,7 @@ typedef enum {
     EV_SIG_RES,             /// Signal response received.
     EV_PEER_PUB_STATE,      /// Publisher peer state changed.
     EV_PEER_SUB_STATE,      /// Subscriber peer state changed.
+    EV_PEER_DATA_PACKET,    /// Peer received data packet.
     EV_TIMER_EXP,           /// Timer expired.
     EV_MAX_RETRIES_REACHED, /// Maximum number of retry attempts reached.
     _EV_STATE_ENTER,
@@ -44,6 +45,9 @@ typedef struct {
 
         /// Detail for `EV_SIG_RES`.
         livekit_pb_signal_response_t res;
+
+        /// Detail for `EV_PEER_DATA_PACKET`.
+        livekit_pb_data_packet_t data_packet;
 
         /// Detail for `EV_SIG_STATE`, `EV_PEER_PUB_STATE` and `EV_PEER_SUB_STATE`.
         connection_state_t state;
@@ -86,6 +90,9 @@ static void event_free(engine_event_t *ev)
                 free(ev->detail.cmd_connect.server_url);
             if (ev->detail.cmd_connect.token != NULL)
                 free(ev->detail.cmd_connect.token);
+            break;
+        case EV_PEER_DATA_PACKET:
+            protocol_data_packet_free(&ev->detail.data_packet);
             break;
         case EV_SIG_RES:
             protocol_signal_res_free(&ev->detail.res);
@@ -331,11 +338,11 @@ static bool on_signal_res(livekit_pb_signal_response_t *res, void *ctx)
 static bool on_peer_data_packet(livekit_pb_data_packet_t* packet, void *ctx)
 {
     engine_t *eng = (engine_t *)ctx;
-    // TODO: Process through state machine.
-    if (eng->options.on_data_packet) {
-        eng->options.on_data_packet(packet, eng->options.ctx);
-    }
-    return false;
+    engine_event_t ev = {
+        .type = EV_PEER_DATA_PACKET,
+        .detail.data_packet = *packet
+    };
+    return xQueueSend(eng->event_queue, &ev, 0) == pdPASS;
 }
 
 static void on_peer_ice_candidate(const char *candidate, void *ctx)
@@ -654,6 +661,12 @@ static void handle_state_connected(engine_t *eng, const engine_event_t *ev)
             break;
         case EV_CMD_CONNECT:
             ESP_LOGW(TAG, "Engine already connected, ignoring connect command");
+            break;
+        case EV_PEER_DATA_PACKET:
+            livekit_pb_data_packet_t *packet = &ev->detail.data_packet;
+            if (eng->options.on_data_packet) {
+                eng->options.on_data_packet(packet, eng->options.ctx);
+            }
             break;
         case EV_SIG_RES:
             livekit_pb_signal_response_t *res = &ev->detail.res;
