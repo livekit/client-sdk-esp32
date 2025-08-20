@@ -82,8 +82,10 @@ static void event_free(engine_event_t *ev)
     if (ev == NULL) return;
     switch (ev->type) {
         case EV_CMD_CONNECT:
-            free(ev->detail.cmd_connect.server_url);
-            free(ev->detail.cmd_connect.token);
+            if (ev->detail.cmd_connect.server_url != NULL)
+                free(ev->detail.cmd_connect.server_url);
+            if (ev->detail.cmd_connect.token != NULL)
+                free(ev->detail.cmd_connect.token);
             break;
         case EV_SIG_RES:
             protocol_signal_res_free(&ev->detail.res);
@@ -475,7 +477,7 @@ static bool establish_peer_connections(engine_t *eng)
 
 // MARK: - Connection state machine
 
-static bool handle_state(engine_t *eng, engine_event_t *ev, engine_state_t state);
+static void handle_state(engine_t *eng, engine_event_t *ev, engine_state_t state);
 static void flush_event_queue(engine_t *eng);
 
 static void engine_task(void *arg)
@@ -493,11 +495,9 @@ static void engine_task(void *arg)
         engine_state_t state = eng->state;
 
         // Invoke the handler for the current state, passing the event that woke up the
-        // state machine. The handler returns whether or not the event was handled; if
-        // the handler handles the event, it takes ownership of any dynamic fields in the
-        // event's detail and is responsible for storing or freeing them.
-        if (!handle_state(eng, &ev, state))
-            event_free(&ev);
+        // state machine, then free the event once the handler has completed.
+        handle_state(eng, &ev, state);
+        event_free(&ev);
 
         // If the state changed, invoke the exit handler for the old state,
         // the enter handler for the new state, and notify.
@@ -513,11 +513,13 @@ static void engine_task(void *arg)
             // TODO: Notify of state change
         }
     }
+
+    // Discard any remaining events in the queue before exiting.
     flush_event_queue(eng);
     vTaskDelete(NULL);
 }
 
-static bool handle_state_disconnected(engine_t *eng, const engine_event_t *ev)
+static void handle_state_disconnected(engine_t *eng, const engine_event_t *ev)
 {
     switch (ev->type) {
         case _EV_STATE_ENTER:
@@ -530,41 +532,40 @@ static bool handle_state_disconnected(engine_t *eng, const engine_event_t *ev)
             eng->force_relay = false;
             eng->local_participant_sid[0] = '\0';
             eng->retry_count = 0;
-
-            return true;
+            break;
         case EV_CMD_CONNECT:
             if (eng->server_url != NULL) free(eng->server_url);
             if (eng->token != NULL) free(eng->token);
-            eng->server_url = ev->detail.cmd_connect.server_url; // Take ownership
-            eng->token = ev->detail.cmd_connect.token;
+            eng->server_url = strdup(ev->detail.cmd_connect.server_url);
+            eng->token = strdup(ev->detail.cmd_connect.token);
 
             eng->state = ENGINE_STATE_CONNECTING;
-            return true;
+            break;
         default:
-            return false;
+            break;
     }
 }
 
-static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
+static void handle_state_connecting(engine_t *eng, const engine_event_t *ev)
 {
     switch (ev->type) {
         case _EV_STATE_ENTER:
             signal_connect(eng->signal_handle, eng->server_url, eng->token);
-            return true;
+            break;
         case EV_CMD_CLOSE:
             // TODO: Send leave request
             eng->state = ENGINE_STATE_DISCONNECTED;
-            return true;
+            break;
         case EV_CMD_CONNECT:
             ESP_LOGW(TAG, "Engine already connecting, ignoring connect command");
-            return false;
+            break;
         case EV_SIG_RES:
             livekit_pb_signal_response_t *res = &ev->detail.res;
             switch (res->which_message) {
                 case LIVEKIT_PB_SIGNAL_RESPONSE_LEAVE_TAG:
                     ESP_LOGI(TAG, "Server sent leave before fully connected");
                     eng->state = ENGINE_STATE_DISCONNECTED;
-                    return true;
+                    break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_JOIN_TAG:
                     livekit_pb_join_response_t *join = &res->message.join;
                     // Store connection settings
@@ -582,39 +583,39 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
                     if (!establish_peer_connections(eng)) {
                         ESP_LOGE(TAG, "Failed to establish peer connections");
                         eng->state = ENGINE_STATE_DISCONNECTED;
-                        return true;
+                        break;
                     }
-                    return true;
+                    break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_ANSWER_TAG:
                     livekit_pb_session_description_t *answer = &res->message.answer;
                     peer_handle_sdp(eng->pub_peer_handle, answer->sdp);
-                    return true;
+                    break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_OFFER_TAG:
                     livekit_pb_session_description_t *offer = &res->message.offer;
                     peer_handle_sdp(eng->sub_peer_handle, offer->sdp);
-                    return true;
+                    break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_TRICKLE_TAG:
                     livekit_pb_trickle_request_t *trickle = &res->message.trickle;
                     char* candidate = NULL;
                     if (!protocol_signal_trickle_get_candidate(trickle, &candidate)) {
-                        return true;
+                        break;
                     }
                     peer_handle_t target_peer = trickle->target == LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER ?
                         eng->pub_peer_handle : eng->sub_peer_handle;
                     peer_handle_ice_candidate(target_peer, candidate);
                     free(candidate);
-                    return true;
+                    break;
                 default:
-                    return true;
+                    break;
             }
-            return true;
+            break;
         case EV_SIG_STATE:
             // TODO: Check error code (4xx should go to disconnected)
             if (ev->detail.state == CONNECTION_STATE_FAILED ||
                 ev->detail.state == CONNECTION_STATE_DISCONNECTED) {
                 eng->state = ENGINE_STATE_BACKOFF;
             }
-            return true;
+            break;
         case EV_PEER_PUB_STATE:
             if (!eng->is_subscriber_primary &&
                 ev->detail.state == CONNECTION_STATE_CONNECTED) {
@@ -623,7 +624,7 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
                        ev->detail.state == CONNECTION_STATE_DISCONNECTED) {
                 eng->state = ENGINE_STATE_BACKOFF;
             }
-            return true;
+            break;
         case EV_PEER_SUB_STATE:
             if (eng->is_subscriber_primary &&
                 ev->detail.state == CONNECTION_STATE_CONNECTED) {
@@ -632,26 +633,26 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
                        ev->detail.state == CONNECTION_STATE_DISCONNECTED) {
                 eng->state = ENGINE_STATE_BACKOFF;
             }
-            return true;
+            break;
         default:
-            return false;
+            break;
     }
 }
 
-static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
+static void handle_state_connected(engine_t *eng, const engine_event_t *ev)
 {
     switch (ev->type) {
         case _EV_STATE_ENTER:
             eng->retry_count = 0;
             publish_tracks(eng);
-            return true;
+            break;
         case EV_CMD_CLOSE:
             // TODO: Send leave request
             eng->state = ENGINE_STATE_DISCONNECTED;
-            return true;
+            break;
         case EV_CMD_CONNECT:
             ESP_LOGW(TAG, "Engine already connected, ignoring connect command");
-            return false;
+            break;
         case EV_SIG_RES:
             livekit_pb_signal_response_t *res = &ev->detail.res;
             switch (ev->detail.res.which_message) {
@@ -659,17 +660,17 @@ static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
                     ESP_LOGI(TAG, "Server initiated disconnect");
                     // TODO: Handle leave action
                     eng->state = ENGINE_STATE_DISCONNECTED;
-                    return true;
+                    break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_ROOM_UPDATE_TAG:
                     livekit_pb_room_update_t *room_update = &res->message.room_update;
                     if (eng->options.on_room_info && room_update->has_room) {
                         eng->options.on_room_info(&room_update->room, eng->options.ctx);
                     }
-                    return true;
+                    break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_UPDATE_TAG:
                     livekit_pb_participant_update_t *update = &res->message.update;
                     if (!eng->options.on_participant_info) {
-                        return true;
+                        break;
                     }
                     bool found_local = false;
                     for (pb_size_t i = 0; i < update->participants_count; i++) {
@@ -682,55 +683,55 @@ static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
                         if (is_local) found_local = true;
                         eng->options.on_participant_info(participant, is_local, eng->options.ctx);
                     }
-                    return true;
+                    break;
                 // TODO: Only handle if needed
                 case LIVEKIT_PB_SIGNAL_RESPONSE_ANSWER_TAG:
                     livekit_pb_session_description_t *answer = &res->message.answer;
                     peer_handle_sdp(eng->pub_peer_handle, answer->sdp);
-                    return true;
+                    break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_OFFER_TAG:
                     livekit_pb_session_description_t *offer = &res->message.offer;
                     peer_handle_sdp(eng->sub_peer_handle, offer->sdp);
-                    return true;
+                    break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_TRICKLE_TAG:
                     livekit_pb_trickle_request_t *trickle = &res->message.trickle;
                     char* candidate = NULL;
                     if (!protocol_signal_trickle_get_candidate(trickle, &candidate)) {
-                        return true;
+                        break;
                     }
                     peer_handle_t target_peer = trickle->target == LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER ?
                         eng->pub_peer_handle : eng->sub_peer_handle;
                     peer_handle_ice_candidate(target_peer, candidate);
                     free(candidate);
-                    return true;
+                    break;
                 default:
-                    return true;
+                    break;
             }
-            return true;
+            break;
         case EV_SIG_STATE:
             if (ev->detail.state == CONNECTION_STATE_FAILED ||
                 ev->detail.state == CONNECTION_STATE_DISCONNECTED) {
                 eng->state = ENGINE_STATE_BACKOFF;
             }
-            return true;
+            break;
         case EV_PEER_PUB_STATE:
             if (ev->detail.state == CONNECTION_STATE_FAILED ||
                 ev->detail.state == CONNECTION_STATE_DISCONNECTED) {
                 eng->state = ENGINE_STATE_BACKOFF;
             }
-            return true;
+            break;
         case EV_PEER_SUB_STATE:
             if (ev->detail.state == CONNECTION_STATE_FAILED ||
                 ev->detail.state == CONNECTION_STATE_DISCONNECTED) {
                 eng->state = ENGINE_STATE_BACKOFF;
             }
-            return true;
+            break;
         default:
-            return false;
+            break;
     }
 }
 
-static bool handle_state_backoff(engine_t *eng, const engine_event_t *ev)
+static void handle_state_backoff(engine_t *eng, const engine_event_t *ev)
 {
     switch (ev->type) {
         case _EV_STATE_ENTER:
@@ -741,7 +742,7 @@ static bool handle_state_backoff(engine_t *eng, const engine_event_t *ev)
             if (eng->retry_count >= CONFIG_LK_MAX_RETRIES) {
                 ESP_LOGW(TAG, "Max retries reached");
                 xQueueSendToFront(eng->event_queue, &(engine_event_t){ .type = EV_MAX_RETRIES_REACHED }, 0);
-                return true;
+                break;
             }
             // TODO: Exponential backoff
             uint32_t backoff_ms = 1000;
@@ -751,29 +752,29 @@ static bool handle_state_backoff(engine_t *eng, const engine_event_t *ev)
 
             xTimerChangePeriod(eng->timer, pdMS_TO_TICKS(backoff_ms), 0);
             xTimerStart(eng->timer, 0);
-            return true;
+            break;
         case EV_MAX_RETRIES_REACHED:
             eng->state = ENGINE_STATE_DISCONNECTED;
-            return true;
+            break;
         case EV_TIMER_EXP:
             eng->retry_count++;
             eng->state = ENGINE_STATE_CONNECTING;
-            return true;
+            break;
         case _EV_STATE_EXIT:
             xTimerStop(eng->timer, portMAX_DELAY);
-            return true;
+            break;
         default:
-            return false;
+            break;
     }
 }
 
-static inline bool handle_state(engine_t *eng, engine_event_t *ev, engine_state_t state)
+static inline void handle_state(engine_t *eng, engine_event_t *ev, engine_state_t state)
 {
     switch (state) {
-        case ENGINE_STATE_DISCONNECTED: return handle_state_disconnected(eng, ev);
-        case ENGINE_STATE_CONNECTING:   return handle_state_connecting(eng, ev);
-        case ENGINE_STATE_CONNECTED:    return handle_state_connected(eng, ev);
-        case ENGINE_STATE_BACKOFF:      return handle_state_backoff(eng, ev);
+        case ENGINE_STATE_DISCONNECTED: handle_state_disconnected(eng, ev); break;
+        case ENGINE_STATE_CONNECTING:   handle_state_connecting(eng, ev); break;
+        case ENGINE_STATE_CONNECTED:    handle_state_connected(eng, ev); break;
+        case ENGINE_STATE_BACKOFF:      handle_state_backoff(eng, ev); break;
         default:                        esp_system_abort("Unknown engine state");
     }
 }
