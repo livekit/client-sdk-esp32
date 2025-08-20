@@ -88,113 +88,32 @@ static void send_ping(void *arg)
     send_request(sg, &req);
 }
 
-static void handle_res(signal_t *sg, livekit_pb_signal_response_t *res)
+/// Processes responses before forwarding them to the receiver.
+static inline bool res_middleware(signal_t *sg, livekit_pb_signal_response_t *res)
 {
+    if (res->which_message != LIVEKIT_PB_SIGNAL_RESPONSE_PONG_RESP_TAG &&
+        res->which_message != LIVEKIT_PB_SIGNAL_RESPONSE_JOIN_TAG) {
+        return true;
+    }
+    bool should_forward = false;
     switch (res->which_message) {
         case LIVEKIT_PB_SIGNAL_RESPONSE_PONG_RESP_TAG:
             livekit_pb_pong_t *pong = &res->message.pong_resp;
             sg->rtt = get_unix_time_ms() - pong->last_ping_timestamp;
             // TODO: Reset ping timeout
-            break;
-        case LIVEKIT_PB_SIGNAL_RESPONSE_REFRESH_TOKEN_TAG:
-            // TODO: Handle refresh token
+            should_forward = false;
             break;
         case LIVEKIT_PB_SIGNAL_RESPONSE_JOIN_TAG:
-            livekit_pb_join_response_t *join_res = &res->message.join;
-            ESP_LOGI(TAG, "Join: subscriber_primary=%d", join_res->subscriber_primary);
-
-            sg->ping_interval_ms = join_res->ping_interval * 1000;
-            sg->ping_timeout_ms = join_res->ping_timeout * 1000;
+            livekit_pb_join_response_t *join = &res->message.join;
+            sg->ping_interval_ms = join->ping_interval * 1000;
+            sg->ping_timeout_ms = join->ping_timeout * 1000;
             esp_timer_start_periodic(sg->ping_timer, sg->ping_interval_ms * 1000);
-
-            if (sg->options.on_join != NULL) {
-                sg->options.on_join(join_res, sg->options.ctx);
-            }
-            break;
-        case LIVEKIT_PB_SIGNAL_RESPONSE_LEAVE_TAG:
-            livekit_pb_leave_request_t *leave_res = &res->message.leave;
-            ESP_LOGI(TAG, "Leave: reason=%d, action=%d", leave_res->reason, leave_res->action);
-            esp_timer_stop(sg->ping_timer);
-            if (sg->options.on_leave != NULL) {
-                sg->options.on_leave(leave_res->reason, leave_res->action, sg->options.ctx);
-            }
-            break;
-        case LIVEKIT_PB_SIGNAL_RESPONSE_ROOM_UPDATE_TAG:
-            livekit_pb_room_update_t *room_update = &res->message.room_update;
-            if (!room_update->has_room) break;
-            if (sg->options.on_room_update != NULL) {
-                sg->options.on_room_update(&room_update->room, sg->options.ctx);
-            }
-            break;
-        case LIVEKIT_PB_SIGNAL_RESPONSE_UPDATE_TAG:
-            livekit_pb_participant_update_t *participant_update = &res->message.update;
-            if (sg->options.on_participant_update == NULL) break;
-            for (int i = 0; i < participant_update->participants_count; i++) {
-                sg->options.on_participant_update(&participant_update->participants[i], sg->options.ctx);
-            }
-            break;
-        case LIVEKIT_PB_SIGNAL_RESPONSE_OFFER_TAG:
-            livekit_pb_session_description_t *offer = &res->message.offer;
-            ESP_LOGI(TAG, "Offer: id=%" PRIu32 "\n%s", offer->id, offer->sdp);
-            if (sg->options.on_offer != NULL) {
-                sg->options.on_offer(offer->sdp, sg->options.ctx);
-            }
-            break;
-        case LIVEKIT_PB_SIGNAL_RESPONSE_ANSWER_TAG:
-            livekit_pb_session_description_t *answer = &res->message.answer;
-            ESP_LOGI(TAG, "Answer: id=%" PRIu32 "\n%s", answer->id, answer->sdp);
-            if (sg->options.on_answer != NULL) {
-                sg->options.on_answer(answer->sdp, sg->options.ctx);
-            }
-            break;
-        case LIVEKIT_PB_SIGNAL_RESPONSE_TRICKLE_TAG:
-            livekit_pb_trickle_request_t *trickle = &res->message.trickle;
-            if (trickle->candidate_init == NULL) {
-                ESP_LOGE(TAG, "Trickle candidate_init is NULL");
-                break;
-            }
-            cJSON *candidate_init = NULL;
-            do {
-                candidate_init = cJSON_Parse(trickle->candidate_init);
-                if (candidate_init == NULL) {
-                    const char *error_ptr = cJSON_GetErrorPtr();
-                    if (error_ptr != NULL) {
-                        ESP_LOGE(TAG, "Failed to parse candidate_init: %s", error_ptr);
-                    }
-                    break;
-                }
-                cJSON *candidate = cJSON_GetObjectItemCaseSensitive(candidate_init, "candidate");
-                if (!cJSON_IsString(candidate) || (candidate->valuestring == NULL)) {
-                    ESP_LOGE(TAG, "Missing candidate key in candidate_init");
-                    break;
-                }
-                ESP_LOGI(TAG, "Trickle: target=%d, final=%d\n%s",
-                    trickle->target,
-                    trickle->final,
-                    candidate->valuestring
-                );
-                if (sg->options.on_trickle != NULL) {
-                    sg->options.on_trickle(candidate->valuestring, trickle->target, sg->options.ctx);
-                }
-            } while (0);
-            cJSON_Delete(candidate_init);
+            should_forward = true;
             break;
         default:
-            break;
+            should_forward = false;
     }
-    pb_release(LIVEKIT_PB_SIGNAL_RESPONSE_FIELDS, res);
-}
-
-static void on_data(signal_t *sg, const char *data, size_t len)
-{
-    ESP_LOGD(TAG, "Incoming res: %d byte(s)", len);
-    livekit_pb_signal_response_t res = {};
-    pb_istream_t stream = pb_istream_from_buffer((const pb_byte_t *)data, len);
-    if (!pb_decode(&stream, LIVEKIT_PB_SIGNAL_RESPONSE_FIELDS, &res)) {
-        ESP_LOGE(TAG, "Failed to decode res: %s", stream.errmsg);
-        return;
-    }
-    handle_res(sg, &res);
+    return should_forward;
 }
 
 static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void *event_data)
@@ -210,9 +129,6 @@ static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void
             break;
         case WEBSOCKET_EVENT_DISCONNECTED:
             ESP_LOGD(TAG, "Signaling disconnected");
-
-            // In the normal case, this timer will be stopped when the leave message is received.
-            // However, if the connection is lost, we need to stop the timer manually.
             esp_timer_stop(sg->ping_timer);
 
             log_error_if_nonzero("HTTP status code", data->error_handle.esp_ws_handshake_status_code);
@@ -225,11 +141,23 @@ static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void
             break;
         case WEBSOCKET_EVENT_DATA:
             if (data->op_code != WS_TRANSPORT_OPCODES_BINARY) {
-                ESP_LOGD(TAG, "Message: opcode=%d, len=%d", data->op_code, data->data_len);
+                ESP_LOGW(TAG, "Received non-binary message");
                 break;
             }
             if (data->data_len < 1) break;
-            on_data(sg, data->data_ptr, data->data_len);
+            livekit_pb_signal_response_t res;
+            if (!protocol_signal_res_decode(data->data_ptr, data->data_len, &res)) {
+                break;
+            }
+            if (!res_middleware(sg, &res)) {
+                // Don't forward.
+                protocol_signal_res_free(&res);
+                break;
+            }
+            if (!sg->options.on_res(&res, sg->options.ctx)) {
+                // Ownership was not taken.
+                protocol_signal_res_free(&res);
+            }
             break;
         case WEBSOCKET_EVENT_ERROR:
             ESP_LOGE(TAG, "Failed to connect to server");
@@ -253,7 +181,8 @@ signal_err_t signal_create(signal_handle_t *handle, signal_options_t *options)
         return SIGNAL_ERR_INVALID_ARG;
     }
 
-    if (options->on_state_changed == NULL) {
+    if (options->on_state_changed == NULL ||
+        options->on_res == NULL) {
         ESP_LOGE(TAG, "Missing required event handlers");
         return SIGNAL_ERR_INVALID_ARG;
     }

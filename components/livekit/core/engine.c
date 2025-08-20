@@ -22,8 +22,7 @@ typedef enum {
     EV_CMD_CONNECT,         /// User-initiated connect.
     EV_CMD_CLOSE,           /// User-initiated disconnect.
     EV_SIG_STATE,           /// Signal state changed.
-    EV_SIG_JOIN,            /// Join response received.
-    EV_SIG_LEAVE,           /// Leave request received.
+    EV_SIG_RES,             /// Signal response received.
     EV_PEER_PUB_STATE,      /// Publisher peer state changed.
     EV_PEER_SUB_STATE,      /// Subscriber peer state changed.
     EV_TIMER_EXP,           /// Timer expired.
@@ -43,18 +42,8 @@ typedef struct {
             char *token;
         } cmd_connect;
 
-        /// Detail for `EV_SIG_JOIN`.
-        struct {
-            bool subscriber_primary;
-            bool force_relay;
-            livekit_pb_sid_t local_participant_sid;
-        } sig_join;
-
-        /// Detail for `EV_SIG_LEAVE`.
-        struct {
-            livekit_pb_disconnect_reason_t reason;
-            livekit_pb_leave_request_action_t action;
-        } sig_leave;
+        /// Detail for `EV_SIG_RES`.
+        livekit_pb_signal_response_t res;
 
         /// Detail for `EV_SIG_STATE`, `EV_PEER_PUB_STATE` and `EV_PEER_SUB_STATE`.
         connection_state_t state;
@@ -95,6 +84,9 @@ static void event_free(engine_event_t *ev)
         case EV_CMD_CONNECT:
             free(ev->detail.cmd_connect.server_url);
             free(ev->detail.cmd_connect.token);
+            break;
+        case EV_SIG_RES:
+            protocol_signal_res_free(&ev->detail.res);
             break;
         default: break;
     }
@@ -317,74 +309,19 @@ static void on_signal_state_changed(connection_state_t state, void *ctx)
     xQueueSendToFront(eng->event_queue, &ev, 0);
 }
 
-static void on_signal_join(livekit_pb_join_response_t *join_res, void *ctx)
+static bool on_signal_res(livekit_pb_signal_response_t *res, void *ctx)
 {
     engine_t *eng = (engine_t *)ctx;
     engine_event_t ev = {
-        .type = EV_SIG_JOIN,
-        .detail.sig_join = {
-            .subscriber_primary = join_res->subscriber_primary,
-            .force_relay = join_res->has_client_configuration &&
-                           join_res->client_configuration.force_relay == LIVEKIT_PB_CLIENT_CONFIG_SETTING_ENABLED
-        }
+        .type = EV_SIG_RES,
+        .detail.res = *res
     };
-    strncpy(
-        ev.detail.sig_join.local_participant_sid,
-        join_res->participant.sid,
-        sizeof(ev.detail.sig_join.local_participant_sid)
-    );
-    xQueueSendToFront(eng->event_queue, &ev, 0);
-}
-
-static void on_signal_leave(livekit_pb_disconnect_reason_t reason, livekit_pb_leave_request_action_t action, void *ctx)
-{
-    engine_t *eng = (engine_t *)ctx;
-    engine_event_t ev = {
-        .type = EV_SIG_LEAVE,
-        .detail.sig_leave = { .reason = reason, .action = action }
-    };
-    xQueueSendToFront(eng->event_queue, &ev, 0);
-}
-
-static void on_signal_answer(const char *sdp, void *ctx)
-{
-    engine_t *eng = (engine_t *)ctx;
-    peer_handle_sdp(eng->pub_peer_handle, sdp);
-}
-
-static void on_signal_offer(const char *sdp, void *ctx)
-{
-    engine_t *eng = (engine_t *)ctx;
-    peer_handle_sdp(eng->sub_peer_handle, sdp);
-}
-
-static void on_signal_trickle(const char *ice_candidate, livekit_pb_signal_target_t target, void *ctx)
-{
-    engine_t *eng = (engine_t *)ctx;
-    peer_handle_t target_peer = target == LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER ?
-        eng->sub_peer_handle : eng->pub_peer_handle;
-    peer_handle_ice_candidate(target_peer, ice_candidate);
-}
-
-static void on_signal_room_update(const livekit_pb_room_t* info, void *ctx)
-{
-    engine_t *eng = (engine_t *)ctx;
-    if (eng->options.on_room_info) {
-        eng->options.on_room_info(info, eng->options.ctx);
+    // Returning true takes ownership of the response; it will be freed later when the
+    // queue is processed or flushed.
+    if (res->which_message == LIVEKIT_PB_SIGNAL_RESPONSE_LEAVE_TAG) {
+        return xQueueSendToFront(eng->event_queue, &ev, 0) == pdPASS;
     }
-}
-
-static void on_signal_participant_update(const livekit_pb_participant_info_t* info, void *ctx)
-{
-    // engine_t *eng = (engine_t *)ctx;
-    // TODO: Subscribe
-    // bool is_local = strncmp(info->sid, eng->local_participant_sid, sizeof(eng->local_participant_sid)) == 0;
-    // if (eng->options.on_participant_info) {
-    //     eng->options.on_participant_info(info, is_local, eng->options.ctx);
-    //}
-
-    // if (is_local) return;
-    // subscribe_tracks(eng, info->tracks, info->tracks_count);
+    return xQueueSend(eng->event_queue, &ev, 0) == pdPASS;
 }
 
 // MARK: - Common peer event handlers
@@ -621,30 +558,61 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
         case EV_CMD_CONNECT:
             ESP_LOGW(TAG, "Engine already connecting, ignoring connect command");
             return false;
+        case EV_SIG_RES:
+            livekit_pb_signal_response_t *res = &ev->detail.res;
+            switch (res->which_message) {
+                case LIVEKIT_PB_SIGNAL_RESPONSE_LEAVE_TAG:
+                    ESP_LOGI(TAG, "Server sent leave before fully connected");
+                    eng->state = ENGINE_STATE_DISCONNECTED;
+                    return true;
+                case LIVEKIT_PB_SIGNAL_RESPONSE_JOIN_TAG:
+                    livekit_pb_join_response_t *join = &res->message.join;
+                    // Store connection settings
+                    eng->is_subscriber_primary = join->subscriber_primary;
+                    if (join->has_client_configuration) {
+                        eng->force_relay = join->client_configuration.force_relay
+                            == LIVEKIT_PB_CLIENT_CONFIG_SETTING_ENABLED;
+                    }
+                    // Store local participant SID
+                    strncpy(
+                        eng->local_participant_sid,
+                        join->participant.sid,
+                        sizeof(eng->local_participant_sid)
+                    );
+                    if (!establish_peer_connections(eng)) {
+                        ESP_LOGE(TAG, "Failed to establish peer connections");
+                        eng->state = ENGINE_STATE_DISCONNECTED;
+                        return true;
+                    }
+                    return true;
+                case LIVEKIT_PB_SIGNAL_RESPONSE_ANSWER_TAG:
+                    livekit_pb_session_description_t *answer = &res->message.answer;
+                    peer_handle_sdp(eng->pub_peer_handle, answer->sdp);
+                    return true;
+                case LIVEKIT_PB_SIGNAL_RESPONSE_OFFER_TAG:
+                    livekit_pb_session_description_t *offer = &res->message.offer;
+                    peer_handle_sdp(eng->sub_peer_handle, offer->sdp);
+                    return true;
+                case LIVEKIT_PB_SIGNAL_RESPONSE_TRICKLE_TAG:
+                    livekit_pb_trickle_request_t *trickle = &res->message.trickle;
+                    char* candidate = NULL;
+                    if (!protocol_signal_trickle_get_candidate(trickle, &candidate)) {
+                        return true;
+                    }
+                    peer_handle_t target_peer = trickle->target == LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER ?
+                        eng->pub_peer_handle : eng->sub_peer_handle;
+                    peer_handle_ice_candidate(target_peer, candidate);
+                    free(candidate);
+                    return true;
+                default:
+                    return true;
+            }
+            return true;
         case EV_SIG_STATE:
             // TODO: Check error code (4xx should go to disconnected)
             if (ev->detail.state == CONNECTION_STATE_FAILED ||
                 ev->detail.state == CONNECTION_STATE_DISCONNECTED) {
                 eng->state = ENGINE_STATE_BACKOFF;
-            }
-            return true;
-        case EV_SIG_LEAVE:
-            ESP_LOGI(TAG, "Server sent leave before fully connected");
-            eng->state = ENGINE_STATE_DISCONNECTED;
-            return true;
-        case EV_SIG_JOIN:
-            eng->is_subscriber_primary = ev->detail.sig_join.subscriber_primary;
-            eng->force_relay = ev->detail.sig_join.force_relay;
-            strncpy(
-                eng->local_participant_sid,
-                ev->detail.sig_join.local_participant_sid,
-                sizeof(eng->local_participant_sid)
-            );
-
-            if (!establish_peer_connections(eng)) {
-                ESP_LOGE(TAG, "Failed to establish peer connections");
-                eng->state = ENGINE_STATE_DISCONNECTED;
-                return true;
             }
             return true;
         case EV_PEER_PUB_STATE:
@@ -684,16 +652,66 @@ static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
         case EV_CMD_CONNECT:
             ESP_LOGW(TAG, "Engine already connected, ignoring connect command");
             return false;
+        case EV_SIG_RES:
+            livekit_pb_signal_response_t *res = &ev->detail.res;
+            switch (ev->detail.res.which_message) {
+                case LIVEKIT_PB_SIGNAL_RESPONSE_LEAVE_TAG:
+                    ESP_LOGI(TAG, "Server initiated disconnect");
+                    // TODO: Handle leave action
+                    eng->state = ENGINE_STATE_DISCONNECTED;
+                    return true;
+                case LIVEKIT_PB_SIGNAL_RESPONSE_ROOM_UPDATE_TAG:
+                    livekit_pb_room_update_t *room_update = &res->message.room_update;
+                    if (eng->options.on_room_info && room_update->has_room) {
+                        eng->options.on_room_info(&room_update->room, eng->options.ctx);
+                    }
+                    return true;
+                case LIVEKIT_PB_SIGNAL_RESPONSE_UPDATE_TAG:
+                    livekit_pb_participant_update_t *update = &res->message.update;
+                    if (!eng->options.on_participant_info) {
+                        return true;
+                    }
+                    bool found_local = false;
+                    for (pb_size_t i = 0; i < update->participants_count; i++) {
+                        livekit_pb_participant_info_t *participant = &update->participants[i];
+                        bool is_local = !found_local && strncmp(
+                            participant->sid,
+                            eng->local_participant_sid,
+                            sizeof(eng->local_participant_sid)
+                        ) == 0;
+                        if (is_local) found_local = true;
+                        eng->options.on_participant_info(participant, is_local, eng->options.ctx);
+                    }
+                    return true;
+                // TODO: Only handle if needed
+                case LIVEKIT_PB_SIGNAL_RESPONSE_ANSWER_TAG:
+                    livekit_pb_session_description_t *answer = &res->message.answer;
+                    peer_handle_sdp(eng->pub_peer_handle, answer->sdp);
+                    return true;
+                case LIVEKIT_PB_SIGNAL_RESPONSE_OFFER_TAG:
+                    livekit_pb_session_description_t *offer = &res->message.offer;
+                    peer_handle_sdp(eng->sub_peer_handle, offer->sdp);
+                    return true;
+                case LIVEKIT_PB_SIGNAL_RESPONSE_TRICKLE_TAG:
+                    livekit_pb_trickle_request_t *trickle = &res->message.trickle;
+                    char* candidate = NULL;
+                    if (!protocol_signal_trickle_get_candidate(trickle, &candidate)) {
+                        return true;
+                    }
+                    peer_handle_t target_peer = trickle->target == LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER ?
+                        eng->pub_peer_handle : eng->sub_peer_handle;
+                    peer_handle_ice_candidate(target_peer, candidate);
+                    free(candidate);
+                    return true;
+                default:
+                    return true;
+            }
+            return true;
         case EV_SIG_STATE:
             if (ev->detail.state == CONNECTION_STATE_FAILED ||
                 ev->detail.state == CONNECTION_STATE_DISCONNECTED) {
                 eng->state = ENGINE_STATE_BACKOFF;
             }
-            return true;
-        case EV_SIG_LEAVE:
-            ESP_LOGI(TAG, "Server initiated disconnect");
-            // TODO: Handle leave action
-            eng->state = ENGINE_STATE_DISCONNECTED;
             return true;
         case EV_PEER_PUB_STATE:
             if (ev->detail.state == CONNECTION_STATE_FAILED ||
@@ -802,13 +820,7 @@ engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options)
     signal_options_t signal_options = {
         .ctx = eng,
         .on_state_changed = on_signal_state_changed,
-        .on_join = on_signal_join,
-        .on_leave = on_signal_leave,
-        .on_answer = on_signal_answer,
-        .on_offer = on_signal_offer,
-        .on_trickle = on_signal_trickle,
-        .on_room_update = on_signal_room_update,
-        .on_participant_update = on_signal_participant_update
+        .on_res = on_signal_res,
     };
     if (signal_create(&eng->signal_handle, &signal_options) != SIGNAL_ERR_NONE) {
         free(eng->event_queue);
