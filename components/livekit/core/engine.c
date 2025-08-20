@@ -37,8 +37,8 @@ typedef enum {
     EV_PEER_DATA_PACKET,    /// Peer received data packet.
     EV_TIMER_EXP,           /// Timer expired.
     EV_MAX_RETRIES_REACHED, /// Maximum number of retry attempts reached.
-    _EV_STATE_ENTER,
-    _EV_STATE_EXIT,
+    _EV_STATE_ENTER,        /// State enter hook (internal).
+    _EV_STATE_EXIT,         /// State exit hook (internal).
 } engine_event_type_t;
 
 /// An event processed by the engine state machine.
