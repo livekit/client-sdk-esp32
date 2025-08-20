@@ -516,10 +516,24 @@ static void engine_task(void *arg)
             state = eng->state;
             handle_state(eng, &(engine_event_t){ .type = _EV_STATE_EXIT }, state);
             assert(eng->state == state);
-
             handle_state(eng, &(engine_event_t){ .type = _EV_STATE_ENTER }, eng->state);
             assert(eng->state == state);
-            // TODO: Notify of state change
+
+            // Map engine state to external state, notify of state change.
+            if (eng->options.on_state_changed) {
+                connection_state_t ext_state;
+                switch (eng->state) {
+                    case ENGINE_STATE_DISCONNECTED: ext_state = CONNECTION_STATE_DISCONNECTED; break;
+                    case ENGINE_STATE_CONNECTING:   ext_state = eng->retry_count > 0 ?
+                                                                    CONNECTION_STATE_RECONNECTING :
+                                                                    CONNECTION_STATE_CONNECTING;
+                                                                    break;
+                    case ENGINE_STATE_BACKOFF:      ext_state = CONNECTION_STATE_RECONNECTING; break;
+                    case ENGINE_STATE_CONNECTED:    ext_state = CONNECTION_STATE_CONNECTED;    break;
+                    default:                        ext_state = CONNECTION_STATE_DISCONNECTED; break;
+                }
+                eng->options.on_state_changed(ext_state, eng->options.ctx);
+            }
         }
     }
 
