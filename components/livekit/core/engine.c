@@ -87,18 +87,10 @@ typedef struct {
     TimerHandle_t timer;
     bool is_running;
     uint16_t retry_count;
+    livekit_failure_reason_t failure_reason;
 } engine_t;
 
-static inline bool event_enqueue(engine_t *eng, engine_event_t *ev, bool send_to_front)
-{
-    bool enqueued = (send_to_front ?
-        xQueueSendToFront(eng->event_queue, ev, 0) :
-        xQueueSend(eng->event_queue, ev, 0)) == pdPASS;
-    if (!enqueued) {
-        ESP_LOGE(TAG, "Failed to enqueue event: type=%d", ev->type);
-    }
-    return enqueued;
-}
+static bool event_enqueue(engine_t *eng, engine_event_t *ev, bool send_to_front);
 
 // MARK: - Subscribed media
 
@@ -483,68 +475,89 @@ static bool establish_peer_connections(engine_t *eng)
     return true;
 }
 
-// MARK: - Connection state machine
+// MARK: - FSM helpers
 
-static bool handle_state(engine_t *eng, engine_event_t *ev, engine_state_t state);
-static void flush_event_queue(engine_t *eng);
-static void event_free(engine_event_t *ev);
-
-static void engine_task(void *arg)
+/// Return the external state that should be reported based on the engine's current state.
+///
+/// This is necessary because the engine FSM's states do not map 1:1 with the states
+/// exposed in the public room API.
+///
+static inline livekit_connection_state_t map_engine_state(engine_t *eng)
 {
-    engine_t *eng = (engine_t *)arg;
-    while (eng->is_running) {
-        engine_event_t ev;
-        if (!xQueueReceive(eng->event_queue, &ev, portMAX_DELAY)) {
-            ESP_LOGE(TAG, "Failed to receive event");
-            continue;
-        }
-        assert(ev.type != _EV_STATE_ENTER && ev.type != _EV_STATE_EXIT);
-        ESP_LOGI(TAG, "Event: %d", ev.type);
-
-        engine_state_t state = eng->state;
-
-        // Invoke the handler for the current state, passing the event that woke up the
-        // state machine. If the handler returns true, it takes ownership of the event
-        // and is responsible for freeing it, otherwise, it will be freed after the handler
-        // returns.
-        if (!handle_state(eng, &ev, state)) {
-            event_free(&ev);
-        }
-
-        // If the state changed, invoke the exit handler for the old state,
-        // the enter handler for the new state, and notify.
-        if (eng->state != state) {
-            ESP_LOGI(TAG, "State changed: %d -> %d", state, eng->state);
-
-            state = eng->state;
-            handle_state(eng, &(engine_event_t){ .type = _EV_STATE_EXIT }, state);
-            assert(eng->state == state);
-            handle_state(eng, &(engine_event_t){ .type = _EV_STATE_ENTER }, eng->state);
-            assert(eng->state == state);
-
-            // Map engine state to external state, notify of state change.
-            if (eng->options.on_state_changed) {
-                connection_state_t ext_state;
-                switch (eng->state) {
-                    case ENGINE_STATE_DISCONNECTED: ext_state = CONNECTION_STATE_DISCONNECTED; break;
-                    case ENGINE_STATE_CONNECTING:   ext_state = eng->retry_count > 0 ?
-                                                                    CONNECTION_STATE_RECONNECTING :
-                                                                    CONNECTION_STATE_CONNECTING;
-                                                                    break;
-                    case ENGINE_STATE_BACKOFF:      ext_state = CONNECTION_STATE_RECONNECTING; break;
-                    case ENGINE_STATE_CONNECTED:    ext_state = CONNECTION_STATE_CONNECTED;    break;
-                    default:                        ext_state = CONNECTION_STATE_DISCONNECTED; break;
-                }
-                eng->options.on_state_changed(ext_state, eng->options.ctx);
-            }
-        }
+    switch (eng->state) {
+        case ENGINE_STATE_DISCONNECTED:
+            // Engine state machine doesn't have a discrete failed state
+            return eng->failure_reason == LIVEKIT_FAILURE_REASON_NONE ?
+                LIVEKIT_CONNECTION_STATE_DISCONNECTED :
+                LIVEKIT_CONNECTION_STATE_FAILED;
+        case ENGINE_STATE_CONNECTING:
+            // Should only report connecting for initial connection attempt.
+            return eng->retry_count <= 0 ? LIVEKIT_CONNECTION_STATE_CONNECTING : -1;
+        case ENGINE_STATE_BACKOFF:
+            return LIVEKIT_CONNECTION_STATE_RECONNECTING;
+        case ENGINE_STATE_CONNECTED:
+            return LIVEKIT_CONNECTION_STATE_CONNECTED;
+        default:
+            return LIVEKIT_CONNECTION_STATE_DISCONNECTED;
     }
-
-    // Discard any remaining events in the queue before exiting.
-    flush_event_queue(eng);
-    vTaskDelete(NULL);
 }
 
+/// Map a signal failure reason to the failure reason exposed in the public room API.
+static livekit_failure_reason_t map_signal_failure_reason(signal_failure_reason_t reason)
+{
+    switch (reason) {
+        case SIGNAL_FAILURE_REASON_UNREACHABLE:  return LIVEKIT_FAILURE_REASON_UNREACHABLE;
+        case SIGNAL_FAILURE_REASON_BAD_TOKEN:    return LIVEKIT_FAILURE_REASON_BAD_TOKEN;
+        case SIGNAL_FAILURE_REASON_UNAUTHORIZED: return LIVEKIT_FAILURE_REASON_UNAUTHORIZED;
+        default:                                 return LIVEKIT_FAILURE_REASON_OTHER;
+    }
+}
+
+/// Frees an event's dynamically allocated fields (if any).
+static void event_free(engine_event_t *ev)
+{
+    if (ev == NULL) return;
+    switch (ev->type) {
+        case EV_CMD_CONNECT:
+            if (ev->detail.cmd_connect.server_url != NULL)
+                free(ev->detail.cmd_connect.server_url);
+            if (ev->detail.cmd_connect.token != NULL)
+                free(ev->detail.cmd_connect.token);
+            break;
+        case EV_PEER_DATA_PACKET:
+            protocol_data_packet_free(&ev->detail.data_packet);
+            break;
+        case EV_SIG_RES:
+            protocol_signal_res_free(&ev->detail.res);
+            break;
+        default: break;
+    }
+}
+
+/// Enqueues an event.
+static bool event_enqueue(engine_t *eng, engine_event_t *ev, bool send_to_front)
+{
+    bool enqueued = (send_to_front ?
+        xQueueSendToFront(eng->event_queue, ev, 0) :
+        xQueueSend(eng->event_queue, ev, 0)) == pdPASS;
+    if (!enqueued) {
+        ESP_LOGE(TAG, "Failed to enqueue event: type=%d", ev->type);
+    }
+    return enqueued;
+}
+
+/// Dequeues all events from the queue and frees them.
+static void flush_event_queue(engine_t *eng)
+{
+    engine_event_t ev;
+    while (xQueueReceive(eng->event_queue, &ev, 0) == pdPASS) {
+        event_free(&ev);
+    }
+}
+
+// MARK: - FSM state handlers
+
+/// Handler for `ENGINE_STATE_DISCONNECTED`.
 static bool handle_state_disconnected(engine_t *eng, const engine_event_t *ev)
 {
     switch (ev->type) {
@@ -564,6 +577,7 @@ static bool handle_state_disconnected(engine_t *eng, const engine_event_t *ev)
             if (eng->token != NULL) free(eng->token);
             eng->server_url = ev->detail.cmd_connect.server_url;
             eng->token = ev->detail.cmd_connect.token;
+            eng->failure_reason = LIVEKIT_FAILURE_REASON_NONE;
             eng->state = ENGINE_STATE_CONNECTING;
             return true;
         default:
@@ -572,6 +586,7 @@ static bool handle_state_disconnected(engine_t *eng, const engine_event_t *ev)
     return false;
 }
 
+/// Handler for `ENGINE_STATE_CONNECTING`.
 static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
 {
     switch (ev->type) {
@@ -636,27 +651,28 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
             }
             break;
         case EV_SIG_STATE:
-            // TODO: Check error code (4xx should go to disconnected)
-            if (ev->detail.state == CONNECTION_STATE_FAILED ||
-                ev->detail.state == CONNECTION_STATE_DISCONNECTED) {
-                eng->state = ENGINE_STATE_BACKOFF;
+            if (ev->detail.state == CONNECTION_STATE_FAILED) {
+                signal_failure_reason_t reason = signal_get_failure_reason(eng->signal_handle);
+                eng->failure_reason = map_signal_failure_reason(reason);
+                // Client errors should not trigger a reconnection
+                eng->state = (reason & SIGNAL_FAILURE_REASON_CLIENT_ANY) ?
+                    ENGINE_STATE_DISCONNECTED :
+                    ENGINE_STATE_BACKOFF;
             }
             break;
         case EV_PEER_PUB_STATE:
-            if (!eng->is_subscriber_primary &&
-                ev->detail.state == CONNECTION_STATE_CONNECTED) {
+            if (!eng->is_subscriber_primary && ev->detail.state == CONNECTION_STATE_CONNECTED) {
                 eng->state = ENGINE_STATE_CONNECTED;
-            } else if (ev->detail.state == CONNECTION_STATE_FAILED ||
-                       ev->detail.state == CONNECTION_STATE_DISCONNECTED) {
+            } else if (ev->detail.state == CONNECTION_STATE_FAILED) {
+                eng->failure_reason = LIVEKIT_FAILURE_REASON_RTC;
                 eng->state = ENGINE_STATE_BACKOFF;
             }
             break;
         case EV_PEER_SUB_STATE:
-            if (eng->is_subscriber_primary &&
-                ev->detail.state == CONNECTION_STATE_CONNECTED) {
+            if (eng->is_subscriber_primary && ev->detail.state == CONNECTION_STATE_CONNECTED) {
                 eng->state = ENGINE_STATE_CONNECTED;
-            } else if (ev->detail.state == CONNECTION_STATE_FAILED ||
-                       ev->detail.state == CONNECTION_STATE_DISCONNECTED) {
+            } else if (ev->detail.state == CONNECTION_STATE_FAILED) {
+                eng->failure_reason = LIVEKIT_FAILURE_REASON_RTC;
                 eng->state = ENGINE_STATE_BACKOFF;
             }
             break;
@@ -666,11 +682,13 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
     return false;
 }
 
+/// Handler for `ENGINE_STATE_CONNECTED`.
 static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
 {
     switch (ev->type) {
         case _EV_STATE_ENTER:
             eng->retry_count = 0;
+            eng->failure_reason = LIVEKIT_FAILURE_REASON_NONE;
             publish_tracks(eng);
             break;
         case EV_CMD_CLOSE:
@@ -742,20 +760,20 @@ static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
             }
             break;
         case EV_SIG_STATE:
-            if (ev->detail.state == CONNECTION_STATE_FAILED ||
-                ev->detail.state == CONNECTION_STATE_DISCONNECTED) {
+            if (ev->detail.state == CONNECTION_STATE_FAILED) {
+                eng->failure_reason = LIVEKIT_FAILURE_REASON_UNREACHABLE;
                 eng->state = ENGINE_STATE_BACKOFF;
             }
             break;
         case EV_PEER_PUB_STATE:
-            if (ev->detail.state == CONNECTION_STATE_FAILED ||
-                ev->detail.state == CONNECTION_STATE_DISCONNECTED) {
+            if (ev->detail.state == CONNECTION_STATE_FAILED) {
+                eng->failure_reason = LIVEKIT_FAILURE_REASON_RTC;
                 eng->state = ENGINE_STATE_BACKOFF;
             }
             break;
         case EV_PEER_SUB_STATE:
-            if (ev->detail.state == CONNECTION_STATE_FAILED ||
-                ev->detail.state == CONNECTION_STATE_DISCONNECTED) {
+            if (ev->detail.state == CONNECTION_STATE_FAILED) {
+                eng->failure_reason = LIVEKIT_FAILURE_REASON_RTC;
                 eng->state = ENGINE_STATE_BACKOFF;
             }
             break;
@@ -765,6 +783,7 @@ static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
     return false;
 }
 
+/// Handler for `ENGINE_STATE_BACKOFF`.
 static bool handle_state_backoff(engine_t *eng, const engine_event_t *ev)
 {
     switch (ev->type) {
@@ -774,20 +793,20 @@ static bool handle_state_backoff(engine_t *eng, const engine_event_t *ev)
             destroy_peer_connections(eng);
 
             eng->retry_count++;
-
-            if (eng->retry_count >= CONFIG_LK_MAX_RETRIES) {
-                ESP_LOGW(TAG, "Max retries reached");
+            if (eng->retry_count > CONFIG_LK_MAX_RETRIES) {
+                // State changes within enter/exit are not allowed; enqueue event instead.
                 event_enqueue(eng, &(engine_event_t){ .type = EV_MAX_RETRIES_REACHED }, true);
                 break;
             }
             uint16_t backoff_ms = backoff_ms_for_attempt(eng->retry_count);
-            ESP_LOGI(TAG, "Attempting reconnect %d/%d in %" PRIu16 "ms",
-                eng->retry_count, CONFIG_LK_MAX_RETRIES, backoff_ms);
+            ESP_LOGI(TAG, "Reconnect in %" PRIu16 "ms: attempt=%d/%d, reason=%d",
+                backoff_ms, eng->retry_count, CONFIG_LK_MAX_RETRIES, eng->failure_reason);
 
             xTimerChangePeriod(eng->timer, pdMS_TO_TICKS(backoff_ms), 0);
             xTimerStart(eng->timer, 0);
             break;
         case EV_MAX_RETRIES_REACHED:
+            eng->failure_reason = LIVEKIT_FAILURE_REASON_MAX_RETRIES;
             eng->state = ENGINE_STATE_DISCONNECTED;
             break;
         case EV_TIMER_EXP:
@@ -802,6 +821,7 @@ static bool handle_state_backoff(engine_t *eng, const engine_event_t *ev)
     return false;
 }
 
+/// Invokes the handler for the given state.
 static inline bool handle_state(engine_t *eng, engine_event_t *ev, engine_state_t state)
 {
     switch (state) {
@@ -813,35 +833,52 @@ static inline bool handle_state(engine_t *eng, engine_event_t *ev, engine_state_
     }
 }
 
-static void flush_event_queue(engine_t *eng)
-{
-    engine_event_t ev;
-    int count = 0;
-    while (xQueueReceive(eng->event_queue, &ev, 0) == pdPASS) {
-        count++;
-        event_free(&ev);
-    }
-    ESP_LOGI(TAG, "Flushed %d events", count);
-}
+// MARK: - FSM task
 
-static void event_free(engine_event_t *ev)
+static void engine_task(void *arg)
 {
-    if (ev == NULL) return;
-    switch (ev->type) {
-        case EV_CMD_CONNECT:
-            if (ev->detail.cmd_connect.server_url != NULL)
-                free(ev->detail.cmd_connect.server_url);
-            if (ev->detail.cmd_connect.token != NULL)
-                free(ev->detail.cmd_connect.token);
-            break;
-        case EV_PEER_DATA_PACKET:
-            protocol_data_packet_free(&ev->detail.data_packet);
-            break;
-        case EV_SIG_RES:
-            protocol_signal_res_free(&ev->detail.res);
-            break;
-        default: break;
+    engine_t *eng = (engine_t *)arg;
+    while (eng->is_running) {
+        engine_event_t ev;
+        if (!xQueueReceive(eng->event_queue, &ev, portMAX_DELAY)) {
+            ESP_LOGE(TAG, "Failed to receive event");
+            continue;
+        }
+        // Internal events are not allowed to be enqueued.
+        assert(ev.type != _EV_STATE_ENTER && ev.type != _EV_STATE_EXIT);
+        ESP_LOGD(TAG, "Event: type=%d", ev.type);
+
+        engine_state_t state = eng->state;
+
+        // Invoke the handler for the current state, passing the event that woke up the
+        // state machine. If the handler returns true, it takes ownership of the event
+        // and is responsible for freeing it, otherwise, it will be freed after the handler
+        // returns.
+        if (!handle_state(eng, &ev, state)) {
+            event_free(&ev);
+        }
+
+        // If the state changed, invoke the exit handler for the old state,
+        // the enter handler for the new state, and notify.
+        if (eng->state != state) {
+            ESP_LOGD(TAG, "State changed: %d -> %d", state, eng->state);
+
+            state = eng->state;
+            handle_state(eng, &(engine_event_t){ .type = _EV_STATE_EXIT }, state);
+            assert(eng->state == state);
+            handle_state(eng, &(engine_event_t){ .type = _EV_STATE_ENTER }, eng->state);
+            assert(eng->state == state);
+
+            if (eng->options.on_state_changed) {
+                livekit_connection_state_t ext_state = map_engine_state(eng);
+                if (ext_state > 0) eng->options.on_state_changed(ext_state, eng->options.ctx);
+            }
+        }
     }
+
+    // Discard any remaining events in the queue before exiting.
+    flush_event_queue(eng);
+    vTaskDelete(NULL);
 }
 
 // MARK: - Public API
@@ -979,6 +1016,15 @@ engine_err_t engine_close(engine_handle_t handle)
         return ENGINE_ERR_OTHER;
     }
     return ENGINE_ERR_NONE;
+}
+
+livekit_failure_reason_t engine_get_failure_reason(engine_handle_t handle)
+{
+    if (handle == NULL) {
+        return LIVEKIT_FAILURE_REASON_NONE;
+    }
+    engine_t *eng = (engine_t *)handle;
+    return eng->failure_reason;
 }
 
 engine_err_t engine_send_data_packet(engine_handle_t handle, const livekit_pb_data_packet_t* packet, livekit_pb_data_packet_kind_t kind)

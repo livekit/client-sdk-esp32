@@ -102,30 +102,12 @@ static void populate_media_options(
     media_options->renderer = sub_options->renderer;
 }
 
-static void on_eng_state_changed(connection_state_t engine_state, void *ctx)
+static void on_eng_state_changed(livekit_connection_state_t state, void *ctx)
 {
     livekit_room_t *room = (livekit_room_t *)ctx;
-    switch (engine_state) {
-        case CONNECTION_STATE_DISCONNECTED:
-            room->state = LIVEKIT_CONNECTION_STATE_DISCONNECTED;
-            break;
-        case CONNECTION_STATE_CONNECTED:
-            room->state = LIVEKIT_CONNECTION_STATE_CONNECTED;
-            break;
-        case CONNECTION_STATE_CONNECTING:
-            room->state = LIVEKIT_CONNECTION_STATE_CONNECTING;
-            break;
-        case CONNECTION_STATE_RECONNECTING:
-            room->state = LIVEKIT_CONNECTION_STATE_RECONNECTING;
-            break;
-        case CONNECTION_STATE_FAILED:
-            room->state = LIVEKIT_CONNECTION_STATE_FAILED;
-            break;
-        default:
-            return;
-    }
+    room->state = state;
     if (room->options.on_state_changed != NULL) {
-        room->options.on_state_changed(room->state, room->options.ctx);
+        room->options.on_state_changed(state, room->options.ctx);
     }
 }
 
@@ -304,13 +286,35 @@ livekit_connection_state_t livekit_room_get_state(livekit_room_handle_t handle)
 const char* livekit_connection_state_str(livekit_connection_state_t state)
 {
     switch (state) {
-        case LIVEKIT_CONNECTION_STATE_DISCONNECTED: return "disconnected";
-        case LIVEKIT_CONNECTION_STATE_CONNECTING:   return "connecting";
-        case LIVEKIT_CONNECTION_STATE_CONNECTED:    return "connected";
-        case LIVEKIT_CONNECTION_STATE_RECONNECTING: return "reconnecting";
-        case LIVEKIT_CONNECTION_STATE_FAILED:       return "failed";
-        default: return "unknown";
+        case LIVEKIT_CONNECTION_STATE_DISCONNECTED: return "Disconnected";
+        case LIVEKIT_CONNECTION_STATE_CONNECTING:   return "Connecting";
+        case LIVEKIT_CONNECTION_STATE_CONNECTED:    return "Connected";
+        case LIVEKIT_CONNECTION_STATE_RECONNECTING: return "Reconnecting";
+        case LIVEKIT_CONNECTION_STATE_FAILED:       return "Failed";
+        default:                                    return "Unknown";
     }
+}
+
+const char* livekit_failure_reason_str(livekit_failure_reason_t reason)
+{
+    switch (reason) {
+        case LIVEKIT_FAILURE_REASON_NONE:         return "None";
+        case LIVEKIT_FAILURE_REASON_UNREACHABLE:  return "Unreachable";
+        case LIVEKIT_FAILURE_REASON_BAD_TOKEN:    return "Bad Token";
+        case LIVEKIT_FAILURE_REASON_UNAUTHORIZED: return "Unauthorized";
+        case LIVEKIT_FAILURE_REASON_RTC:          return "RTC";
+        case LIVEKIT_FAILURE_REASON_MAX_RETRIES:  return "Max Retries";
+        default:                                  return "Other";
+    }
+}
+
+livekit_failure_reason_t livekit_room_get_failure_reason(livekit_room_handle_t handle)
+{
+    if (handle == NULL) {
+        return LIVEKIT_FAILURE_REASON_NONE;
+    }
+    livekit_room_t *room = (livekit_room_t *)handle;
+    return engine_get_failure_reason(room->engine);
 }
 
 livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_data_publish_options_t *options)

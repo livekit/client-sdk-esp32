@@ -21,6 +21,31 @@ typedef enum {
     // TODO: Add more error cases as needed
 } signal_err_t;
 
+/// Reason why signal connection failed.
+typedef enum {
+    /// No failure has occurred.
+    SIGNAL_FAILURE_REASON_NONE = 0,
+
+    /// Server unreachable.
+    SIGNAL_FAILURE_REASON_UNREACHABLE  = 1 << 0,
+
+    /// Token is malformed.
+    SIGNAL_FAILURE_REASON_BAD_TOKEN    = 1 << 1,
+
+    /// Token is not valid to join the room.
+    SIGNAL_FAILURE_REASON_UNAUTHORIZED = 1 << 2,
+
+    /// Other client error not covered by other reasons.
+    SIGNAL_FAILURE_REASON_CLIENT_OTHER = 1 << 3,
+
+    /// Any client error, no retry should be attempted.
+    SIGNAL_FAILURE_REASON_CLIENT_ANY   = SIGNAL_FAILURE_REASON_BAD_TOKEN |
+                                         SIGNAL_FAILURE_REASON_UNAUTHORIZED |
+                                         SIGNAL_FAILURE_REASON_CLIENT_OTHER,
+    /// Internal server error.
+    SIGNAL_FAILURE_REASON_INTERNAL     = 1 << 4
+} signal_failure_reason_t;
+
 typedef struct {
     void* ctx;
 
@@ -46,6 +71,14 @@ signal_err_t signal_connect(signal_handle_t handle, const char* server_url, cons
 /// Closes the WebSocket connection
 signal_err_t signal_close(signal_handle_t handle);
 
+/// Returns the reason why the connection failed.
+///
+/// Use after the signal client's state changes to `CONNECTION_STATE_FAILED`.
+/// Will be reset to `SIGNAL_FAILURE_REASON_NONE` during the next connection attempt.
+///
+signal_failure_reason_t signal_get_failure_reason(signal_handle_t handle);
+
+/// Sends a leave request.
 signal_err_t signal_send_leave(signal_handle_t handle);
 signal_err_t signal_send_offer(signal_handle_t handle, const char *sdp);
 signal_err_t signal_send_answer(signal_handle_t handle, const char *sdp);

@@ -28,17 +28,22 @@ static const char *TAG = "livekit_signaling";
 typedef struct {
     esp_websocket_client_handle_t ws;
     signal_options_t         options;
-    esp_timer_handle_t            ping_timer;
+    esp_timer_handle_t       ping_timer;
+    signal_failure_reason_t  failure_reason;
 
-    int32_t                       ping_interval_ms;
-    int32_t                       ping_timeout_ms;
-    int64_t                       rtt;
+    int32_t ping_interval_ms;
+    int32_t ping_timeout_ms;
+    int64_t rtt;
 } signal_t;
 
-static void log_error_if_nonzero(const char *message, int error_code)
+static inline signal_failure_reason_t failure_reason_from_http_status(int status)
 {
-    if (error_code != 0) {
-        ESP_LOGE(TAG, "Last error %s: 0x%x", message, error_code);
+    switch (status) {
+        case 400: return SIGNAL_FAILURE_REASON_BAD_TOKEN;
+        case 401: return SIGNAL_FAILURE_REASON_UNAUTHORIZED;
+        default:  return status > 400 && status < 500 ?
+                    SIGNAL_FAILURE_REASON_CLIENT_OTHER :
+                    SIGNAL_FAILURE_REASON_INTERNAL;
     }
 }
 
@@ -123,6 +128,9 @@ static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void
     esp_websocket_event_data_t *data = (esp_websocket_event_data_t *)event_data;
 
     switch (event_id) {
+        case WEBSOCKET_EVENT_BEFORE_CONNECT:
+            sg->failure_reason = SIGNAL_FAILURE_REASON_NONE;
+            break;
         case WEBSOCKET_EVENT_CONNECTED:
             ESP_LOGD(TAG, "Signaling connected");
             sg->options.on_state_changed(CONNECTION_STATE_CONNECTED, sg->options.ctx);
@@ -130,13 +138,6 @@ static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void
         case WEBSOCKET_EVENT_DISCONNECTED:
             ESP_LOGD(TAG, "Signaling disconnected");
             esp_timer_stop(sg->ping_timer);
-
-            log_error_if_nonzero("HTTP status code", data->error_handle.esp_ws_handshake_status_code);
-            if (data->error_handle.error_type == WEBSOCKET_ERROR_TYPE_TCP_TRANSPORT) {
-                log_error_if_nonzero("reported from esp-tls", data->error_handle.esp_tls_last_esp_err);
-                log_error_if_nonzero("reported from tls stack", data->error_handle.esp_tls_stack_err);
-                log_error_if_nonzero("captured as transport's socket errno", data->error_handle.esp_transport_sock_errno);
-            }
             sg->options.on_state_changed(CONNECTION_STATE_DISCONNECTED, sg->options.ctx);
             break;
         case WEBSOCKET_EVENT_DATA:
@@ -159,15 +160,12 @@ static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void
             }
             break;
         case WEBSOCKET_EVENT_ERROR:
-            ESP_LOGE(TAG, "Failed to connect to server");
             esp_timer_stop(sg->ping_timer);
 
-            log_error_if_nonzero("HTTP status code", data->error_handle.esp_ws_handshake_status_code);
-            if (data->error_handle.error_type == WEBSOCKET_ERROR_TYPE_TCP_TRANSPORT) {
-                log_error_if_nonzero("reported from esp-tls", data->error_handle.esp_tls_last_esp_err);
-                log_error_if_nonzero("reported from tls stack", data->error_handle.esp_tls_stack_err);
-                log_error_if_nonzero("captured as transport's socket errno", data->error_handle.esp_transport_sock_errno);
-            }
+            int http_status = data->error_handle.esp_ws_handshake_status_code;
+            sg->failure_reason = http_status != 0 ?
+                failure_reason_from_http_status(http_status) :
+                SIGNAL_FAILURE_REASON_UNREACHABLE;
             sg->options.on_state_changed(CONNECTION_STATE_FAILED, sg->options.ctx);
             break;
         default: break;
@@ -279,6 +277,15 @@ signal_err_t signal_close(signal_handle_t handle)
         return SIGNAL_ERR_WEBSOCKET;
     }
     return SIGNAL_ERR_NONE;
+}
+
+signal_failure_reason_t signal_get_failure_reason(signal_handle_t handle)
+{
+    if (handle == NULL) {
+        return SIGNAL_FAILURE_REASON_NONE;
+    }
+    signal_t *sg = (signal_t *)handle;
+    return sg->failure_reason;
 }
 
 signal_err_t signal_send_leave(signal_handle_t handle)

@@ -5,6 +5,7 @@
 #include "esp_capture.h"
 #include "av_render.h"
 
+#include "livekit_types.h"
 #include "livekit_rpc.h"
 
 #ifdef __cplusplus
@@ -21,16 +22,6 @@ typedef enum {
     LIVEKIT_ERR_INVALID_STATE = -5,  ///< Invalid state
     LIVEKIT_ERR_SYSTEM_INIT   = -6   ///< System not initialized
 } livekit_err_t;
-
-/// Connection state of a room.
-/// @ingroup Connection
-typedef enum {
-    LIVEKIT_CONNECTION_STATE_DISCONNECTED = 0, ///< Disconnected
-    LIVEKIT_CONNECTION_STATE_CONNECTING   = 1, ///< Establishing connection
-    LIVEKIT_CONNECTION_STATE_CONNECTED    = 2, ///< Connected
-    LIVEKIT_CONNECTION_STATE_RECONNECTING = 3, ///< Connection was previously established, but was lost
-    LIVEKIT_CONNECTION_STATE_FAILED       = 4  ///< Connection failed
-} livekit_connection_state_t;
 
 /// Video codec to use within a room.
 typedef enum {
@@ -294,6 +285,23 @@ livekit_connection_state_t livekit_room_get_state(livekit_room_handle_t handle);
 /// @return String representation of the connection state.
 ///
 const char* livekit_connection_state_str(livekit_connection_state_t state);
+
+/// Gets the reason why the room connection failed.
+///
+/// Use this to check why the room connection failed after the room's state changes to
+/// `LIVEKIT_CONNECTION_STATE_FAILED` or `LIVEKIT_CONNECTION_STATE_RECONNECTING`.
+///
+/// @param handle[in] Room handle.
+/// @return Failure reason.
+///
+livekit_failure_reason_t livekit_room_get_failure_reason(livekit_room_handle_t handle);
+
+/// Gets a string representation for a failure reason.
+///
+/// @param reason[in] Failure reason.
+/// @return String representation of the failure reason.
+///
+const char* livekit_failure_reason_str(livekit_failure_reason_t reason);
 
 /// @}
 
