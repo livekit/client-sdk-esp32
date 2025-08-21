@@ -21,10 +21,15 @@ typedef enum {
     PEER_ERR_MESSAGE        = -5
 } peer_err_t;
 
+typedef enum {
+    PEER_ROLE_PUBLISHER,
+    PEER_ROLE_SUBSCRIBER
+} peer_role_t;
+
 /// Options for creating a peer.
 typedef struct {
-    /// Whether the peer is a publisher or subscriber.
-    livekit_pb_signal_target_t target;
+    /// Peer role (publisher or subscriber).
+    peer_role_t role;
 
     /// ICE server list.
     esp_peer_ice_server_cfg_t* server_list;
@@ -39,7 +44,7 @@ typedef struct {
     engine_media_options_t* media;
 
     /// Invoked when the peer's connection state changes.
-    void (*on_state_changed)(connection_state_t state, void *ctx);
+    void (*on_state_changed)(connection_state_t state, peer_role_t role, void *ctx);
 
     /// Invoked when a data packet is received over the data channel.
     ///

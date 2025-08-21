@@ -11,7 +11,7 @@
 
 static const char *SUB_TAG = "livekit_peer.sub";
 static const char *PUB_TAG = "livekit_peer.pub";
-#define TAG(peer) (peer->options.target == LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER ? SUB_TAG : PUB_TAG)
+#define TAG(peer) (peer->options.role == PEER_ROLE_SUBSCRIBER ? SUB_TAG : PUB_TAG)
 
 #define SUB_THREAD_NAME (PEER_THREAD_NAME_PREFIX "sub")
 #define PUB_THREAD_NAME (PEER_THREAD_NAME_PREFIX "pub")
@@ -40,14 +40,12 @@ typedef struct {
     uint16_t lossy_stream_id;
 } peer_t;
 
-static esp_peer_media_dir_t get_media_direction(esp_peer_media_dir_t direction, livekit_pb_signal_target_t target) {
-    switch (target) {
-        case LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER:
-            return direction & ESP_PEER_MEDIA_DIR_SEND_ONLY;
-        case LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER:
-            return direction & ESP_PEER_MEDIA_DIR_RECV_ONLY;
+static esp_peer_media_dir_t get_media_direction(esp_peer_media_dir_t direction, peer_role_t role) {
+    switch (role) {
+        case PEER_ROLE_PUBLISHER:  return direction & ESP_PEER_MEDIA_DIR_SEND_ONLY;
+        case PEER_ROLE_SUBSCRIBER: return direction & ESP_PEER_MEDIA_DIR_RECV_ONLY;
+        default:                   return ESP_PEER_MEDIA_DIR_NONE;
     }
-    return ESP_PEER_MEDIA_DIR_NONE;
 }
 
 static void peer_task(void *ctx)
@@ -69,7 +67,7 @@ static void peer_task(void *ctx)
 
 static void create_data_channels(peer_t *peer)
 {
-    if (peer->options.target != LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER) return;
+    if (peer->options.role != PEER_ROLE_PUBLISHER) return;
 
     esp_peer_data_channel_cfg_t reliable_cfg = {
         .label = RELIABLE_CHANNEL_LABEL,
@@ -122,7 +120,7 @@ static int on_state(esp_peer_state_t rtc_state, void *ctx)
     if (new_state != peer->state) {
         ESP_LOGI(TAG(peer), "State changed: %d -> %d", peer->state, new_state);
         peer->state = new_state;
-        peer->options.on_state_changed(new_state, peer->options.ctx);
+        peer->options.on_state_changed(new_state, peer->options.role, peer->options.ctx);
     }
     return 0;
 }
@@ -133,7 +131,7 @@ static int on_msg(esp_peer_msg_t *info, void *ctx)
     switch (info->type) {
         case ESP_PEER_MSG_TYPE_SDP:
             ESP_LOGI(TAG(peer), "Generated %s:\n%s",
-                peer->options.target == LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER ? "offer" : "answer",
+                peer->options.role == PEER_ROLE_PUBLISHER ? "offer" : "answer",
                 (char *)info->data);
             peer->options.on_sdp((char *)info->data, peer->options.ctx);
             break;
@@ -260,7 +258,7 @@ peer_err_t peer_create(peer_handle_t *handle, peer_options_t *options)
     }
 
     peer->options = *options;
-    peer->ice_role = options->target == LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER ?
+    peer->ice_role = options->role == PEER_ROLE_SUBSCRIBER ?
         ESP_PEER_ROLE_CONTROLLED : ESP_PEER_ROLE_CONTROLLING;
     peer->state = CONNECTION_STATE_DISCONNECTED;
 
@@ -278,8 +276,8 @@ peer_err_t peer_create(peer_handle_t *handle, peer_options_t *options)
         }
         // TODO: Set options
     };
-    esp_peer_media_dir_t audio_dir = get_media_direction(options->media->audio_dir, peer->options.target);
-    esp_peer_media_dir_t video_dir = get_media_direction(options->media->video_dir, peer->options.target);
+    esp_peer_media_dir_t audio_dir = get_media_direction(options->media->audio_dir, peer->options.role);
+    esp_peer_media_dir_t video_dir = get_media_direction(options->media->video_dir, peer->options.role);
     ESP_LOGD(TAG(peer), "Audio dir: %d, Video dir: %d", audio_dir, video_dir);
 
     esp_peer_cfg_t peer_cfg = {
@@ -337,7 +335,7 @@ peer_err_t peer_connect(peer_handle_t handle)
 
     peer->running = true;
     media_lib_thread_handle_t thread;
-    const char* thread_name = peer->options.target == LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER ?
+    const char* thread_name = peer->options.role == PEER_ROLE_SUBSCRIBER ?
         SUB_THREAD_NAME : PUB_THREAD_NAME;
     if (media_lib_thread_create_from_scheduler(&thread, thread_name, peer_task, peer) != ESP_PEER_ERR_NONE) {
         ESP_LOGE(TAG(peer), "Failed to create thread");
@@ -474,7 +472,7 @@ peer_err_t peer_send_audio(peer_handle_t handle, esp_peer_audio_frame_t* frame)
         return PEER_ERR_INVALID_ARG;
     }
     peer_t *peer = (peer_t *)handle;
-    assert(peer->options.target == LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER);
+    assert(peer->options.role == PEER_ROLE_PUBLISHER);
 
     esp_peer_send_audio(peer->connection, frame);
     return PEER_ERR_NONE;
@@ -486,7 +484,7 @@ peer_err_t peer_send_video(peer_handle_t handle, esp_peer_video_frame_t* frame)
         return PEER_ERR_INVALID_ARG;
     }
     peer_t *peer = (peer_t *)handle;
-    assert(peer->options.target == LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER);
+    assert(peer->options.role == PEER_ROLE_PUBLISHER);
 
     esp_peer_send_video(peer->connection, frame);
     return PEER_ERR_NONE;

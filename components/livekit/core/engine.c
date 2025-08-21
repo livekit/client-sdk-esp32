@@ -32,8 +32,7 @@ typedef enum {
     EV_CMD_CLOSE,           /// User-initiated disconnect.
     EV_SIG_STATE,           /// Signal state changed.
     EV_SIG_RES,             /// Signal response received.
-    EV_PEER_PUB_STATE,      /// Publisher peer state changed.
-    EV_PEER_SUB_STATE,      /// Subscriber peer state changed.
+    EV_PEER_STATE,          /// Peer state changed.
     EV_PEER_DATA_PACKET,    /// Peer received data packet.
     EV_TIMER_EXP,           /// Timer expired.
     EV_MAX_RETRIES_REACHED, /// Maximum number of retry attempts reached.
@@ -58,8 +57,14 @@ typedef struct {
         /// Detail for `EV_PEER_DATA_PACKET`.
         livekit_pb_data_packet_t data_packet;
 
-        /// Detail for `EV_SIG_STATE`, `EV_PEER_PUB_STATE` and `EV_PEER_SUB_STATE`.
-        connection_state_t state;
+        /// Detail for `EV_SIG_STATE`.
+        connection_state_t sig_state;
+
+        /// Detail for `EV_PEER_STATE`.
+        struct {
+            connection_state_t state;
+            peer_role_t role;
+        } peer_state;
     } detail;
 } engine_event_t;
 
@@ -304,7 +309,7 @@ static void on_signal_state_changed(connection_state_t state, void *ctx)
     engine_t *eng = (engine_t *)ctx;
     engine_event_t ev = {
         .type = EV_SIG_STATE,
-        .detail.state = state
+        .detail.sig_state = state
     };
     event_enqueue(eng, &ev, true);
 }
@@ -323,6 +328,16 @@ static bool on_signal_res(livekit_pb_signal_response_t *res, void *ctx)
 }
 
 // MARK: - Common peer event handlers
+
+static void on_peer_state_changed(connection_state_t state, peer_role_t role, void *ctx)
+{
+    engine_t *eng = (engine_t *)ctx;
+    engine_event_t ev = {
+        .type = EV_PEER_STATE,
+        .detail.peer_state = { .state = state, .role = role }
+    };
+    event_enqueue(eng, &ev, true);
+}
 
 static bool on_peer_data_packet(livekit_pb_data_packet_t* packet, void *ctx)
 {
@@ -343,16 +358,6 @@ static void on_peer_ice_candidate(const char *candidate, void *ctx)
 
 // MARK: - Publisher peer event handlers
 
-static void on_peer_pub_state_changed(connection_state_t state, void *ctx)
-{
-    engine_t *eng = (engine_t *)ctx;
-    engine_event_t ev = {
-        .type = EV_PEER_PUB_STATE,
-        .detail.state = state
-    };
-    event_enqueue(eng, &ev, true);
-}
-
 static void on_peer_pub_offer(const char *sdp, void *ctx)
 {
     engine_t *eng = (engine_t *)ctx;
@@ -360,16 +365,6 @@ static void on_peer_pub_offer(const char *sdp, void *ctx)
 }
 
 // MARK: - Subscriber peer event handlers
-
-static void on_peer_sub_state_changed(connection_state_t state, void *ctx)
-{
-    engine_t *eng = (engine_t *)ctx;
-    engine_event_t ev = {
-        .type = EV_PEER_SUB_STATE,
-        .detail.state = state
-    };
-    event_enqueue(eng, &ev, true);
-}
 
 static void on_peer_sub_answer(const char *sdp, void *ctx)
 {
@@ -444,28 +439,27 @@ static void destroy_peer_connections(engine_t *eng)
 static bool establish_peer_connections(engine_t *eng)
 {
     peer_options_t options = {
-        .force_relay        = eng->force_relay,
-        .media              = &eng->options.media,
-        .on_data_packet     = on_peer_data_packet,
-        .on_ice_candidate   = on_peer_ice_candidate,
-        .ctx                = eng
+        .force_relay      = eng->force_relay,
+        .media            = &eng->options.media,
+        .on_state_changed = on_peer_state_changed,
+        .on_data_packet   = on_peer_data_packet,
+        .on_ice_candidate = on_peer_ice_candidate,
+        .ctx              = eng
     };
 
-    // Publisher
-    options.target           = LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER;
-    options.on_state_changed = on_peer_pub_state_changed;
-    options.on_sdp           = on_peer_pub_offer;
+    // 1. Publisher
+    options.role          = PEER_ROLE_PUBLISHER;
+    options.on_sdp        = on_peer_pub_offer;
 
     _create_and_connect_peer(&options, &eng->pub_peer_handle);
     if (eng->pub_peer_handle == NULL)
         return false;
 
-    // Subscriber
-    options.target           = LIVEKIT_PB_SIGNAL_TARGET_SUBSCRIBER;
-    options.on_state_changed = on_peer_sub_state_changed;
-    options.on_sdp           = on_peer_sub_answer;
-    options.on_audio_info    = on_peer_sub_audio_info;
-    options.on_audio_frame   = on_peer_sub_audio_frame;
+    // 2. Subscriber
+    options.role           = PEER_ROLE_SUBSCRIBER;
+    options.on_sdp         = on_peer_sub_answer;
+    options.on_audio_info  = on_peer_sub_audio_info;
+    options.on_audio_frame = on_peer_sub_audio_frame;
 
     _create_and_connect_peer(&options, &eng->sub_peer_handle);
     if (eng->sub_peer_handle == NULL) {
@@ -497,8 +491,7 @@ static inline livekit_connection_state_t map_engine_state(engine_t *eng)
             return LIVEKIT_CONNECTION_STATE_RECONNECTING;
         case ENGINE_STATE_CONNECTED:
             return LIVEKIT_CONNECTION_STATE_CONNECTED;
-        default:
-            return LIVEKIT_CONNECTION_STATE_DISCONNECTED;
+        default: return -1;
     }
 }
 
@@ -716,7 +709,7 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
             }
             break;
         case EV_SIG_STATE:
-            if (ev->detail.state == CONNECTION_STATE_FAILED) {
+            if (ev->detail.sig_state == CONNECTION_STATE_FAILED) {
                 signal_failure_reason_t reason = signal_get_failure_reason(eng->signal_handle);
                 eng->failure_reason = map_signal_failure_reason(reason);
                 // Client errors should not trigger a reconnection
@@ -725,20 +718,22 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
                     ENGINE_STATE_BACKOFF;
             }
             break;
-        case EV_PEER_PUB_STATE:
-            if (!eng->is_subscriber_primary && ev->detail.state == CONNECTION_STATE_CONNECTED) {
-                eng->state = ENGINE_STATE_CONNECTED;
-            } else if (ev->detail.state == CONNECTION_STATE_FAILED) {
+        case EV_PEER_STATE:
+            connection_state_t state = ev->detail.peer_state.state;
+            peer_role_t role = ev->detail.peer_state.role;
+
+            // If either peer fails, transition to backoff
+            if (state == CONNECTION_STATE_FAILED) {
                 eng->failure_reason = LIVEKIT_FAILURE_REASON_RTC;
                 eng->state = ENGINE_STATE_BACKOFF;
+                break;
             }
-            break;
-        case EV_PEER_SUB_STATE:
-            if (eng->is_subscriber_primary && ev->detail.state == CONNECTION_STATE_CONNECTED) {
-                eng->state = ENGINE_STATE_CONNECTED;
-            } else if (ev->detail.state == CONNECTION_STATE_FAILED) {
-                eng->failure_reason = LIVEKIT_FAILURE_REASON_RTC;
-                eng->state = ENGINE_STATE_BACKOFF;
+            // Once the primary peer is connected, transition to connected
+            if (state == CONNECTION_STATE_CONNECTED) {
+                if ((role == PEER_ROLE_PUBLISHER && !eng->is_subscriber_primary) ||
+                    (role == PEER_ROLE_SUBSCRIBER && eng->is_subscriber_primary)) {
+                    eng->state = ENGINE_STATE_CONNECTED;
+                }
             }
             break;
         default:
@@ -803,19 +798,17 @@ static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
             }
             break;
         case EV_SIG_STATE:
-            if (ev->detail.state == CONNECTION_STATE_FAILED) {
+            if (ev->detail.sig_state == CONNECTION_STATE_FAILED) {
                 eng->failure_reason = LIVEKIT_FAILURE_REASON_UNREACHABLE;
                 eng->state = ENGINE_STATE_BACKOFF;
             }
             break;
-        case EV_PEER_PUB_STATE:
-            if (ev->detail.state == CONNECTION_STATE_FAILED) {
-                eng->failure_reason = LIVEKIT_FAILURE_REASON_RTC;
-                eng->state = ENGINE_STATE_BACKOFF;
-            }
-            break;
-        case EV_PEER_SUB_STATE:
-            if (ev->detail.state == CONNECTION_STATE_FAILED) {
+        case EV_PEER_STATE:
+            connection_state_t state = ev->detail.peer_state.state;
+            peer_role_t role = ev->detail.peer_state.role;
+
+            // If either peer fails, transition to backoff
+            if (state == CONNECTION_STATE_FAILED) {
                 eng->failure_reason = LIVEKIT_FAILURE_REASON_RTC;
                 eng->state = ENGINE_STATE_BACKOFF;
             }
