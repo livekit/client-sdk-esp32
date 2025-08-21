@@ -555,6 +555,89 @@ static void flush_event_queue(engine_t *eng)
     }
 }
 
+/// Starts the timer for the given period.
+///
+/// Enqueues `EV_TIMER_EXP` after the period has elapsed.
+///
+static inline void timer_start(engine_t *eng, uint16_t period)
+{
+    xTimerChangePeriod(eng->timer, pdMS_TO_TICKS(period), 0);
+    xTimerStart(eng->timer, 0);
+}
+
+/// Stops the timer.
+static inline void timer_stop(engine_t *eng)
+{
+    xTimerStop(eng->timer, 0);
+}
+
+static void handle_join(engine_t *eng, livekit_pb_join_response_t *join)
+{
+    // 1. Store connection settings
+    eng->is_subscriber_primary = join->subscriber_primary;
+    if (join->has_client_configuration) {
+        eng->force_relay = join->client_configuration.force_relay
+            == LIVEKIT_PB_CLIENT_CONFIG_SETTING_ENABLED;
+    }
+
+    // 2. Store local Participant SID
+    strncpy(
+        eng->local_participant_sid,
+        join->participant.sid,
+        sizeof(eng->local_participant_sid)
+    );
+
+    // 3. Dispatch initial room info
+    if (eng->options.on_room_info && join->has_room) {
+        eng->options.on_room_info(&join->room, eng->options.ctx);
+    }
+
+    // 4. Dispatch initial participant info
+    if (eng->options.on_participant_info) {
+        eng->options.on_participant_info(&join->participant, true, eng->options.ctx);
+        for (pb_size_t i = 0; i < join->other_participants_count; i++) {
+            eng->options.on_participant_info(&join->other_participants[i], false, eng->options.ctx);
+        }
+    }
+}
+
+static void handle_trickle(engine_t *eng, livekit_pb_trickle_request_t *trickle)
+{
+    char* candidate = NULL;
+    if (!protocol_signal_trickle_get_candidate(trickle, &candidate)) {
+        return;
+    }
+    peer_handle_t target_peer = trickle->target == LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER ?
+        eng->pub_peer_handle : eng->sub_peer_handle;
+    peer_handle_ice_candidate(target_peer, candidate);
+    free(candidate);
+}
+
+static void handle_room_update(engine_t *eng, livekit_pb_room_update_t *room_update)
+{
+    if (eng->options.on_room_info && room_update->has_room) {
+        eng->options.on_room_info(&room_update->room, eng->options.ctx);
+    }
+}
+
+static void handle_participant_update(engine_t *eng, livekit_pb_participant_update_t *update)
+{
+    if (!eng->options.on_participant_info) {
+        return;
+    }
+    bool found_local = false;
+    for (pb_size_t i = 0; i < update->participants_count; i++) {
+        livekit_pb_participant_info_t *participant = &update->participants[i];
+        bool is_local = !found_local && strncmp(
+            participant->sid,
+            eng->local_participant_sid,
+            sizeof(eng->local_participant_sid)
+        ) == 0;
+        if (is_local) found_local = true;
+        eng->options.on_participant_info(participant, is_local, eng->options.ctx);
+    }
+}
+
 // MARK: - FSM state handlers
 
 /// Handler for `ENGINE_STATE_DISCONNECTED`.
@@ -609,18 +692,7 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_JOIN_TAG:
                     livekit_pb_join_response_t *join = &res->message.join;
-                    // Store connection settings
-                    eng->is_subscriber_primary = join->subscriber_primary;
-                    if (join->has_client_configuration) {
-                        eng->force_relay = join->client_configuration.force_relay
-                            == LIVEKIT_PB_CLIENT_CONFIG_SETTING_ENABLED;
-                    }
-                    // Store local participant SID
-                    strncpy(
-                        eng->local_participant_sid,
-                        join->participant.sid,
-                        sizeof(eng->local_participant_sid)
-                    );
+                    handle_join(eng, join);
                     if (!establish_peer_connections(eng)) {
                         ESP_LOGE(TAG, "Failed to establish peer connections");
                         eng->state = ENGINE_STATE_DISCONNECTED;
@@ -637,14 +709,7 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_TRICKLE_TAG:
                     livekit_pb_trickle_request_t *trickle = &res->message.trickle;
-                    char* candidate = NULL;
-                    if (!protocol_signal_trickle_get_candidate(trickle, &candidate)) {
-                        break;
-                    }
-                    peer_handle_t target_peer = trickle->target == LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER ?
-                        eng->pub_peer_handle : eng->sub_peer_handle;
-                    peer_handle_ice_candidate(target_peer, candidate);
-                    free(candidate);
+                    handle_trickle(eng, trickle);
                     break;
                 default:
                     break;
@@ -714,26 +779,11 @@ static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_ROOM_UPDATE_TAG:
                     livekit_pb_room_update_t *room_update = &res->message.room_update;
-                    if (eng->options.on_room_info && room_update->has_room) {
-                        eng->options.on_room_info(&room_update->room, eng->options.ctx);
-                    }
+                    handle_room_update(eng, room_update);
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_UPDATE_TAG:
                     livekit_pb_participant_update_t *update = &res->message.update;
-                    if (!eng->options.on_participant_info) {
-                        break;
-                    }
-                    bool found_local = false;
-                    for (pb_size_t i = 0; i < update->participants_count; i++) {
-                        livekit_pb_participant_info_t *participant = &update->participants[i];
-                        bool is_local = !found_local && strncmp(
-                            participant->sid,
-                            eng->local_participant_sid,
-                            sizeof(eng->local_participant_sid)
-                        ) == 0;
-                        if (is_local) found_local = true;
-                        eng->options.on_participant_info(participant, is_local, eng->options.ctx);
-                    }
+                    handle_participant_update(eng, update);
                     break;
                 // TODO: Only handle if needed
                 case LIVEKIT_PB_SIGNAL_RESPONSE_ANSWER_TAG:
@@ -746,14 +796,7 @@ static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_TRICKLE_TAG:
                     livekit_pb_trickle_request_t *trickle = &res->message.trickle;
-                    char* candidate = NULL;
-                    if (!protocol_signal_trickle_get_candidate(trickle, &candidate)) {
-                        break;
-                    }
-                    peer_handle_t target_peer = trickle->target == LIVEKIT_PB_SIGNAL_TARGET_PUBLISHER ?
-                        eng->pub_peer_handle : eng->sub_peer_handle;
-                    peer_handle_ice_candidate(target_peer, candidate);
-                    free(candidate);
+                    handle_trickle(eng, trickle);
                     break;
                 default:
                     break;
@@ -802,8 +845,7 @@ static bool handle_state_backoff(engine_t *eng, const engine_event_t *ev)
             ESP_LOGI(TAG, "Reconnect in %" PRIu16 "ms: attempt=%d/%d, reason=%d",
                 backoff_ms, eng->retry_count, CONFIG_LK_MAX_RETRIES, eng->failure_reason);
 
-            xTimerChangePeriod(eng->timer, pdMS_TO_TICKS(backoff_ms), 0);
-            xTimerStart(eng->timer, 0);
+            timer_start(eng, backoff_ms);
             break;
         case EV_MAX_RETRIES_REACHED:
             eng->failure_reason = LIVEKIT_FAILURE_REASON_MAX_RETRIES;
@@ -813,7 +855,7 @@ static bool handle_state_backoff(engine_t *eng, const engine_event_t *ev)
             eng->state = ENGINE_STATE_CONNECTING;
             break;
         case _EV_STATE_EXIT:
-            xTimerStop(eng->timer, portMAX_DELAY);
+            timer_stop(eng);
             break;
         default:
             break;
