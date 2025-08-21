@@ -1034,6 +1034,7 @@ engine_err_t engine_connect(engine_handle_t handle, const char* server_url, cons
         .detail.cmd_connect = { .server_url = strdup(server_url), .token = strdup(token) }
     };
     if (!event_enqueue(eng, &ev, true)) {
+        event_free(&ev);
         return ENGINE_ERR_OTHER;
     }
     return ENGINE_ERR_NONE;
