@@ -682,7 +682,7 @@ static void handle_participant_update(engine_t *eng, livekit_pb_participant_upda
     }
 }
 
-// MARK: - FSM state handlers
+// MARK: - State: Disconnected
 
 /// Handler for `ENGINE_STATE_DISCONNECTED`.
 static bool handle_state_disconnected(engine_t *eng, const engine_event_t *ev)
@@ -710,6 +710,8 @@ static bool handle_state_disconnected(engine_t *eng, const engine_event_t *ev)
     }
     return false;
 }
+
+// MARK: - State: Connecting
 
 /// Handler for `ENGINE_STATE_CONNECTING`.
 static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
@@ -792,6 +794,8 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
     return false;
 }
 
+// MARK: - State: Connected
+
 /// Handler for `ENGINE_STATE_CONNECTED`.
 static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
 {
@@ -868,6 +872,8 @@ static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
     }
     return false;
 }
+
+// MARK: - State: Backoff
 
 /// Handler for `ENGINE_STATE_BACKOFF`.
 static bool handle_state_backoff(engine_t *eng, const engine_event_t *ev)
