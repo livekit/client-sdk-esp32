@@ -785,8 +785,9 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
             connection_state_t peer_state = ev->detail.peer_state.state;
             peer_role_t role = ev->detail.peer_state.role;
 
-            // If either peer fails, transition to backoff
-            if (peer_state == CONNECTION_STATE_FAILED) {
+            // If either peer fails or disconnects, transition to backoff
+            if (peer_state == CONNECTION_STATE_DISCONNECTED ||
+                peer_state == CONNECTION_STATE_FAILED) {
                 eng->failure_reason = LIVEKIT_FAILURE_REASON_RTC;
                 eng->state = ENGINE_STATE_BACKOFF;
                 break;
@@ -878,8 +879,9 @@ static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
             connection_state_t peer_state = ev->detail.peer_state.state;
             peer_role_t role = ev->detail.peer_state.role;
 
-            // If either peer fails, transition to backoff
-            if (peer_state == CONNECTION_STATE_FAILED) {
+            // If either peer fail or disconnects, transition to backoff
+            if (peer_state == CONNECTION_STATE_DISCONNECTED ||
+                peer_state == CONNECTION_STATE_FAILED) {
                 eng->failure_reason = LIVEKIT_FAILURE_REASON_RTC;
                 eng->state = ENGINE_STATE_BACKOFF;
             }
