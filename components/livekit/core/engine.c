@@ -72,6 +72,7 @@ typedef struct {
     bool is_subscriber_primary;
     bool force_relay;
     livekit_pb_sid_t local_participant_sid;
+    livekit_pb_sid_t sub_audio_track_sid;
 } session_state_t;
 
 typedef struct {
@@ -125,6 +126,27 @@ static inline void convert_dec_aud_info(esp_peer_audio_stream_info_t *info, av_r
         dec_info->channel = info->channel;
     }
     dec_info->bits_per_sample = 16;
+}
+
+static engine_err_t subscribe_tracks(engine_t *eng, livekit_pb_track_info_t *tracks, int count)
+{
+    if (tracks == NULL || count <= 0) {
+        return ENGINE_ERR_INVALID_ARG;
+    }
+    if (eng->session.sub_audio_track_sid[0] != '\0') {
+        return ENGINE_ERR_NONE;
+    }
+    for (int i = 0; i < count; i++) {
+        livekit_pb_track_info_t *track = &tracks[i];
+        if (track->type != LIVEKIT_PB_TRACK_TYPE_AUDIO) {
+            continue;
+        }
+        // For now, subscribe to the first audio track.
+        signal_send_update_subscription(eng->signal_handle, track->sid, true);
+        strncpy(eng->session.sub_audio_track_sid, track->sid, sizeof(eng->session.sub_audio_track_sid));
+        break;
+    }
+    return ENGINE_ERR_NONE;
 }
 
 // MARK: - Published media
@@ -641,9 +663,6 @@ static void handle_room_update(engine_t *eng, livekit_pb_room_update_t *room_upd
 
 static void handle_participant_update(engine_t *eng, livekit_pb_participant_update_t *update)
 {
-    if (!eng->options.on_participant_info) {
-        return;
-    }
     bool found_local = false;
     for (pb_size_t i = 0; i < update->participants_count; i++) {
         livekit_pb_participant_info_t *participant = &update->participants[i];
@@ -652,8 +671,14 @@ static void handle_participant_update(engine_t *eng, livekit_pb_participant_upda
             eng->session.local_participant_sid,
             sizeof(eng->session.local_participant_sid)
         ) == 0;
-        if (is_local) found_local = true;
-        eng->options.on_participant_info(participant, is_local, eng->options.ctx);
+        if (is_local) {
+            found_local = true;
+        } else {
+            subscribe_tracks(eng, participant->tracks, participant->tracks_count);
+        }
+        if (eng->options.on_participant_info) {
+            eng->options.on_participant_info(participant, is_local, eng->options.ctx);
+        }
     }
 }
 
