@@ -206,7 +206,6 @@ signal_err_t signal_create(signal_handle_t *handle, signal_options_t *options)
     static esp_websocket_client_config_t ws_config = {
         .buffer_size = SIGNAL_WS_BUFFER_SIZE,
         .disable_pingpong_discon = true,
-        .reconnect_timeout_ms = SIGNAL_WS_RECONNECT_TIMEOUT_MS,
         .network_timeout_ms = SIGNAL_WS_NETWORK_TIMEOUT_MS,
         .disable_auto_reconnect = true,
 #ifdef CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
