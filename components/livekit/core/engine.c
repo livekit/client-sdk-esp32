@@ -693,7 +693,7 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
             signal_connect(eng->signal_handle, eng->server_url, eng->token);
             break;
         case EV_CMD_CLOSE:
-            // TODO: Send leave request
+            signal_send_leave(eng->signal_handle);
             eng->state = ENGINE_STATE_DISCONNECTED;
             break;
         case EV_CMD_CONNECT:
@@ -776,7 +776,7 @@ static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
             publish_tracks(eng);
             break;
         case EV_CMD_CLOSE:
-            // TODO: Send leave request
+            signal_send_leave(eng->signal_handle);
             eng->state = ENGINE_STATE_DISCONNECTED;
             break;
         case EV_CMD_CONNECT:
