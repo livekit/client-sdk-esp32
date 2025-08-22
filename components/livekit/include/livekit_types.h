@@ -21,38 +21,152 @@ typedef enum {
     /// No failure has occurred.
     LIVEKIT_FAILURE_REASON_NONE,
 
-    /// LiveKit server could not be reached.
+    /// Unreachable
     ///
-    /// This may occur due to network connectivity issues, incorrect URL,
-    /// TLS handshake failure, or an offline server.
+    /// LiveKit server could not be reached: this may occur due to network
+    /// connectivity issues, incorrect URL, TLS handshake failure, or an offline server.
     ///
     LIVEKIT_FAILURE_REASON_UNREACHABLE,
 
-    /// Token is malformed.
+    /// Bad Token
     ///
-    /// This can occur if the token has missing/empty identity or room fields,
-    /// or if either of these fields exceeds the maximum length.
+    /// Token is malformed: this can occur if the token has missing/empty identity
+    /// or room fields, or if either of these fields exceeds the maximum length.
     ///
     LIVEKIT_FAILURE_REASON_BAD_TOKEN,
 
-    /// Token is not valid to join the room.
+    /// Unauthorized
     ///
-    /// This can be caused by an expired token, or a token that lacks
-    /// necessary claims.
+    /// Token is not valid to join the room: this can be caused by an
+    /// expired token, or a token that lacks necessary claims.
     ///
     LIVEKIT_FAILURE_REASON_UNAUTHORIZED,
 
-    /// WebRTC establishment failure.
+    /// RTC
     ///
-    /// Required peer connection(s) could not be established or failed.
+    /// WebRTC establishment failure: required peer connection(s) could
+    /// not be established or failed.
     ///
     LIVEKIT_FAILURE_REASON_RTC,
 
-    /// Maximum number of retries reached.
+    /// Max Retries
     ///
-    /// Room connection failed after `CONFIG_LK_MAX_RETRIES` retries.
+    /// Maximum number of retries reached: room connection failed after
+    /// `CONFIG_LK_MAX_RETRIES` retries.
     ///
     LIVEKIT_FAILURE_REASON_MAX_RETRIES,
+
+    /// Duplicate Identity
+    ///
+    /// Another participant already has the same identity.
+    ///
+    /// Protocol equivalent: `DisconnectReason.DUPLICATE_IDENTITY`.
+    ///
+    LIVEKIT_FAILURE_REASON_DUPLICATE_IDENTITY,
+
+    /// Server Shutdown
+    ///
+    /// LiveKit server instance is shutting down.
+    ///
+    /// Protocol equivalent: `DisconnectReason.SERVER_SHUTDOWN`.
+    ///
+    LIVEKIT_FAILURE_REASON_SERVER_SHUTDOWN,
+
+    /// Participant Removed
+    ///
+    /// Participant was removed using room services API.
+    ///
+    /// Protocol equivalent: `DisconnectReason.PARTICIPANT_REMOVED`.
+    ///
+    LIVEKIT_FAILURE_REASON_PARTICIPANT_REMOVED,
+
+    /// Room Deleted
+    ///
+    /// Room was deleted using room services API.
+    ///
+    /// Protocol equivalent: `DisconnectReason.ROOM_DELETED`.
+    ///
+    LIVEKIT_FAILURE_REASON_ROOM_DELETED,
+
+    /// State Mismatch
+    ///
+    /// Client attempted to resume, but server is not aware of it.
+    ///
+    /// Protocol equivalent: `DisconnectReason.STATE_MISMATCH`.
+    ///
+    LIVEKIT_FAILURE_REASON_STATE_MISMATCH,
+
+    /// Join Incomplete
+    ///
+    /// Client was unable to fully establish a connection.
+    ///
+    /// Protocol equivalent: `DisconnectReason.JOIN_FAILURE`.
+    ///
+    LIVEKIT_FAILURE_REASON_JOIN_INCOMPLETE,
+
+    /// Migration
+    ///
+    /// The server requested the client to migrate the connection elsewhere (cloud only).
+    ///
+    /// Protocol equivalent: `DisconnectReason.MIGRATION`.
+    ///
+    LIVEKIT_FAILURE_REASON_MIGRATION,
+
+    /// Signal Close
+    ///
+    /// The signal connection was closed unexpectedly.
+    ///
+    /// Protocol equivalent: `DisconnectReason.SIGNAL_CLOSE`.
+    ///
+    LIVEKIT_FAILURE_REASON_SIGNAL_CLOSE,
+
+    /// Room Closed
+    ///
+    /// The room was closed, due to all Standard and Ingress participants having left.
+    ///
+    /// Protocol equivalent: `DisconnectReason.ROOM_CLOSED`.
+    ///
+    LIVEKIT_FAILURE_REASON_ROOM_CLOSED,
+
+    /// SIP User Unavailable
+    ///
+    /// SIP callee did not respond in time.
+    ///
+    /// Protocol equivalent: `DisconnectReason.USER_UNAVAILABLE`.
+    ///
+    LIVEKIT_FAILURE_REASON_SIP_USER_UNAVAILABLE,
+
+    /// SIP User Rejected
+    ///
+    /// SIP callee rejected the call (busy).
+    ///
+    /// Protocol equivalent: `DisconnectReason.USER_REJECTED`.
+    ///
+    LIVEKIT_FAILURE_REASON_SIP_USER_REJECTED,
+
+    /// SIP Trunk Failure
+    ///
+    /// SIP protocol failure or unexpected response.
+    ///
+    /// Protocol equivalent: `DisconnectReason.SIP_TRUNK_FAILURE`.
+    ///
+    LIVEKIT_FAILURE_REASON_SIP_TRUNK_FAILURE,
+
+    /// Connection Timeout
+    ///
+    /// Server timed out a participant session.
+    ///
+    /// Protocol equivalent: `DisconnectReason.CONNECTION_TIMEOUT`.
+    ///
+    LIVEKIT_FAILURE_REASON_CONNECTION_TIMEOUT,
+
+    /// Media Failure
+    ///
+    /// Media stream failure or media timeout.
+    ///
+    /// Protocol equivalent: `DisconnectReason.MEDIA_FAILURE`.
+    ///
+    LIVEKIT_FAILURE_REASON_MEDIA_FAILURE,
 
     /// Other failure reason.
     ///

@@ -298,13 +298,27 @@ const char* livekit_connection_state_str(livekit_connection_state_t state)
 const char* livekit_failure_reason_str(livekit_failure_reason_t reason)
 {
     switch (reason) {
-        case LIVEKIT_FAILURE_REASON_NONE:         return "None";
-        case LIVEKIT_FAILURE_REASON_UNREACHABLE:  return "Unreachable";
-        case LIVEKIT_FAILURE_REASON_BAD_TOKEN:    return "Bad Token";
-        case LIVEKIT_FAILURE_REASON_UNAUTHORIZED: return "Unauthorized";
-        case LIVEKIT_FAILURE_REASON_RTC:          return "RTC";
-        case LIVEKIT_FAILURE_REASON_MAX_RETRIES:  return "Max Retries";
-        default:                                  return "Other";
+        case LIVEKIT_FAILURE_REASON_NONE:                 return "None";
+        case LIVEKIT_FAILURE_REASON_UNREACHABLE:          return "Unreachable";
+        case LIVEKIT_FAILURE_REASON_BAD_TOKEN:            return "Bad Token";
+        case LIVEKIT_FAILURE_REASON_UNAUTHORIZED:         return "Unauthorized";
+        case LIVEKIT_FAILURE_REASON_RTC:                  return "RTC";
+        case LIVEKIT_FAILURE_REASON_MAX_RETRIES:          return "Max Retries";
+        case LIVEKIT_FAILURE_REASON_DUPLICATE_IDENTITY:   return "Duplicate Identity";
+        case LIVEKIT_FAILURE_REASON_SERVER_SHUTDOWN:      return "Server Shutdown";
+        case LIVEKIT_FAILURE_REASON_PARTICIPANT_REMOVED:  return "Participant Removed";
+        case LIVEKIT_FAILURE_REASON_ROOM_DELETED:         return "Room Deleted";
+        case LIVEKIT_FAILURE_REASON_STATE_MISMATCH:       return "State Mismatch";
+        case LIVEKIT_FAILURE_REASON_JOIN_INCOMPLETE:      return "Join Incomplete";
+        case LIVEKIT_FAILURE_REASON_MIGRATION:            return "Migration";
+        case LIVEKIT_FAILURE_REASON_SIGNAL_CLOSE:         return "Signal Close";
+        case LIVEKIT_FAILURE_REASON_ROOM_CLOSED:          return "Room Closed";
+        case LIVEKIT_FAILURE_REASON_SIP_USER_UNAVAILABLE: return "SIP User Unavailable";
+        case LIVEKIT_FAILURE_REASON_SIP_USER_REJECTED:    return "SIP User Rejected";
+        case LIVEKIT_FAILURE_REASON_SIP_TRUNK_FAILURE:    return "SIP Trunk Failure";
+        case LIVEKIT_FAILURE_REASON_CONNECTION_TIMEOUT:   return "Connection Timeout";
+        case LIVEKIT_FAILURE_REASON_MEDIA_FAILURE:        return "Media Failure";
+        default:                                          return "Other";
     }
 }
 

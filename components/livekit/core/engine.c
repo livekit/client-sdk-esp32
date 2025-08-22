@@ -495,7 +495,7 @@ static inline livekit_connection_state_t map_engine_state(engine_t *eng)
     }
 }
 
-/// Map a signal failure reason to the failure reason exposed in the public room API.
+/// Map a signal failure reason to a failure reason exposed in the public room API.
 static livekit_failure_reason_t map_signal_failure_reason(signal_failure_reason_t reason)
 {
     switch (reason) {
@@ -503,6 +503,29 @@ static livekit_failure_reason_t map_signal_failure_reason(signal_failure_reason_
         case SIGNAL_FAILURE_REASON_BAD_TOKEN:    return LIVEKIT_FAILURE_REASON_BAD_TOKEN;
         case SIGNAL_FAILURE_REASON_UNAUTHORIZED: return LIVEKIT_FAILURE_REASON_UNAUTHORIZED;
         default:                                 return LIVEKIT_FAILURE_REASON_OTHER;
+    }
+}
+
+/// Map a protocol disconnect reason to a failure reason exposed in the public room API.
+static livekit_failure_reason_t map_disconnect_reason(livekit_pb_disconnect_reason_t reason)
+{
+    switch (reason) {
+        case LIVEKIT_PB_DISCONNECT_REASON_CLIENT_INITIATED:    return LIVEKIT_FAILURE_REASON_NONE;
+        case LIVEKIT_PB_DISCONNECT_REASON_DUPLICATE_IDENTITY:  return LIVEKIT_FAILURE_REASON_DUPLICATE_IDENTITY;
+        case LIVEKIT_PB_DISCONNECT_REASON_SERVER_SHUTDOWN:     return LIVEKIT_FAILURE_REASON_SERVER_SHUTDOWN;
+        case LIVEKIT_PB_DISCONNECT_REASON_PARTICIPANT_REMOVED: return LIVEKIT_FAILURE_REASON_PARTICIPANT_REMOVED;
+        case LIVEKIT_PB_DISCONNECT_REASON_ROOM_DELETED:        return LIVEKIT_FAILURE_REASON_ROOM_DELETED;
+        case LIVEKIT_PB_DISCONNECT_REASON_STATE_MISMATCH:      return LIVEKIT_FAILURE_REASON_STATE_MISMATCH;
+        case LIVEKIT_PB_DISCONNECT_REASON_JOIN_FAILURE:        return LIVEKIT_FAILURE_REASON_JOIN_INCOMPLETE;
+        case LIVEKIT_PB_DISCONNECT_REASON_MIGRATION:           return LIVEKIT_FAILURE_REASON_MIGRATION;
+        case LIVEKIT_PB_DISCONNECT_REASON_SIGNAL_CLOSE:        return LIVEKIT_FAILURE_REASON_SIGNAL_CLOSE;
+        case LIVEKIT_PB_DISCONNECT_REASON_ROOM_CLOSED:         return LIVEKIT_FAILURE_REASON_ROOM_CLOSED;
+        case LIVEKIT_PB_DISCONNECT_REASON_USER_UNAVAILABLE:    return LIVEKIT_FAILURE_REASON_SIP_USER_UNAVAILABLE;
+        case LIVEKIT_PB_DISCONNECT_REASON_USER_REJECTED:       return LIVEKIT_FAILURE_REASON_SIP_USER_REJECTED;
+        case LIVEKIT_PB_DISCONNECT_REASON_SIP_TRUNK_FAILURE:   return LIVEKIT_FAILURE_REASON_SIP_TRUNK_FAILURE;
+        case LIVEKIT_PB_DISCONNECT_REASON_CONNECTION_TIMEOUT:  return LIVEKIT_FAILURE_REASON_CONNECTION_TIMEOUT;
+        case LIVEKIT_PB_DISCONNECT_REASON_MEDIA_FAILURE:       return LIVEKIT_FAILURE_REASON_MEDIA_FAILURE;
+        default:                                               return LIVEKIT_FAILURE_REASON_OTHER;
     }
 }
 
@@ -680,7 +703,8 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
             livekit_pb_signal_response_t *res = &ev->detail.res;
             switch (res->which_message) {
                 case LIVEKIT_PB_SIGNAL_RESPONSE_LEAVE_TAG:
-                    ESP_LOGI(TAG, "Server sent leave before fully connected");
+                    livekit_pb_leave_request_t *leave = &res->message.leave;
+                    eng->failure_reason = map_disconnect_reason(leave->reason);
                     eng->state = ENGINE_STATE_DISCONNECTED;
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_JOIN_TAG:
@@ -768,8 +792,8 @@ static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
             livekit_pb_signal_response_t *res = &ev->detail.res;
             switch (ev->detail.res.which_message) {
                 case LIVEKIT_PB_SIGNAL_RESPONSE_LEAVE_TAG:
-                    ESP_LOGI(TAG, "Server initiated disconnect");
-                    // TODO: Handle leave action
+                    livekit_pb_leave_request_t *leave = &res->message.leave;
+                    eng->failure_reason = map_disconnect_reason(leave->reason);
                     eng->state = ENGINE_STATE_DISCONNECTED;
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_ROOM_UPDATE_TAG:
