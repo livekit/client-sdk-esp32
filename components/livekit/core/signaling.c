@@ -249,8 +249,12 @@ signal_err_t signal_connect(signal_handle_t handle, const char* server_url, cons
     }
     signal_t *sg = (signal_t *)handle;
 
-    char* url;
-    if (!url_build(server_url, token, &url)) {
+    char* url = NULL;
+    url_build_options options = {
+        .server_url = server_url,
+        .token = token
+    };
+    if (!url_build(&options, &url)) {
         return SIGNAL_ERR_INVALID_URL;
     }
     esp_websocket_client_set_uri(sg->ws, url);
