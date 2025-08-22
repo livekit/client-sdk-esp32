@@ -21,36 +21,51 @@ typedef enum {
     // TODO: Add more error cases as needed
 } signal_err_t;
 
-/// Reason why signal connection failed.
+/// Signal connection state.
 typedef enum {
-    /// No failure has occurred.
-    SIGNAL_FAILURE_REASON_NONE = 0,
+    /// Unknown state.
+    SIGNAL_STATE_UNKNOWN             = 0,
+
+    /// Disconnected.
+    SIGNAL_STATE_DISCONNECTED        = 1 << 0,
+
+    /// Establishing connection.
+    SIGNAL_STATE_CONNECTING          = 1 << 1,
+
+    /// Connection established.
+    SIGNAL_STATE_CONNECTED           = 1 << 2,
 
     /// Server unreachable.
-    SIGNAL_FAILURE_REASON_UNREACHABLE  = 1 << 0,
+    SIGNAL_STATE_FAILED_UNREACHABLE  = 1 << 3,
+
+    /// Internal server error.
+    SIGNAL_STATE_FAILED_INTERNAL     = 1 << 4,
 
     /// Token is malformed.
-    SIGNAL_FAILURE_REASON_BAD_TOKEN    = 1 << 1,
+    SIGNAL_STATE_FAILED_BAD_TOKEN    = 1 << 5,
 
     /// Token is not valid to join the room.
-    SIGNAL_FAILURE_REASON_UNAUTHORIZED = 1 << 2,
+    SIGNAL_STATE_FAILED_UNAUTHORIZED = 1 << 6,
 
-    /// Other client error not covered by other reasons.
-    SIGNAL_FAILURE_REASON_CLIENT_OTHER = 1 << 3,
+    /// Other client failure not covered by other reasons.
+    SIGNAL_STATE_FAILED_CLIENT_OTHER = 1 << 7,
 
-    /// Any client error, no retry should be attempted.
-    SIGNAL_FAILURE_REASON_CLIENT_ANY   = SIGNAL_FAILURE_REASON_BAD_TOKEN |
-                                         SIGNAL_FAILURE_REASON_UNAUTHORIZED |
-                                         SIGNAL_FAILURE_REASON_CLIENT_OTHER,
-    /// Internal server error.
-    SIGNAL_FAILURE_REASON_INTERNAL     = 1 << 4
-} signal_failure_reason_t;
+    /// Any client failure (retry should not be attempted).
+    SIGNAL_STATE_FAILED_CLIENT_ANY   = SIGNAL_STATE_FAILED_BAD_TOKEN |
+                                       SIGNAL_STATE_FAILED_UNAUTHORIZED |
+                                       SIGNAL_STATE_FAILED_CLIENT_OTHER,
+
+    /// Any failure.
+    SIGNAL_STATE_FAILED_ANY          = SIGNAL_STATE_FAILED_UNREACHABLE |
+                                       SIGNAL_STATE_FAILED_INTERNAL |
+                                       SIGNAL_STATE_FAILED_CLIENT_ANY
+} signal_state_t;
 
 typedef struct {
     void* ctx;
 
     /// Invoked when the connection state changes.
-    void (*on_state_changed)(connection_state_t state, void *ctx);
+    void (*on_state_changed)(signal_state_t state, void *ctx);
 
     /// Invoked when a signal response is received.
     ///
@@ -70,13 +85,6 @@ signal_err_t signal_connect(signal_handle_t handle, const char* server_url, cons
 
 /// Closes the WebSocket connection
 signal_err_t signal_close(signal_handle_t handle);
-
-/// Returns the reason why the connection failed.
-///
-/// Use after the signal client's state changes to `CONNECTION_STATE_FAILED`.
-/// Will be reset to `SIGNAL_FAILURE_REASON_NONE` during the next connection attempt.
-///
-signal_failure_reason_t signal_get_failure_reason(signal_handle_t handle);
 
 /// Sends a leave request.
 signal_err_t signal_send_leave(signal_handle_t handle);

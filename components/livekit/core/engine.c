@@ -58,7 +58,7 @@ typedef struct {
         livekit_pb_data_packet_t data_packet;
 
         /// Detail for `EV_SIG_STATE`.
-        connection_state_t sig_state;
+        signal_state_t sig_state;
 
         /// Detail for `EV_PEER_STATE`.
         struct {
@@ -329,7 +329,7 @@ static engine_err_t publish_tracks(engine_t *eng)
 
 // MARK: - Signal event handlers
 
-static void on_signal_state_changed(connection_state_t state, void *ctx)
+static void on_signal_state_changed(signal_state_t state, void *ctx)
 {
     engine_t *eng = (engine_t *)ctx;
     engine_event_t ev = {
@@ -529,14 +529,14 @@ static inline bool map_engine_state(engine_t *eng, livekit_connection_state_t *o
     return true;
 }
 
-/// Map a signal failure reason to a failure reason exposed in the public room API.
-static livekit_failure_reason_t map_signal_failure_reason(signal_failure_reason_t reason)
+/// Map a signal failed state to a failure reason exposed in the public room API.
+static livekit_failure_reason_t map_signal_fail_state(signal_state_t state)
 {
-    switch (reason) {
-        case SIGNAL_FAILURE_REASON_UNREACHABLE:  return LIVEKIT_FAILURE_REASON_UNREACHABLE;
-        case SIGNAL_FAILURE_REASON_BAD_TOKEN:    return LIVEKIT_FAILURE_REASON_BAD_TOKEN;
-        case SIGNAL_FAILURE_REASON_UNAUTHORIZED: return LIVEKIT_FAILURE_REASON_UNAUTHORIZED;
-        default:                                 return LIVEKIT_FAILURE_REASON_OTHER;
+    switch (state) {
+        case SIGNAL_STATE_FAILED_UNREACHABLE:  return LIVEKIT_FAILURE_REASON_UNREACHABLE;
+        case SIGNAL_STATE_FAILED_BAD_TOKEN:    return LIVEKIT_FAILURE_REASON_BAD_TOKEN;
+        case SIGNAL_STATE_FAILED_UNAUTHORIZED: return LIVEKIT_FAILURE_REASON_UNAUTHORIZED;
+        default:                               return LIVEKIT_FAILURE_REASON_OTHER;
     }
 }
 
@@ -770,27 +770,29 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
             }
             break;
         case EV_SIG_STATE:
-            if (ev->detail.sig_state == CONNECTION_STATE_FAILED) {
-                signal_failure_reason_t reason = signal_get_failure_reason(eng->signal_handle);
-                eng->failure_reason = map_signal_failure_reason(reason);
-                // Client errors should not trigger a reconnection
-                eng->state = (reason & SIGNAL_FAILURE_REASON_CLIENT_ANY) ?
+            signal_state_t sig_state = ev->detail.sig_state;
+            if (sig_state == SIGNAL_STATE_DISCONNECTED) {
+                eng->failure_reason = LIVEKIT_FAILURE_REASON_OTHER;
+                eng->state = ENGINE_STATE_BACKOFF;
+            } else if (sig_state & SIGNAL_STATE_FAILED_ANY) {
+                eng->failure_reason = map_signal_fail_state(sig_state);
+                eng->state = (sig_state & SIGNAL_STATE_FAILED_CLIENT_ANY) ?
                     ENGINE_STATE_DISCONNECTED :
                     ENGINE_STATE_BACKOFF;
             }
             break;
         case EV_PEER_STATE:
-            connection_state_t state = ev->detail.peer_state.state;
+            connection_state_t peer_state = ev->detail.peer_state.state;
             peer_role_t role = ev->detail.peer_state.role;
 
             // If either peer fails, transition to backoff
-            if (state == CONNECTION_STATE_FAILED) {
+            if (peer_state == CONNECTION_STATE_FAILED) {
                 eng->failure_reason = LIVEKIT_FAILURE_REASON_RTC;
                 eng->state = ENGINE_STATE_BACKOFF;
                 break;
             }
             // Once the primary peer is connected, transition to connected
-            if (state == CONNECTION_STATE_CONNECTED) {
+            if (peer_state == CONNECTION_STATE_CONNECTED) {
                 if ((role == PEER_ROLE_PUBLISHER && !eng->session.is_subscriber_primary) ||
                     (role == PEER_ROLE_SUBSCRIBER && eng->session.is_subscriber_primary)) {
                     eng->state = ENGINE_STATE_CONNECTED;
@@ -861,17 +863,23 @@ static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
             }
             break;
         case EV_SIG_STATE:
-            if (ev->detail.sig_state == CONNECTION_STATE_FAILED) {
-                eng->failure_reason = LIVEKIT_FAILURE_REASON_UNREACHABLE;
+            signal_state_t sig_state = ev->detail.sig_state;
+            if (sig_state == SIGNAL_STATE_DISCONNECTED) {
+                eng->failure_reason = LIVEKIT_FAILURE_REASON_OTHER;
                 eng->state = ENGINE_STATE_BACKOFF;
+            } else if (sig_state & SIGNAL_STATE_FAILED_ANY) {
+                eng->failure_reason = map_signal_fail_state(sig_state);
+                eng->state = (sig_state & SIGNAL_STATE_FAILED_CLIENT_ANY) ?
+                    ENGINE_STATE_DISCONNECTED :
+                    ENGINE_STATE_BACKOFF;
             }
             break;
         case EV_PEER_STATE:
-            connection_state_t state = ev->detail.peer_state.state;
+            connection_state_t peer_state = ev->detail.peer_state.state;
             peer_role_t role = ev->detail.peer_state.role;
 
             // If either peer fails, transition to backoff
-            if (state == CONNECTION_STATE_FAILED) {
+            if (peer_state == CONNECTION_STATE_FAILED) {
                 eng->failure_reason = LIVEKIT_FAILURE_REASON_RTC;
                 eng->state = ENGINE_STATE_BACKOFF;
             }

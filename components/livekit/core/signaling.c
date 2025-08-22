@@ -29,21 +29,26 @@ typedef struct {
     esp_websocket_client_handle_t ws;
     signal_options_t         options;
     esp_timer_handle_t       ping_timer;
-    signal_failure_reason_t  failure_reason;
+    bool                     last_attempt_failed;
 
     int32_t ping_interval_ms;
     int32_t ping_timeout_ms;
     int64_t rtt;
 } signal_t;
 
-static inline signal_failure_reason_t failure_reason_from_http_status(int status)
+static inline void state_changed(signal_t *sg, signal_state_t state)
+{
+    sg->options.on_state_changed(state, sg->options.ctx);
+}
+
+static inline signal_state_t failed_state_from_http_status(int status)
 {
     switch (status) {
-        case 400: return SIGNAL_FAILURE_REASON_BAD_TOKEN;
-        case 401: return SIGNAL_FAILURE_REASON_UNAUTHORIZED;
+        case 400: return SIGNAL_STATE_FAILED_BAD_TOKEN;
+        case 401: return SIGNAL_STATE_FAILED_UNAUTHORIZED;
         default:  return status > 400 && status < 500 ?
-                    SIGNAL_FAILURE_REASON_CLIENT_OTHER :
-                    SIGNAL_FAILURE_REASON_INTERNAL;
+                    SIGNAL_STATE_FAILED_CLIENT_OTHER :
+                    SIGNAL_STATE_FAILED_INTERNAL;
     }
 }
 
@@ -129,16 +134,25 @@ static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void
 
     switch (event_id) {
         case WEBSOCKET_EVENT_BEFORE_CONNECT:
-            sg->failure_reason = SIGNAL_FAILURE_REASON_NONE;
+            sg->last_attempt_failed = false;
+            state_changed(sg, SIGNAL_STATE_CONNECTING);
+            break;
+        case WEBSOCKET_EVENT_CLOSED:
+        case WEBSOCKET_EVENT_DISCONNECTED:
+            esp_timer_stop(sg->ping_timer);
+            if (!sg->last_attempt_failed) {
+                state_changed(sg, SIGNAL_STATE_DISCONNECTED);
+            }
+            break;
+        case WEBSOCKET_EVENT_ERROR:
+            int http_status = data->error_handle.esp_ws_handshake_status_code;
+            signal_state_t state = http_status != 0 ?
+                failed_state_from_http_status(http_status) :
+                SIGNAL_STATE_FAILED_UNREACHABLE;
+            state_changed(sg, state);
             break;
         case WEBSOCKET_EVENT_CONNECTED:
-            ESP_LOGD(TAG, "Signaling connected");
-            sg->options.on_state_changed(CONNECTION_STATE_CONNECTED, sg->options.ctx);
-            break;
-        case WEBSOCKET_EVENT_DISCONNECTED:
-            ESP_LOGD(TAG, "Signaling disconnected");
-            esp_timer_stop(sg->ping_timer);
-            sg->options.on_state_changed(CONNECTION_STATE_DISCONNECTED, sg->options.ctx);
+            state_changed(sg, SIGNAL_STATE_CONNECTED);
             break;
         case WEBSOCKET_EVENT_DATA:
             if (data->op_code != WS_TRANSPORT_OPCODES_BINARY) {
@@ -159,16 +173,8 @@ static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void
                 protocol_signal_res_free(&res);
             }
             break;
-        case WEBSOCKET_EVENT_ERROR:
-            esp_timer_stop(sg->ping_timer);
-
-            int http_status = data->error_handle.esp_ws_handshake_status_code;
-            sg->failure_reason = http_status != 0 ?
-                failure_reason_from_http_status(http_status) :
-                SIGNAL_FAILURE_REASON_UNREACHABLE;
-            sg->options.on_state_changed(CONNECTION_STATE_FAILED, sg->options.ctx);
+        default:
             break;
-        default: break;
     }
 }
 
@@ -281,15 +287,6 @@ signal_err_t signal_close(signal_handle_t handle)
         return SIGNAL_ERR_WEBSOCKET;
     }
     return SIGNAL_ERR_NONE;
-}
-
-signal_failure_reason_t signal_get_failure_reason(signal_handle_t handle)
-{
-    if (handle == NULL) {
-        return SIGNAL_FAILURE_REASON_NONE;
-    }
-    signal_t *sg = (signal_t *)handle;
-    return sg->failure_reason;
 }
 
 signal_err_t signal_send_leave(signal_handle_t handle)
