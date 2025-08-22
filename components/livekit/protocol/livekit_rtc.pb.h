@@ -83,8 +83,7 @@ typedef struct livekit_pb_reconnect_response {
 } livekit_pb_reconnect_response_t;
 
 typedef struct livekit_pb_track_published_response {
-    char *cid;
-    livekit_pb_track_info_t track;
+    char dummy_field;
 } livekit_pb_track_published_response_t;
 
 typedef struct livekit_pb_track_unpublished_response {
@@ -377,7 +376,7 @@ typedef struct livekit_pb_request_response {
 } livekit_pb_request_response_t;
 
 typedef struct livekit_pb_track_subscribed {
-    pb_callback_t track_sid;
+    char dummy_field;
 } livekit_pb_track_subscribed_t;
 
 typedef struct livekit_pb_signal_response {
@@ -528,7 +527,7 @@ extern "C" {
 #define LIVEKIT_PB_MUTE_TRACK_REQUEST_INIT_DEFAULT {{{NULL}, NULL}, 0}
 #define LIVEKIT_PB_JOIN_RESPONSE_INIT_DEFAULT    {false, LIVEKIT_PB_ROOM_INIT_DEFAULT, LIVEKIT_PB_PARTICIPANT_INFO_INIT_DEFAULT, 0, NULL, 0, {LIVEKIT_PB_ICE_SERVER_INIT_DEFAULT, LIVEKIT_PB_ICE_SERVER_INIT_DEFAULT, LIVEKIT_PB_ICE_SERVER_INIT_DEFAULT, LIVEKIT_PB_ICE_SERVER_INIT_DEFAULT}, 0, false, LIVEKIT_PB_CLIENT_CONFIGURATION_INIT_DEFAULT, 0, 0}
 #define LIVEKIT_PB_RECONNECT_RESPONSE_INIT_DEFAULT {{{NULL}, NULL}, false, LIVEKIT_PB_CLIENT_CONFIGURATION_INIT_DEFAULT, false, LIVEKIT_PB_SERVER_INFO_INIT_DEFAULT, 0}
-#define LIVEKIT_PB_TRACK_PUBLISHED_RESPONSE_INIT_DEFAULT {NULL, LIVEKIT_PB_TRACK_INFO_INIT_DEFAULT}
+#define LIVEKIT_PB_TRACK_PUBLISHED_RESPONSE_INIT_DEFAULT {0}
 #define LIVEKIT_PB_TRACK_UNPUBLISHED_RESPONSE_INIT_DEFAULT {{{NULL}, NULL}}
 #define LIVEKIT_PB_SESSION_DESCRIPTION_INIT_DEFAULT {"", NULL, 0}
 #define LIVEKIT_PB_PARTICIPANT_UPDATE_INIT_DEFAULT {0, NULL}
@@ -563,7 +562,7 @@ extern "C" {
 #define LIVEKIT_PB_REGION_INFO_INIT_DEFAULT      {{{NULL}, NULL}, {{NULL}, NULL}, 0}
 #define LIVEKIT_PB_SUBSCRIPTION_RESPONSE_INIT_DEFAULT {{{NULL}, NULL}, _LIVEKIT_PB_SUBSCRIPTION_ERROR_MIN}
 #define LIVEKIT_PB_REQUEST_RESPONSE_INIT_DEFAULT {0, _LIVEKIT_PB_REQUEST_RESPONSE_REASON_MIN, {{NULL}, NULL}}
-#define LIVEKIT_PB_TRACK_SUBSCRIBED_INIT_DEFAULT {{{NULL}, NULL}}
+#define LIVEKIT_PB_TRACK_SUBSCRIBED_INIT_DEFAULT {0}
 #define LIVEKIT_PB_SIGNAL_REQUEST_INIT_ZERO      {0, {LIVEKIT_PB_SESSION_DESCRIPTION_INIT_ZERO}}
 #define LIVEKIT_PB_SIGNAL_RESPONSE_INIT_ZERO     {0, {LIVEKIT_PB_JOIN_RESPONSE_INIT_ZERO}}
 #define LIVEKIT_PB_SIMULCAST_CODEC_INIT_ZERO     {{{NULL}, NULL}, {{NULL}, NULL}}
@@ -572,7 +571,7 @@ extern "C" {
 #define LIVEKIT_PB_MUTE_TRACK_REQUEST_INIT_ZERO  {{{NULL}, NULL}, 0}
 #define LIVEKIT_PB_JOIN_RESPONSE_INIT_ZERO       {false, LIVEKIT_PB_ROOM_INIT_ZERO, LIVEKIT_PB_PARTICIPANT_INFO_INIT_ZERO, 0, NULL, 0, {LIVEKIT_PB_ICE_SERVER_INIT_ZERO, LIVEKIT_PB_ICE_SERVER_INIT_ZERO, LIVEKIT_PB_ICE_SERVER_INIT_ZERO, LIVEKIT_PB_ICE_SERVER_INIT_ZERO}, 0, false, LIVEKIT_PB_CLIENT_CONFIGURATION_INIT_ZERO, 0, 0}
 #define LIVEKIT_PB_RECONNECT_RESPONSE_INIT_ZERO  {{{NULL}, NULL}, false, LIVEKIT_PB_CLIENT_CONFIGURATION_INIT_ZERO, false, LIVEKIT_PB_SERVER_INFO_INIT_ZERO, 0}
-#define LIVEKIT_PB_TRACK_PUBLISHED_RESPONSE_INIT_ZERO {NULL, LIVEKIT_PB_TRACK_INFO_INIT_ZERO}
+#define LIVEKIT_PB_TRACK_PUBLISHED_RESPONSE_INIT_ZERO {0}
 #define LIVEKIT_PB_TRACK_UNPUBLISHED_RESPONSE_INIT_ZERO {{{NULL}, NULL}}
 #define LIVEKIT_PB_SESSION_DESCRIPTION_INIT_ZERO {"", NULL, 0}
 #define LIVEKIT_PB_PARTICIPANT_UPDATE_INIT_ZERO  {0, NULL}
@@ -607,7 +606,7 @@ extern "C" {
 #define LIVEKIT_PB_REGION_INFO_INIT_ZERO         {{{NULL}, NULL}, {{NULL}, NULL}, 0}
 #define LIVEKIT_PB_SUBSCRIPTION_RESPONSE_INIT_ZERO {{{NULL}, NULL}, _LIVEKIT_PB_SUBSCRIPTION_ERROR_MIN}
 #define LIVEKIT_PB_REQUEST_RESPONSE_INIT_ZERO    {0, _LIVEKIT_PB_REQUEST_RESPONSE_REASON_MIN, {{NULL}, NULL}}
-#define LIVEKIT_PB_TRACK_SUBSCRIBED_INIT_ZERO    {{{NULL}, NULL}}
+#define LIVEKIT_PB_TRACK_SUBSCRIBED_INIT_ZERO    {0}
 
 /* Field tags (for use in manual encoding/decoding) */
 #define LIVEKIT_PB_SIMULCAST_CODEC_CODEC_TAG     1
@@ -628,8 +627,6 @@ extern "C" {
 #define LIVEKIT_PB_RECONNECT_RESPONSE_CLIENT_CONFIGURATION_TAG 2
 #define LIVEKIT_PB_RECONNECT_RESPONSE_SERVER_INFO_TAG 3
 #define LIVEKIT_PB_RECONNECT_RESPONSE_LAST_MESSAGE_SEQ_TAG 4
-#define LIVEKIT_PB_TRACK_PUBLISHED_RESPONSE_CID_TAG 1
-#define LIVEKIT_PB_TRACK_PUBLISHED_RESPONSE_TRACK_TAG 2
 #define LIVEKIT_PB_TRACK_UNPUBLISHED_RESPONSE_TRACK_SID_TAG 1
 #define LIVEKIT_PB_SESSION_DESCRIPTION_TYPE_TAG  1
 #define LIVEKIT_PB_SESSION_DESCRIPTION_SDP_TAG   2
@@ -747,7 +744,6 @@ extern "C" {
 #define LIVEKIT_PB_REQUEST_RESPONSE_REQUEST_ID_TAG 1
 #define LIVEKIT_PB_REQUEST_RESPONSE_REASON_TAG   2
 #define LIVEKIT_PB_REQUEST_RESPONSE_MESSAGE_TAG  3
-#define LIVEKIT_PB_TRACK_SUBSCRIBED_TRACK_SID_TAG 1
 #define LIVEKIT_PB_SIGNAL_RESPONSE_JOIN_TAG      1
 #define LIVEKIT_PB_SIGNAL_RESPONSE_ANSWER_TAG    2
 #define LIVEKIT_PB_SIGNAL_RESPONSE_OFFER_TAG     3
@@ -916,11 +912,9 @@ X(a, STATIC,   SINGULAR, UINT32,   last_message_seq,   4)
 #define livekit_pb_reconnect_response_t_server_info_MSGTYPE livekit_pb_server_info_t
 
 #define LIVEKIT_PB_TRACK_PUBLISHED_RESPONSE_FIELDLIST(X, a) \
-X(a, POINTER,  SINGULAR, STRING,   cid,               1) \
-X(a, STATIC,   REQUIRED, MESSAGE,  track,             2)
+
 #define LIVEKIT_PB_TRACK_PUBLISHED_RESPONSE_CALLBACK NULL
 #define LIVEKIT_PB_TRACK_PUBLISHED_RESPONSE_DEFAULT NULL
-#define livekit_pb_track_published_response_t_track_MSGTYPE livekit_pb_track_info_t
 
 #define LIVEKIT_PB_TRACK_UNPUBLISHED_RESPONSE_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   track_sid,         1)
@@ -1171,8 +1165,8 @@ X(a, CALLBACK, SINGULAR, STRING,   message,           3)
 #define LIVEKIT_PB_REQUEST_RESPONSE_DEFAULT NULL
 
 #define LIVEKIT_PB_TRACK_SUBSCRIBED_FIELDLIST(X, a) \
-X(a, CALLBACK, SINGULAR, STRING,   track_sid,         1)
-#define LIVEKIT_PB_TRACK_SUBSCRIBED_CALLBACK pb_default_field_callback
+
+#define LIVEKIT_PB_TRACK_SUBSCRIBED_CALLBACK NULL
 #define LIVEKIT_PB_TRACK_SUBSCRIBED_DEFAULT NULL
 
 extern const pb_msgdesc_t livekit_pb_signal_request_t_msg;
@@ -1274,7 +1268,6 @@ extern const pb_msgdesc_t livekit_pb_track_subscribed_t_msg;
 /* livekit_pb_MuteTrackRequest_size depends on runtime parameters */
 /* livekit_pb_JoinResponse_size depends on runtime parameters */
 /* livekit_pb_ReconnectResponse_size depends on runtime parameters */
-/* livekit_pb_TrackPublishedResponse_size depends on runtime parameters */
 /* livekit_pb_TrackUnpublishedResponse_size depends on runtime parameters */
 /* livekit_pb_SessionDescription_size depends on runtime parameters */
 /* livekit_pb_ParticipantUpdate_size depends on runtime parameters */
@@ -1303,7 +1296,6 @@ extern const pb_msgdesc_t livekit_pb_track_subscribed_t_msg;
 /* livekit_pb_RegionInfo_size depends on runtime parameters */
 /* livekit_pb_SubscriptionResponse_size depends on runtime parameters */
 /* livekit_pb_RequestResponse_size depends on runtime parameters */
-/* livekit_pb_TrackSubscribed_size depends on runtime parameters */
 #define LIVEKIT_LIVEKIT_RTC_PB_H_MAX_SIZE        LIVEKIT_PB_ADD_TRACK_REQUEST_SIZE
 #define LIVEKIT_PB_ADD_TRACK_REQUEST_SIZE        81
 #define LIVEKIT_PB_LEAVE_REQUEST_SIZE            4
@@ -1311,6 +1303,8 @@ extern const pb_msgdesc_t livekit_pb_track_subscribed_t_msg;
 #define LIVEKIT_PB_PONG_SIZE                     22
 #define LIVEKIT_PB_SIMULATE_SCENARIO_SIZE        11
 #define LIVEKIT_PB_SUBSCRIBED_QUALITY_SIZE       4
+#define LIVEKIT_PB_TRACK_PUBLISHED_RESPONSE_SIZE 0
+#define LIVEKIT_PB_TRACK_SUBSCRIBED_SIZE         0
 #if defined(livekit_pb_Room_size)
 #define LIVEKIT_PB_ROOM_UPDATE_SIZE              (6 + livekit_pb_Room_size)
 #endif
