@@ -69,6 +69,12 @@ typedef struct {
 } engine_event_t;
 
 typedef struct {
+    bool is_subscriber_primary;
+    bool force_relay;
+    livekit_pb_sid_t local_participant_sid;
+} session_state_t;
+
+typedef struct {
     engine_state_t state;
     engine_options_t options;
 
@@ -80,12 +86,9 @@ typedef struct {
     esp_capture_path_handle_t capturer_path;
     bool is_media_streaming;
 
-    // Session state
-    bool is_subscriber_primary;
-    bool force_relay;
     char* server_url;
     char* token;
-    livekit_pb_sid_t local_participant_sid;
+    session_state_t session;
 
     TaskHandle_t task_handle;
     QueueHandle_t event_queue;
@@ -439,7 +442,7 @@ static void destroy_peer_connections(engine_t *eng)
 static bool establish_peer_connections(engine_t *eng)
 {
     peer_options_t options = {
-        .force_relay      = eng->force_relay,
+        .force_relay      = eng->session.force_relay,
         .media            = &eng->options.media,
         .on_state_changed = on_peer_state_changed,
         .on_data_packet   = on_peer_data_packet,
@@ -590,17 +593,17 @@ static inline void timer_stop(engine_t *eng)
 static void handle_join(engine_t *eng, livekit_pb_join_response_t *join)
 {
     // 1. Store connection settings
-    eng->is_subscriber_primary = join->subscriber_primary;
+    eng->session.is_subscriber_primary = join->subscriber_primary;
     if (join->has_client_configuration) {
-        eng->force_relay = join->client_configuration.force_relay
+        eng->session.force_relay = join->client_configuration.force_relay
             == LIVEKIT_PB_CLIENT_CONFIG_SETTING_ENABLED;
     }
 
     // 2. Store local Participant SID
     strncpy(
-        eng->local_participant_sid,
+        eng->session.local_participant_sid,
         join->participant.sid,
-        sizeof(eng->local_participant_sid)
+        sizeof(eng->session.local_participant_sid)
     );
 
     // 3. Dispatch initial room info
@@ -646,8 +649,8 @@ static void handle_participant_update(engine_t *eng, livekit_pb_participant_upda
         livekit_pb_participant_info_t *participant = &update->participants[i];
         bool is_local = !found_local && strncmp(
             participant->sid,
-            eng->local_participant_sid,
-            sizeof(eng->local_participant_sid)
+            eng->session.local_participant_sid,
+            sizeof(eng->session.local_participant_sid)
         ) == 0;
         if (is_local) found_local = true;
         eng->options.on_participant_info(participant, is_local, eng->options.ctx);
@@ -666,9 +669,7 @@ static bool handle_state_disconnected(engine_t *eng, const engine_event_t *ev)
             signal_close(eng->signal_handle);
             destroy_peer_connections(eng);
 
-            eng->is_subscriber_primary = false;
-            eng->force_relay = false;
-            eng->local_participant_sid[0] = '\0';
+            memset(&eng->session, 0, sizeof(eng->session));
             eng->retry_count = 0;
             break;
         case EV_CMD_CONNECT:
@@ -754,8 +755,8 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
             }
             // Once the primary peer is connected, transition to connected
             if (state == CONNECTION_STATE_CONNECTED) {
-                if ((role == PEER_ROLE_PUBLISHER && !eng->is_subscriber_primary) ||
-                    (role == PEER_ROLE_SUBSCRIBER && eng->is_subscriber_primary)) {
+                if ((role == PEER_ROLE_PUBLISHER && !eng->session.is_subscriber_primary) ||
+                    (role == PEER_ROLE_SUBSCRIBER && eng->session.is_subscriber_primary)) {
                     eng->state = ENGINE_STATE_CONNECTED;
                 }
             }
