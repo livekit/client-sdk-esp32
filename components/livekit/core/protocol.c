@@ -1,14 +1,28 @@
+#include <inttypes.h>
 #include "esp_log.h"
 #include "cJSON.h"
 #include "protocol.h"
 
 static const char *TAG = "livekit_protocol";
 
+static int32_t decode_first_tag(const pb_byte_t *buf, size_t len)
+{
+    pb_istream_t stream = pb_istream_from_buffer(buf, len);
+    pb_wire_type_t wire_type;
+    uint32_t tag;
+    bool eof = false;
+    if (!pb_decode_tag(&stream, &wire_type, &tag, &eof) || eof) {
+        return -1;
+    }
+    return (int32_t)tag;
+}
+
 bool protocol_data_packet_decode(const uint8_t *buf, size_t len, livekit_pb_data_packet_t *out)
 {
     pb_istream_t stream = pb_istream_from_buffer((const pb_byte_t *)buf, len);
     if (!pb_decode(&stream, LIVEKIT_PB_DATA_PACKET_FIELDS, out)) {
-        ESP_LOGE(TAG, "Failed to decode data packet: %s", stream.errmsg);
+        ESP_LOGE(TAG, "Failed to decode data packet: type=%" PRId32 ", error=%s",
+            decode_first_tag(buf, len), stream.errmsg);
         return false;
     }
     return true;
@@ -23,7 +37,8 @@ bool protocol_signal_res_decode(const uint8_t *buf, size_t len, livekit_pb_signa
 {
     pb_istream_t stream = pb_istream_from_buffer((const pb_byte_t *)buf, len);
     if (!pb_decode(&stream, LIVEKIT_PB_SIGNAL_RESPONSE_FIELDS, out)) {
-        ESP_LOGE(TAG, "Failed to decode signal res: %s", stream.errmsg);
+        ESP_LOGE(TAG, "Failed to decode signal res: type=%" PRId32 ", error=%s",
+            decode_first_tag(buf, len), stream.errmsg);
         return false;
     }
     return true;
