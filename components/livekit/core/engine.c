@@ -496,28 +496,37 @@ static bool establish_peer_connections(engine_t *eng)
 
 // MARK: - FSM helpers
 
-/// Return the external state that should be reported based on the engine's current state.
+/// Determines the external state that should be reported.
 ///
 /// This is necessary because the engine FSM's states do not map 1:1 with the states
 /// exposed in the public room API.
 ///
-static inline livekit_connection_state_t map_engine_state(engine_t *eng)
+static inline bool map_engine_state(engine_t *eng, livekit_connection_state_t *out_state)
 {
     switch (eng->state) {
         case ENGINE_STATE_DISCONNECTED:
             // Engine state machine doesn't have a discrete failed state
-            return eng->failure_reason == LIVEKIT_FAILURE_REASON_NONE ?
+            *out_state = eng->failure_reason == LIVEKIT_FAILURE_REASON_NONE ?
                 LIVEKIT_CONNECTION_STATE_DISCONNECTED :
                 LIVEKIT_CONNECTION_STATE_FAILED;
+            break;
         case ENGINE_STATE_CONNECTING:
             // Should only report connecting for initial connection attempt.
-            return eng->retry_count <= 0 ? LIVEKIT_CONNECTION_STATE_CONNECTING : -1;
+            if (eng->retry_count > 0) {
+                return false;
+            }
+            *out_state = LIVEKIT_CONNECTION_STATE_CONNECTING;
+            break;
         case ENGINE_STATE_BACKOFF:
-            return LIVEKIT_CONNECTION_STATE_RECONNECTING;
+            *out_state = LIVEKIT_CONNECTION_STATE_RECONNECTING;
+            break;
         case ENGINE_STATE_CONNECTED:
-            return LIVEKIT_CONNECTION_STATE_CONNECTED;
-        default: return -1;
+            *out_state = LIVEKIT_CONNECTION_STATE_CONNECTED;
+            break;
+        default:
+            return false;
     }
+    return true;
 }
 
 /// Map a signal failure reason to a failure reason exposed in the public room API.
@@ -961,8 +970,10 @@ static void engine_task(void *arg)
             assert(eng->state == state);
 
             if (eng->options.on_state_changed) {
-                livekit_connection_state_t ext_state = map_engine_state(eng);
-                if (ext_state > 0) eng->options.on_state_changed(ext_state, eng->options.ctx);
+                livekit_connection_state_t ext_state;
+                if (map_engine_state(eng, &ext_state)) {
+                    eng->options.on_state_changed(ext_state, eng->options.ctx);
+                }
             }
         }
     }
