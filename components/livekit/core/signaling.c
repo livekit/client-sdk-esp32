@@ -1,10 +1,5 @@
-#include <inttypes.h>
-#include <cJSON.h>
-#define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
 #include "esp_log.h"
-#include "esp_peer_signaling.h"
 #include "esp_netif.h"
-#include "media_lib_os.h"
 #ifdef CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
 #include "esp_crt_bundle.h"
 #endif
