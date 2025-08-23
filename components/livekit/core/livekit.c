@@ -304,6 +304,7 @@ const char* livekit_failure_reason_str(livekit_failure_reason_t reason)
         case LIVEKIT_FAILURE_REASON_UNAUTHORIZED:         return "Unauthorized";
         case LIVEKIT_FAILURE_REASON_RTC:                  return "RTC";
         case LIVEKIT_FAILURE_REASON_MAX_RETRIES:          return "Max Retries";
+        case LIVEKIT_FAILURE_REASON_PING_TIMEOUT:         return "Ping Timeout";
         case LIVEKIT_FAILURE_REASON_DUPLICATE_IDENTITY:   return "Duplicate Identity";
         case LIVEKIT_FAILURE_REASON_SERVER_SHUTDOWN:      return "Server Shutdown";
         case LIVEKIT_FAILURE_REASON_PARTICIPANT_REMOVED:  return "Participant Removed";

@@ -534,6 +534,7 @@ static livekit_failure_reason_t map_signal_fail_state(signal_state_t state)
 {
     switch (state) {
         case SIGNAL_STATE_FAILED_UNREACHABLE:  return LIVEKIT_FAILURE_REASON_UNREACHABLE;
+        case SIGNAL_STATE_FAILED_PING_TIMEOUT: return LIVEKIT_FAILURE_REASON_PING_TIMEOUT;
         case SIGNAL_STATE_FAILED_BAD_TOKEN:    return LIVEKIT_FAILURE_REASON_BAD_TOKEN;
         case SIGNAL_STATE_FAILED_UNAUTHORIZED: return LIVEKIT_FAILURE_REASON_UNAUTHORIZED;
         default:                               return LIVEKIT_FAILURE_REASON_OTHER;

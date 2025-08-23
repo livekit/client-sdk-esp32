@@ -1,3 +1,5 @@
+#include "freertos/FreeRTOS.h"
+#include "freertos/timers.h"
 #include "esp_log.h"
 #include "esp_netif.h"
 #ifdef CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
@@ -5,7 +7,6 @@
 #endif
 #include "esp_websocket_client.h"
 #include "esp_tls.h"
-#include "esp_timer.h"
 
 #include "protocol.h"
 #include "signaling.h"
@@ -22,17 +23,17 @@ static const char *TAG = "livekit_signaling";
 
 typedef struct {
     esp_websocket_client_handle_t ws;
-    signal_options_t         options;
-    esp_timer_handle_t       ping_timer;
-    bool                     last_attempt_failed;
-
-    int32_t ping_interval_ms;
-    int32_t ping_timeout_ms;
+    signal_options_t options;
+    signal_state_t state;
+    bool is_terminal_state;
+    TimerHandle_t ping_interval_timer;
+    TimerHandle_t ping_timeout_timer;
     int64_t rtt;
 } signal_t;
 
-static inline void state_changed(signal_t *sg, signal_state_t state)
+static inline void change_state(signal_t *sg, signal_state_t state)
 {
+    sg->state = state;
     sg->options.on_state_changed(state, sg->options.ctx);
 }
 
@@ -81,9 +82,9 @@ static signal_err_t send_request(signal_t *sg, livekit_pb_signal_request_t *requ
     return ret;
 }
 
-static void send_ping(void *arg)
+static void on_ping_interval_expired(TimerHandle_t handle)
 {
-    signal_t *sg = (signal_t *)arg;
+    signal_t *sg = (signal_t *)pvTimerGetTimerID(handle);
 
     livekit_pb_signal_request_t req = LIVEKIT_PB_SIGNAL_REQUEST_INIT_DEFAULT;
     req.which_message = LIVEKIT_PB_SIGNAL_REQUEST_PING_REQ_TAG;
@@ -93,6 +94,12 @@ static void send_ping(void *arg)
     send_request(sg, &req);
 }
 
+static void on_ping_timeout_expired(TimerHandle_t handle)
+{
+    signal_t *sg = (signal_t *)pvTimerGetTimerID(handle);
+    esp_websocket_client_stop(sg->ws);
+}
+
 /// Processes responses before forwarding them to the receiver.
 static inline bool res_middleware(signal_t *sg, livekit_pb_signal_response_t *res)
 {
@@ -100,54 +107,65 @@ static inline bool res_middleware(signal_t *sg, livekit_pb_signal_response_t *re
         res->which_message != LIVEKIT_PB_SIGNAL_RESPONSE_JOIN_TAG) {
         return true;
     }
-    bool should_forward = false;
     switch (res->which_message) {
-        case LIVEKIT_PB_SIGNAL_RESPONSE_PONG_RESP_TAG:
-            livekit_pb_pong_t *pong = &res->message.pong_resp;
-            sg->rtt = get_unix_time_ms() - pong->last_ping_timestamp;
-            // TODO: Reset ping timeout
-            should_forward = false;
-            break;
         case LIVEKIT_PB_SIGNAL_RESPONSE_JOIN_TAG:
             livekit_pb_join_response_t *join = &res->message.join;
-            sg->ping_interval_ms = join->ping_interval * 1000;
-            sg->ping_timeout_ms = join->ping_timeout * 1000;
-            esp_timer_start_periodic(sg->ping_timer, sg->ping_interval_ms * 1000);
-            should_forward = true;
-            break;
+            // Calculate timer intervals and start timers: seconds -> ms, min 1s.
+            int32_t ping_interval_ms = (join->ping_interval < 1 ? 1 : join->ping_interval) * 1000;
+            xTimerChangePeriod(sg->ping_interval_timer, pdMS_TO_TICKS(ping_interval_ms), 0);
+            xTimerStart(sg->ping_interval_timer, 0);
+            int32_t ping_timeout_ms = (join->ping_timeout < 1 ? 1 : join->ping_timeout) * 1000;
+            xTimerChangePeriod(sg->ping_timeout_timer, pdMS_TO_TICKS(ping_timeout_ms), 0);
+            xTimerStart(sg->ping_timeout_timer, 0);
+            return true;
+        case LIVEKIT_PB_SIGNAL_RESPONSE_PONG_RESP_TAG:
+            livekit_pb_pong_t *pong = &res->message.pong_resp;
+            // Calculate round trip time (RTT) and restart ping timeout timer.
+            sg->rtt = get_unix_time_ms() - pong->last_ping_timestamp;
+            xTimerReset(sg->ping_timeout_timer, 0);
+            return false;
         default:
-            should_forward = false;
+            return true;
     }
-    return should_forward;
 }
 
 static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void *event_data)
 {
-    assert(ctx != NULL);
     signal_t *sg = (signal_t *)ctx;
     esp_websocket_event_data_t *data = (esp_websocket_event_data_t *)event_data;
 
     switch (event_id) {
         case WEBSOCKET_EVENT_BEFORE_CONNECT:
-            sg->last_attempt_failed = false;
-            state_changed(sg, SIGNAL_STATE_CONNECTING);
+            sg->is_terminal_state = false;
+            change_state(sg, SIGNAL_STATE_CONNECTING);
             break;
         case WEBSOCKET_EVENT_CLOSED:
         case WEBSOCKET_EVENT_DISCONNECTED:
-            esp_timer_stop(sg->ping_timer);
-            if (!sg->last_attempt_failed) {
-                state_changed(sg, SIGNAL_STATE_DISCONNECTED);
+        case WEBSOCKET_EVENT_FINISH:
+            if (sg->is_terminal_state) {
+                break;
             }
+            bool is_ping_timeout = xTimerIsTimerActive(sg->ping_timeout_timer) == pdFALSE;
+            xTimerStop(sg->ping_timeout_timer, 0);
+            xTimerStop(sg->ping_interval_timer, 0);
+
+            if (!(sg->state & SIGNAL_STATE_FAILED_ANY)) {
+                signal_state_t terminal_state = is_ping_timeout ?
+                    SIGNAL_STATE_FAILED_PING_TIMEOUT :
+                    SIGNAL_STATE_DISCONNECTED;
+                change_state(sg, terminal_state);
+            }
+            sg->is_terminal_state = true;
             break;
         case WEBSOCKET_EVENT_ERROR:
             int http_status = data->error_handle.esp_ws_handshake_status_code;
             signal_state_t state = http_status != 0 ?
                 failed_state_from_http_status(http_status) :
                 SIGNAL_STATE_FAILED_UNREACHABLE;
-            state_changed(sg, state);
+            change_state(sg, state);
             break;
         case WEBSOCKET_EVENT_CONNECTED:
-            state_changed(sg, SIGNAL_STATE_CONNECTED);
+            change_state(sg, SIGNAL_STATE_CONNECTED);
             break;
         case WEBSOCKET_EVENT_DATA:
             if (data->op_code != WS_TRANSPORT_OPCODES_BINARY) {
@@ -191,13 +209,26 @@ signal_err_t signal_create(signal_handle_t *handle, signal_options_t *options)
     }
     sg->options = *options;
 
-    esp_timer_create_args_t timer_args = {
-        .callback = send_ping,
-        .arg = sg,
-        .name = "ping"
-    };
-    if (esp_timer_create(&timer_args, &sg->ping_timer) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to create ping timer");
+    sg->ping_interval_timer = xTimerCreate(
+        "ping_interval",
+        pdMS_TO_TICKS(1000), // Will be overwritten before start
+        pdTRUE, // Periodic
+        (void *)sg,
+        on_ping_interval_expired
+    );
+    if (sg->ping_interval_timer == NULL) {
+        free(sg);
+        return SIGNAL_ERR_OTHER;
+    }
+    sg->ping_timeout_timer = xTimerCreate(
+        "ping_timeout",
+        pdMS_TO_TICKS(1000), // Will be overwritten before start
+        pdFALSE, // One-shot
+        (void *)sg,
+        on_ping_timeout_expired
+    );
+    if (sg->ping_timeout_timer == NULL) {
+        xTimerDelete(sg->ping_interval_timer, portMAX_DELAY);
         free(sg);
         return SIGNAL_ERR_OTHER;
     }
@@ -214,8 +245,8 @@ signal_err_t signal_create(signal_handle_t *handle, signal_options_t *options)
     };
     sg->ws = esp_websocket_client_init(&ws_config);
     if (sg->ws == NULL) {
-        ESP_LOGE(TAG, "Failed to initialize WebSocket client");
-        esp_timer_delete(sg->ping_timer);
+        xTimerDelete(sg->ping_interval_timer, portMAX_DELAY);
+        xTimerDelete(sg->ping_timeout_timer, portMAX_DELAY);
         free(sg);
         return SIGNAL_ERR_WEBSOCKET;
     }
@@ -235,7 +266,8 @@ signal_err_t signal_destroy(signal_handle_t handle)
         return SIGNAL_ERR_INVALID_ARG;
     }
     signal_t *sg = (signal_t *)handle;
-    esp_timer_delete(sg->ping_timer);
+    xTimerDelete(sg->ping_interval_timer, portMAX_DELAY);
+    xTimerDelete(sg->ping_timeout_timer, portMAX_DELAY);
     signal_close(handle);
     esp_websocket_client_destroy(sg->ws);
     free(sg);
@@ -273,11 +305,8 @@ signal_err_t signal_close(signal_handle_t handle)
         return SIGNAL_ERR_INVALID_ARG;
     }
     signal_t *sg = (signal_t *)handle;
-
-    esp_timer_stop(sg->ping_timer);
     if (esp_websocket_client_is_connected(sg->ws) &&
         esp_websocket_client_close(sg->ws, pdMS_TO_TICKS(SIGNAL_WS_CLOSE_TIMEOUT_MS)) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to close WebSocket");
         return SIGNAL_ERR_WEBSOCKET;
     }
     return SIGNAL_ERR_NONE;

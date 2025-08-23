@@ -2,7 +2,6 @@
 #pragma once
 
 #include "protocol.h"
-#include "common.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,20 +22,20 @@ typedef enum {
 
 /// Signal connection state.
 typedef enum {
-    /// Unknown state.
-    SIGNAL_STATE_UNKNOWN             = 0,
-
     /// Disconnected.
-    SIGNAL_STATE_DISCONNECTED        = 1 << 0,
+    SIGNAL_STATE_DISCONNECTED        = 0,
 
     /// Establishing connection.
-    SIGNAL_STATE_CONNECTING          = 1 << 1,
+    SIGNAL_STATE_CONNECTING          = 1 << 0,
 
     /// Connection established.
-    SIGNAL_STATE_CONNECTED           = 1 << 2,
+    SIGNAL_STATE_CONNECTED           = 1 << 1,
 
     /// Server unreachable.
-    SIGNAL_STATE_FAILED_UNREACHABLE  = 1 << 3,
+    SIGNAL_STATE_FAILED_UNREACHABLE  = 1 << 2,
+
+    /// Server did not respond to ping within timeout window.
+    SIGNAL_STATE_FAILED_PING_TIMEOUT = 1 << 3,
 
     /// Internal server error.
     SIGNAL_STATE_FAILED_INTERNAL     = 1 << 4,
@@ -51,13 +50,14 @@ typedef enum {
     SIGNAL_STATE_FAILED_CLIENT_OTHER = 1 << 7,
 
     /// Any client failure (retry should not be attempted).
-    SIGNAL_STATE_FAILED_CLIENT_ANY   = SIGNAL_STATE_FAILED_BAD_TOKEN |
+    SIGNAL_STATE_FAILED_CLIENT_ANY   = SIGNAL_STATE_FAILED_BAD_TOKEN    |
                                        SIGNAL_STATE_FAILED_UNAUTHORIZED |
                                        SIGNAL_STATE_FAILED_CLIENT_OTHER,
 
     /// Any failure.
-    SIGNAL_STATE_FAILED_ANY          = SIGNAL_STATE_FAILED_UNREACHABLE |
-                                       SIGNAL_STATE_FAILED_INTERNAL |
+    SIGNAL_STATE_FAILED_ANY          = SIGNAL_STATE_FAILED_UNREACHABLE  |
+                                       SIGNAL_STATE_FAILED_PING_TIMEOUT |
+                                       SIGNAL_STATE_FAILED_INTERNAL     |
                                        SIGNAL_STATE_FAILED_CLIENT_ANY
 } signal_state_t;
 

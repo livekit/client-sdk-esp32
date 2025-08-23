@@ -56,6 +56,12 @@ typedef enum {
     ///
     LIVEKIT_FAILURE_REASON_MAX_RETRIES,
 
+    /// Ping Timeout
+    ///
+    /// Server did not respond to ping within the timeout window.
+    ///
+    LIVEKIT_FAILURE_REASON_PING_TIMEOUT,
+
     /// Duplicate Identity
     ///
     /// Another participant already has the same identity.

@@ -8,7 +8,6 @@ idf_component_register(
     PRIV_REQUIRES
         esp_codec_dev
         esp_netif
-        esp_timer
         esp_websocket_client
         esp_webrtc
         json
