@@ -215,7 +215,8 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_r
 
     int ret = LIVEKIT_ERR_OTHER;
     do {
-        if (engine_create(&room->engine, &eng_options) != ENGINE_ERR_NONE) {
+        room->engine = engine_init(&eng_options);
+        if (room->engine == NULL) {
             ESP_LOGE(TAG, "Failed to create engine");
             ret = LIVEKIT_ERR_ENGINE;
             break;

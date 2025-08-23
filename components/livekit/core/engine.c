@@ -996,30 +996,44 @@ static void engine_task(void *arg)
 
 // MARK: - Public API
 
-engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options)
+engine_handle_t engine_init(const engine_options_t *options)
 {
     engine_t *eng = (engine_t *)calloc(1, sizeof(engine_t));
     if (eng == NULL) {
-        return ENGINE_ERR_NO_MEM;
+        return NULL;
+    }
+    eng->options = *options;
+    eng->state = ENGINE_STATE_DISCONNECTED;
+    eng->is_running = true;
+
+    eng->event_queue = xQueueCreate(
+        CONFIG_LK_ENGINE_QUEUE_SIZE,
+        sizeof(engine_event_t)
+    );
+    if (eng->event_queue == NULL) {
+        goto _init_failed;
     }
 
-    eng->event_queue = xQueueCreate(CONFIG_LK_ENGINE_QUEUE_SIZE, sizeof(engine_event_t));
-    if (eng->event_queue == NULL) {
-        free(eng);
-        return ENGINE_ERR_NO_MEM;
+    if (xTaskCreate(
+        engine_task,
+        "engine_task",
+        4096,
+        (void *)eng,
+        5,
+        &eng->task_handle
+    ) != pdPASS) {
+        goto _init_failed;
     }
 
     eng->timer = xTimerCreate(
         "lk_engine_timer",
         pdMS_TO_TICKS(1000),
         pdFALSE,
-        eng,
-        on_timer_expired);
-
+        (void *)eng,
+        on_timer_expired
+    );
     if (eng->timer == NULL) {
-        free(eng->event_queue);
-        free(eng);
-        return ENGINE_ERR_NO_MEM;
+        goto _init_failed;
     }
 
     signal_options_t signal_options = {
@@ -1029,21 +1043,7 @@ engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options)
     };
     eng->signal_handle = signal_init(&signal_options);
     if (eng->signal_handle == NULL) {
-        free(eng->event_queue);
-        free(eng->timer);
-        free(eng);
-        return ENGINE_ERR_SIGNALING;
-    }
-
-    eng->options = *options;
-    eng->state = ENGINE_STATE_DISCONNECTED;
-    eng->is_running = true;
-
-    if (xTaskCreate(engine_task, "engine_task", 4096, eng, 5, &eng->task_handle) != pdPASS) {
-        free(eng->event_queue);
-        free(eng->timer);
-        free(eng);
-        return ENGINE_ERR_NO_MEM;
+        goto _init_failed;
     }
 
     esp_capture_sink_cfg_t sink_cfg = {
@@ -1060,16 +1060,29 @@ engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options)
             .fps = eng->options.media.video_info.fps,
         },
     };
-
     if (options->media.audio_info.codec != ESP_PEER_AUDIO_CODEC_NONE) {
         // TODO: Can we ensure the renderer is valid? If not, return error.
         eng->renderer_handle = options->media.renderer;
     }
-    esp_capture_setup_path(eng->options.media.capturer, ESP_CAPTURE_PATH_PRIMARY, &sink_cfg, &eng->capturer_path);
-    esp_capture_enable_path(eng->capturer_path, ESP_CAPTURE_RUN_TYPE_ALWAYS);
+    if (esp_capture_setup_path(
+        eng->options.media.capturer,
+        ESP_CAPTURE_PATH_PRIMARY,
+        &sink_cfg,
+        &eng->capturer_path
+    ) != ESP_CAPTURE_ERR_OK) {
+        goto _init_failed;
+    }
+    if (esp_capture_enable_path(
+        eng->capturer_path,
+        ESP_CAPTURE_RUN_TYPE_ALWAYS
+    ) != ESP_CAPTURE_ERR_OK) {
+        goto _init_failed;
+    }
+    return eng;
 
-    *handle = (engine_handle_t)eng;
-    return ENGINE_ERR_NONE;
+_init_failed:
+    engine_destroy(eng);
+    return NULL;
 }
 
 engine_err_t engine_destroy(engine_handle_t handle)
@@ -1078,25 +1091,33 @@ engine_err_t engine_destroy(engine_handle_t handle)
         return ENGINE_ERR_INVALID_ARG;
     }
     engine_t *eng = (engine_t *)handle;
-
     eng->is_running = false;
     if (eng->task_handle != NULL) {
         // TODO: Wait for disconnected state or timeout
         vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelete(eng->task_handle);
     }
-    vTaskDelete(eng->task_handle);
-
-    xTimerDelete(eng->timer, portMAX_DELAY);
-    vQueueDelete(eng->event_queue);
-
-    signal_destroy(eng->signal_handle);
+    if (eng->timer != NULL) {
+        xTimerDelete(eng->timer, portMAX_DELAY);
+    }
+    if (eng->event_queue != NULL) {
+        vQueueDelete(eng->event_queue);
+    }
+    if (eng->signal_handle != NULL) {
+        signal_destroy(eng->signal_handle);
+    }
     if (eng->pub_peer_handle != NULL) {
         peer_destroy(eng->pub_peer_handle);
     }
-
-    if (eng->server_url != NULL) free(eng->server_url);
-    if (eng->token != NULL) free(eng->token);
-    // TODO: Free other resources
+    if (eng->sub_peer_handle != NULL) {
+        peer_destroy(eng->sub_peer_handle);
+    }
+    if (eng->server_url != NULL) {
+        free(eng->server_url);
+    }
+    if (eng->token != NULL) {
+        free(eng->token);
+    }
     free(eng);
     return ENGINE_ERR_NONE;
 }

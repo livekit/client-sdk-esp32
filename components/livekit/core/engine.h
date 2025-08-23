@@ -48,8 +48,7 @@ typedef struct {
 } engine_options_t;
 
 /// Creates a new instance.
-/// @param[out] handle The handle to the new instance.
-engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options);
+engine_handle_t engine_init(const engine_options_t *options);
 
 /// Destroys an instance.
 /// @param[in] handle The handle to the instance to destroy.
