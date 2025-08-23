@@ -76,7 +76,7 @@ typedef struct {
     bool (*on_res)(livekit_pb_signal_response_t *res, void *ctx);
 } signal_options_t;
 
-signal_err_t signal_create(signal_handle_t *handle, signal_options_t *options);
+signal_handle_t signal_init(const signal_options_t *options);
 signal_err_t signal_destroy(signal_handle_t handle);
 
 /// Establishes the WebSocket connection

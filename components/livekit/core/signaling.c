@@ -191,21 +191,16 @@ static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void
     }
 }
 
-signal_err_t signal_create(signal_handle_t *handle, signal_options_t *options)
+signal_handle_t signal_init(const signal_options_t *options)
 {
-    if (options == NULL || handle == NULL) {
-        return SIGNAL_ERR_INVALID_ARG;
-    }
-
-    if (options->on_state_changed == NULL ||
+    if (options == NULL ||
+        options->on_state_changed == NULL ||
         options->on_res == NULL) {
-        ESP_LOGE(TAG, "Missing required event handlers");
-        return SIGNAL_ERR_INVALID_ARG;
+        return NULL;
     }
-
     signal_t *sg = calloc(1, sizeof(signal_t));
     if (sg == NULL) {
-        return SIGNAL_ERR_NO_MEM;
+        return NULL;
     }
     sg->options = *options;
 
@@ -217,8 +212,7 @@ signal_err_t signal_create(signal_handle_t *handle, signal_options_t *options)
         on_ping_interval_expired
     );
     if (sg->ping_interval_timer == NULL) {
-        free(sg);
-        return SIGNAL_ERR_OTHER;
+        goto _init_failed;
     }
     sg->ping_timeout_timer = xTimerCreate(
         "ping_timeout",
@@ -228,11 +222,8 @@ signal_err_t signal_create(signal_handle_t *handle, signal_options_t *options)
         on_ping_timeout_expired
     );
     if (sg->ping_timeout_timer == NULL) {
-        xTimerDelete(sg->ping_interval_timer, portMAX_DELAY);
-        free(sg);
-        return SIGNAL_ERR_OTHER;
+        goto _init_failed;
     }
-
     // URL will be set on connect
     static esp_websocket_client_config_t ws_config = {
         .buffer_size = SIGNAL_WS_BUFFER_SIZE,
@@ -245,19 +236,20 @@ signal_err_t signal_create(signal_handle_t *handle, signal_options_t *options)
     };
     sg->ws = esp_websocket_client_init(&ws_config);
     if (sg->ws == NULL) {
-        xTimerDelete(sg->ping_interval_timer, portMAX_DELAY);
-        xTimerDelete(sg->ping_timeout_timer, portMAX_DELAY);
-        free(sg);
-        return SIGNAL_ERR_WEBSOCKET;
+        goto _init_failed;
     }
-    esp_websocket_register_events(
+    if (esp_websocket_register_events(
         sg->ws,
         WEBSOCKET_EVENT_ANY,
         on_ws_event,
         (void *)sg
-    );
-    *handle = sg;
-    return SIGNAL_ERR_NONE;
+    ) != ESP_OK) {
+        goto _init_failed;
+    }
+    return sg;
+_init_failed:
+    signal_destroy(sg);
+    return NULL;
 }
 
 signal_err_t signal_destroy(signal_handle_t handle)
@@ -266,10 +258,15 @@ signal_err_t signal_destroy(signal_handle_t handle)
         return SIGNAL_ERR_INVALID_ARG;
     }
     signal_t *sg = (signal_t *)handle;
-    xTimerDelete(sg->ping_interval_timer, portMAX_DELAY);
-    xTimerDelete(sg->ping_timeout_timer, portMAX_DELAY);
-    signal_close(handle);
-    esp_websocket_client_destroy(sg->ws);
+    if (sg->ping_interval_timer != NULL) {
+        xTimerDelete(sg->ping_interval_timer, portMAX_DELAY);
+    }
+    if (sg->ping_timeout_timer != NULL) {
+        xTimerDelete(sg->ping_timeout_timer, portMAX_DELAY);
+    }
+    if (sg->ws != NULL) {
+        esp_websocket_client_destroy(sg->ws);
+    }
     free(sg);
     return SIGNAL_ERR_NONE;
 }

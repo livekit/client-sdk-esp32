@@ -1027,7 +1027,8 @@ engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options)
         .on_state_changed = on_signal_state_changed,
         .on_res = on_signal_res,
     };
-    if (signal_create(&eng->signal_handle, &signal_options) != SIGNAL_ERR_NONE) {
+    eng->signal_handle = signal_init(&signal_options);
+    if (eng->signal_handle == NULL) {
         free(eng->event_queue);
         free(eng->timer);
         free(eng);
