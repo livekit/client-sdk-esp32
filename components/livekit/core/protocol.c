@@ -1,6 +1,9 @@
 #include <inttypes.h>
 #include "esp_log.h"
 #include "cJSON.h"
+#include "pb_encode.h"
+#include "pb_decode.h"
+
 #include "protocol.h"
 
 static const char *TAG = "livekit_protocol";
