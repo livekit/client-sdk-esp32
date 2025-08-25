@@ -85,3 +85,25 @@ bool protocol_signal_trickle_get_candidate(const livekit_pb_trickle_request_t *t
     cJSON_Delete(candidate_init);
     return ret;
 }
+
+__attribute__((always_inline))
+inline size_t protocol_signal_request_encoded_size(const livekit_pb_signal_request_t *req)
+{
+    size_t encoded_size = 0;
+    if (!pb_get_encoded_size(&encoded_size, LIVEKIT_PB_SIGNAL_REQUEST_FIELDS, req)) {
+        return 0;
+    }
+    return encoded_size;
+}
+
+__attribute__((always_inline))
+inline bool protocol_signal_request_encode(const livekit_pb_signal_request_t *req, uint8_t *dest, size_t encoded_size)
+{
+    pb_ostream_t stream = pb_ostream_from_buffer((pb_byte_t *)dest, encoded_size);
+    if (!pb_encode(&stream, LIVEKIT_PB_SIGNAL_REQUEST_FIELDS, req)) {
+        ESP_LOGE(TAG, "Failed to encode signal req: type=%" PRIu16 ", error=%s",
+            req->which_message, stream.errmsg);
+        return false;
+    }
+    return stream.bytes_written == encoded_size;
+}

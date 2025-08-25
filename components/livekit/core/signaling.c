@@ -50,11 +50,8 @@ static inline signal_state_t failed_state_from_http_status(int status)
 
 static signal_err_t send_request(signal_t *sg, livekit_pb_signal_request_t *request)
 {
-    // TODO: Optimize (use static buffer for small messages)
-    ESP_LOGD(TAG, "Sending request: type=%d", request->which_message);
-
-    size_t encoded_size = 0;
-    if (!pb_get_encoded_size(&encoded_size, LIVEKIT_PB_SIGNAL_REQUEST_FIELDS, request)) {
+    size_t encoded_size = protocol_signal_request_encoded_size(request);
+    if (encoded_size == 0) {
         return SIGNAL_ERR_MESSAGE;
     }
     uint8_t *enc_buf = (uint8_t *)malloc(encoded_size);
@@ -63,15 +60,13 @@ static signal_err_t send_request(signal_t *sg, livekit_pb_signal_request_t *requ
     }
     int ret = SIGNAL_ERR_NONE;
     do {
-        pb_ostream_t stream = pb_ostream_from_buffer(enc_buf, encoded_size);
-        if (!pb_encode(&stream, LIVEKIT_PB_SIGNAL_REQUEST_FIELDS, request)) {
-            ESP_LOGE(TAG, "Failed to encode request");
+        if (!protocol_signal_request_encode(request, enc_buf, encoded_size)) {
             ret = SIGNAL_ERR_MESSAGE;
             break;
         }
         if (esp_websocket_client_send_bin(sg->ws,
                 (const char *)enc_buf,
-                stream.bytes_written,
+                encoded_size,
                 portMAX_DELAY) < 0) {
             ESP_LOGE(TAG, "Failed to send request");
             ret = SIGNAL_ERR_MESSAGE;
