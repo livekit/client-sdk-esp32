@@ -19,7 +19,8 @@ static int32_t decode_first_tag(const pb_byte_t *buf, size_t len)
 
 // MARK: - Data packet
 
-bool protocol_data_packet_decode(const uint8_t *buf, size_t len, livekit_pb_data_packet_t *out)
+__attribute__((always_inline))
+inline bool protocol_data_packet_decode(const uint8_t *buf, size_t len, livekit_pb_data_packet_t *out)
 {
     pb_istream_t stream = pb_istream_from_buffer((const pb_byte_t *)buf, len);
     if (!pb_decode(&stream, LIVEKIT_PB_DATA_PACKET_FIELDS, out)) {
@@ -30,7 +31,8 @@ bool protocol_data_packet_decode(const uint8_t *buf, size_t len, livekit_pb_data
     return true;
 }
 
-void protocol_data_packet_free(livekit_pb_data_packet_t *packet)
+__attribute__((always_inline))
+inline void protocol_data_packet_free(livekit_pb_data_packet_t *packet)
 {
     pb_release(LIVEKIT_PB_DATA_PACKET_FIELDS, packet);
 }
@@ -59,7 +61,8 @@ inline bool protocol_data_packet_encode(const livekit_pb_data_packet_t *packet, 
 
 // MARK: - Signal response
 
-bool protocol_signal_res_decode(const uint8_t *buf, size_t len, livekit_pb_signal_response_t* out)
+__attribute__((always_inline))
+inline bool protocol_signal_res_decode(const uint8_t *buf, size_t len, livekit_pb_signal_response_t* out)
 {
     pb_istream_t stream = pb_istream_from_buffer((const pb_byte_t *)buf, len);
     if (!pb_decode(&stream, LIVEKIT_PB_SIGNAL_RESPONSE_FIELDS, out)) {
@@ -70,7 +73,8 @@ bool protocol_signal_res_decode(const uint8_t *buf, size_t len, livekit_pb_signa
     return true;
 }
 
-void protocol_signal_res_free(livekit_pb_signal_response_t *res)
+__attribute__((always_inline))
+inline void protocol_signal_res_free(livekit_pb_signal_response_t *res)
 {
     pb_release(LIVEKIT_PB_SIGNAL_RESPONSE_FIELDS, res);
 }
