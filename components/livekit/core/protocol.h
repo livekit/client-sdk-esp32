@@ -40,12 +40,12 @@ bool protocol_data_packet_encode(const livekit_pb_data_packet_t *packet, uint8_t
 
 /// Decodes a signal response.
 ///
-/// When the response is no longer needed, free using `protocol_signal_res_free`.
+/// When the response is no longer needed, free using `protocol_signal_response_free`.
 ///
-bool protocol_signal_res_decode(const uint8_t *buf, size_t len, livekit_pb_signal_response_t* out);
+bool protocol_signal_response_decode(const uint8_t *buf, size_t len, livekit_pb_signal_response_t* out);
 
 /// Frees a signal response.
-void protocol_signal_res_free(livekit_pb_signal_response_t *res);
+void protocol_signal_response_free(livekit_pb_signal_response_t *res);
 
 /// Extract ICE candidate string from a trickle request.
 ///

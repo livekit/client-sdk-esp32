@@ -579,7 +579,7 @@ static void event_free(engine_event_t *ev)
             protocol_data_packet_free(&ev->detail.data_packet);
             break;
         case EV_SIG_RES:
-            protocol_signal_res_free(&ev->detail.res);
+            protocol_signal_response_free(&ev->detail.res);
             break;
         default: break;
     }
