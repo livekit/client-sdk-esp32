@@ -16,7 +16,7 @@ extern "C" {
 /// Server identifier (SID) type.
 typedef char livekit_pb_sid_t[16];
 
-// MARK: - Data Packet
+// MARK: - Data packet
 
 /// Decodes a data packet.
 ///
@@ -27,7 +27,16 @@ bool protocol_data_packet_decode(const uint8_t *buf, size_t len, livekit_pb_data
 /// Frees a data packet.
 void protocol_data_packet_free(livekit_pb_data_packet_t *packet);
 
-// MARK: - Signal Response
+/// Returns the encoded size of a data packet.
+///
+/// @returns The encoded size of the packet or 0 if the encoded size cannot be determined.
+///
+size_t protocol_data_packet_encoded_size(const livekit_pb_data_packet_t *packet);
+
+/// Encodes a data packet into the provided buffer.
+bool protocol_data_packet_encode(const livekit_pb_data_packet_t *packet, uint8_t *dest, size_t encoded_size);
+
+// MARK: - Signal response
 
 /// Decodes a signal response.
 ///
@@ -47,7 +56,7 @@ bool protocol_signal_trickle_get_candidate(
     char **candidate_out
 );
 
-// MARK: - Signal Request
+// MARK: - Signal request
 
 /// Returns the encoded size of a signal request.
 ///

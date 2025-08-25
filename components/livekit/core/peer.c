@@ -434,27 +434,22 @@ peer_err_t peer_send_data_packet(peer_handle_t handle, const livekit_pb_data_pac
         .stream_id = stream_id
     };
 
-    // TODO: Optimize encoding
-    size_t encoded_size = 0;
-    if (!pb_get_encoded_size(&encoded_size, LIVEKIT_PB_DATA_PACKET_FIELDS, packet)) {
+    size_t encoded_size = protocol_data_packet_encoded_size(packet);
+    if (encoded_size == 0) {
         return PEER_ERR_MESSAGE;
     }
     uint8_t *enc_buf = (uint8_t *)malloc(encoded_size);
     if (enc_buf == NULL) {
         return PEER_ERR_NO_MEM;
     }
-
     int ret = PEER_ERR_NONE;
     do {
-        pb_ostream_t stream = pb_ostream_from_buffer(enc_buf, encoded_size);
-        if (!pb_encode(&stream, LIVEKIT_PB_DATA_PACKET_FIELDS, packet)) {
-            ESP_LOGE(TAG(peer), "Failed to encode data packet");
+        if (!protocol_data_packet_encode(packet, enc_buf, encoded_size)) {
             ret = PEER_ERR_MESSAGE;
             break;
         }
-
         frame_info.data = enc_buf;
-        frame_info.size = stream.bytes_written;
+        frame_info.size = encoded_size;
         if (esp_peer_send_data(peer->connection, &frame_info) != ESP_PEER_ERR_NONE) {
             ESP_LOGE(TAG(peer), "Data channel send failed");
             ret = PEER_ERR_RTC;
