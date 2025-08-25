@@ -1169,7 +1169,13 @@ engine_err_t engine_send_data_packet(engine_handle_t handle, const livekit_pb_da
         return ENGINE_ERR_INVALID_ARG;
     }
     engine_t *eng = (engine_t *)handle;
-    // TODO: Send data packet
-
+    // TODO: Implement buffering for reliable packets
+    if (eng->state != ENGINE_STATE_CONNECTED) {
+        return ENGINE_ERR_OTHER;
+    }
+    if (eng->pub_peer_handle == NULL ||
+        peer_send_data_packet(eng->pub_peer_handle, packet, reliable) != PEER_ERR_NONE) {
+        return ENGINE_ERR_RTC;
+    }
     return ENGINE_ERR_NONE;
 }
