@@ -1163,12 +1163,12 @@ livekit_failure_reason_t engine_get_failure_reason(engine_handle_t handle)
     return eng->failure_reason;
 }
 
-engine_err_t engine_send_data_packet(engine_handle_t handle, const livekit_pb_data_packet_t* packet, livekit_pb_data_packet_kind_t kind)
+engine_err_t engine_send_data_packet(engine_handle_t handle, const livekit_pb_data_packet_t* packet, bool reliable)
 {
     if (handle == NULL) {
         return ENGINE_ERR_INVALID_ARG;
     }
-    // engine_t *eng = (engine_t *)handle;
+    engine_t *eng = (engine_t *)handle;
     // TODO: Send data packet
 
     return ENGINE_ERR_NONE;

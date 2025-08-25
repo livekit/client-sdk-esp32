@@ -64,7 +64,7 @@ engine_err_t engine_close(engine_handle_t handle);
 livekit_failure_reason_t engine_get_failure_reason(engine_handle_t handle);
 
 /// Sends a data packet to the remote peer.
-engine_err_t engine_send_data_packet(engine_handle_t handle, const livekit_pb_data_packet_t* packet, livekit_pb_data_packet_kind_t kind);
+engine_err_t engine_send_data_packet(engine_handle_t handle, const livekit_pb_data_packet_t* packet, bool reliable);
 
 #ifdef __cplusplus
 }

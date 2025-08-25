@@ -18,10 +18,7 @@ typedef struct {
 static bool send_reliable_packet(const livekit_pb_data_packet_t* packet, void *ctx)
 {
     livekit_room_t *room = (livekit_room_t *)ctx;
-    return engine_send_data_packet(
-        room->engine,
-        packet,
-        LIVEKIT_PB_DATA_PACKET_KIND_RELIABLE) == ENGINE_ERR_NONE;
+    return engine_send_data_packet(room->engine, packet, true) == ENGINE_ERR_NONE;
 }
 
 static void on_rpc_result(const livekit_rpc_result_t* result, void* ctx)
@@ -360,10 +357,7 @@ livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_da
     packet.destination_identities = options->destination_identities;
     // TODO: Set sender identity
 
-    livekit_pb_data_packet_kind_t kind = options->lossy ?
-        LIVEKIT_PB_DATA_PACKET_KIND_LOSSY : LIVEKIT_PB_DATA_PACKET_KIND_RELIABLE;
-
-    if (engine_send_data_packet(room->engine, &packet, kind) != ENGINE_ERR_NONE) {
+    if (engine_send_data_packet(room->engine, &packet, !options->lossy) != ENGINE_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to send data packet");
         free(bytes_array);
         return LIVEKIT_ERR_ENGINE;

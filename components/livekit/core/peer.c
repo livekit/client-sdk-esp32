@@ -416,14 +416,14 @@ peer_err_t peer_handle_ice_candidate(peer_handle_t handle, const char *candidate
     return PEER_ERR_NONE;
 }
 
-peer_err_t peer_send_data_packet(peer_handle_t handle, const livekit_pb_data_packet_t* packet, livekit_pb_data_packet_kind_t kind)
+peer_err_t peer_send_data_packet(peer_handle_t handle, const livekit_pb_data_packet_t* packet, bool reliable)
 {
     if (handle == NULL || packet == NULL) {
         return PEER_ERR_INVALID_ARG;
     }
     peer_t *peer = (peer_t *)handle;
 
-    uint16_t stream_id = kind == LIVEKIT_PB_DATA_PACKET_KIND_RELIABLE ?
+    uint16_t stream_id = reliable ?
         peer->reliable_stream_id : peer->lossy_stream_id;
     if (stream_id == STREAM_ID_INVALID) {
         ESP_LOGE(TAG(peer), "Required data channel not connected");
