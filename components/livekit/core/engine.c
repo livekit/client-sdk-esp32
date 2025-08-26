@@ -743,6 +743,14 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
                     eng->failure_reason = map_disconnect_reason(leave->reason);
                     eng->state = ENGINE_STATE_DISCONNECTED;
                     break;
+                case LIVEKIT_PB_SIGNAL_RESPONSE_ROOM_UPDATE_TAG:
+                    livekit_pb_room_update_t *room_update = &res->message.room_update;
+                    handle_room_update(eng, room_update);
+                    break;
+                case LIVEKIT_PB_SIGNAL_RESPONSE_UPDATE_TAG:
+                    livekit_pb_participant_update_t *update = &res->message.update;
+                    handle_participant_update(eng, update);
+                    break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_JOIN_TAG:
                     livekit_pb_join_response_t *join = &res->message.join;
                     handle_join(eng, join);
