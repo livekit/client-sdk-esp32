@@ -690,6 +690,15 @@ static void handle_participant_update(engine_t *eng, livekit_pb_participant_upda
     }
 }
 
+/// Cleans up resources and state from the previous connection.
+static void cleanup_previous_connection(engine_t *eng)
+{
+    media_stream_end(eng);
+    signal_close(eng->signal_handle);
+    destroy_peer_connections(eng);
+    memset(&eng->session, 0, sizeof(eng->session));
+}
+
 // MARK: - State: Disconnected
 
 /// Handler for `ENGINE_STATE_DISCONNECTED`.
@@ -697,12 +706,7 @@ static bool handle_state_disconnected(engine_t *eng, const engine_event_t *ev)
 {
     switch (ev->type) {
         case _EV_STATE_ENTER:
-            // Clean up resources from previous connection (if any)
-            media_stream_end(eng);
-            signal_close(eng->signal_handle);
-            destroy_peer_connections(eng);
-
-            memset(&eng->session, 0, sizeof(eng->session));
+            cleanup_previous_connection(eng);
             eng->retry_count = 0;
             break;
         case EV_CMD_CONNECT:
@@ -906,9 +910,7 @@ static bool handle_state_backoff(engine_t *eng, const engine_event_t *ev)
 {
     switch (ev->type) {
         case _EV_STATE_ENTER:
-            media_stream_end(eng);
-            signal_close(eng->signal_handle);
-            destroy_peer_connections(eng);
+            cleanup_previous_connection(eng);
 
             eng->retry_count++;
             if (eng->retry_count > CONFIG_LK_MAX_RETRIES) {
