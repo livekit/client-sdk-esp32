@@ -70,7 +70,6 @@ typedef struct {
 
 typedef struct {
     bool is_subscriber_primary;
-    bool force_relay;
     livekit_pb_sid_t local_participant_sid;
     livekit_pb_sid_t sub_audio_track_sid;
 } session_state_t;
@@ -459,11 +458,69 @@ static void destroy_peer_connections(engine_t *eng)
     _disconnect_and_destroy_peer(&eng->sub_peer_handle);
 }
 
-static bool establish_peer_connections(engine_t *eng)
+/// Maps list of `livekit_pb_ice_server_t` to list of `esp_peer_ice_server_cfg_t`.
+///
+/// Note:
+/// - A single `livekit_pb_ice_server_t` can contain multiple URLs, which
+///   will map to multiple `esp_peer_ice_server_cfg_t` entries.
+/// - Strings are not copied, so the caller must ensure the original ICE
+///   server list stays alive until the peers are created.
+///
+static inline size_t map_ice_servers(
+    livekit_pb_ice_server_t *pb_servers_list,
+    int pb_servers_count,
+    esp_peer_ice_server_cfg_t *server_list,
+    size_t server_list_capacity
+) {
+    if (pb_servers_list      == NULL ||
+        server_list          == NULL ||
+        server_list_capacity == 0) {
+        return 0;
+    }
+    size_t count = 0;
+    for (int i = 0; i < pb_servers_count; i++) {
+        for (int j = 0; j < pb_servers_list[i].urls_count; j++) {
+            if (count >= server_list_capacity) {
+                ESP_LOGW(TAG, "ICE server list capacity exceeded");
+                return count;
+            }
+            server_list[count].stun_url = pb_servers_list[i].urls[j];
+            server_list[count].user = pb_servers_list[i].username;
+            server_list[count].psw = pb_servers_list[i].credential;
+            count++;
+        }
+    }
+    return count;
+}
+
+static bool establish_peer_connections(engine_t *eng, livekit_pb_join_response_t *join)
 {
+    esp_peer_ice_server_cfg_t server_list[] = {
+        { .stun_url = "stun:stun.l.google.com:19302" },
+        { .stun_url = "stun:stun1.l.google.com:19302" },
+        { .stun_url = "stun:stun2.l.google.com:19302" }
+    };
+    int server_count = sizeof(server_list) / sizeof(server_list[0]);
+
+    // TODO: Replace the above with the following to set the ICE servers dynamically:
+    // esp_peer_ice_server_cfg_t server_list[CONFIG_LK_MAX_ICE_SERVERS];
+    // int server_count = map_ice_servers(
+    //     join->ice_servers,
+    //     join->ice_servers_count,
+    //     server_list,
+    //     sizeof(server_list) / sizeof(server_list[0])
+    // );
+    // if (server_count < 1) {
+    //     ESP_LOGW(TAG, "No ICE servers available");
+    //     return false;
+    // }
+
     peer_options_t options = {
-        .force_relay      = eng->session.force_relay,
+        .force_relay      = join->client_configuration.force_relay
+            == LIVEKIT_PB_CLIENT_CONFIG_SETTING_ENABLED,
         .media            = &eng->options.media,
+        .server_list      = server_list,
+        .server_count     = server_count,
         .on_state_changed = on_peer_state_changed,
         .on_data_packet   = on_peer_data_packet,
         .on_ice_candidate = on_peer_ice_candidate,
@@ -620,14 +677,10 @@ static inline void timer_stop(engine_t *eng)
     xTimerStop(eng->timer, 0);
 }
 
-static void handle_join(engine_t *eng, livekit_pb_join_response_t *join)
+static bool handle_join(engine_t *eng, livekit_pb_join_response_t *join)
 {
     // 1. Store connection settings
     eng->session.is_subscriber_primary = join->subscriber_primary;
-    if (join->has_client_configuration) {
-        eng->session.force_relay = join->client_configuration.force_relay
-            == LIVEKIT_PB_CLIENT_CONFIG_SETTING_ENABLED;
-    }
 
     // 2. Store local Participant SID
     strncpy(
@@ -648,6 +701,13 @@ static void handle_join(engine_t *eng, livekit_pb_join_response_t *join)
             eng->options.on_participant_info(&join->other_participants[i], false, eng->options.ctx);
         }
     }
+
+    // 5. Establish peer connections
+    if (!establish_peer_connections(eng, join)) {
+        ESP_LOGE(TAG, "Failed to establish peer connections");
+        return false;
+    }
+    return true;
 }
 
 static void handle_trickle(engine_t *eng, livekit_pb_trickle_request_t *trickle)
@@ -757,11 +817,8 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_JOIN_TAG:
                     livekit_pb_join_response_t *join = &res->message.join;
-                    handle_join(eng, join);
-                    if (!establish_peer_connections(eng)) {
-                        ESP_LOGE(TAG, "Failed to establish peer connections");
-                        eng->state = ENGINE_STATE_DISCONNECTED;
-                        break;
+                    if (!handle_join(eng, join)) {
+                        eng->state = ENGINE_STATE_BACKOFF;
                     }
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_ANSWER_TAG:
@@ -893,6 +950,8 @@ static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
             // If either peer fail or disconnects, transition to backoff
             if (peer_state == CONNECTION_STATE_DISCONNECTED ||
                 peer_state == CONNECTION_STATE_FAILED) {
+                ESP_LOGE(TAG, "%s peer connection failed",
+                    role == PEER_ROLE_PUBLISHER ? "Publisher" : "Subscriber");
                 eng->failure_reason = LIVEKIT_FAILURE_REASON_RTC;
                 eng->state = ENGINE_STATE_BACKOFF;
             }
