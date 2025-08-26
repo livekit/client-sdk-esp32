@@ -142,6 +142,7 @@ static engine_err_t subscribe_tracks(engine_t *eng, livekit_pb_track_info_t *tra
             continue;
         }
         // For now, subscribe to the first audio track.
+        ESP_LOGI(TAG, "Subscribing to audio track: sid=%s", track->sid);
         signal_send_update_subscription(eng->signal_handle, track->sid, true);
         strncpy(eng->session.sub_audio_track_sid, track->sid, sizeof(eng->session.sub_audio_track_sid));
         break;
@@ -400,7 +401,6 @@ static void on_peer_sub_answer(const char *sdp, void *ctx)
 static void on_peer_sub_audio_info(esp_peer_audio_stream_info_t* info, void *ctx)
 {
     engine_t *eng = (engine_t *)ctx;
-    if (eng->state != ENGINE_STATE_CONNECTED) return;
 
     av_render_audio_info_t render_info = {};
     convert_dec_aud_info(info, &render_info);
@@ -416,8 +416,6 @@ static void on_peer_sub_audio_info(esp_peer_audio_stream_info_t* info, void *ctx
 static void on_peer_sub_audio_frame(esp_peer_audio_frame_t* frame, void *ctx)
 {
     engine_t *eng = (engine_t *)ctx;
-    if (eng->state != ENGINE_STATE_CONNECTED) return;
-
     av_render_audio_data_t audio_data = {
         .pts = frame->pts,
         .data = frame->data,
