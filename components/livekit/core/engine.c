@@ -625,10 +625,8 @@ static void event_free(engine_event_t *ev)
     if (ev == NULL) return;
     switch (ev->type) {
         case EV_CMD_CONNECT:
-            if (ev->detail.cmd_connect.server_url != NULL)
-                free(ev->detail.cmd_connect.server_url);
-            if (ev->detail.cmd_connect.token != NULL)
-                free(ev->detail.cmd_connect.token);
+            SAFE_FREE(ev->detail.cmd_connect.server_url);
+            SAFE_FREE(ev->detail.cmd_connect.token);
             break;
         case EV_PEER_DATA_PACKET:
             protocol_data_packet_free(&ev->detail.data_packet);
@@ -770,8 +768,8 @@ static bool handle_state_disconnected(engine_t *eng, const engine_event_t *ev)
             eng->retry_count = 0;
             break;
         case EV_CMD_CONNECT:
-            if (eng->server_url != NULL) free(eng->server_url);
-            if (eng->token != NULL) free(eng->token);
+            SAFE_FREE(eng->server_url);
+            SAFE_FREE(eng->token);
             eng->server_url = ev->detail.cmd_connect.server_url;
             eng->token = ev->detail.cmd_connect.token;
             eng->failure_reason = LIVEKIT_FAILURE_REASON_NONE;
@@ -1179,12 +1177,8 @@ engine_err_t engine_destroy(engine_handle_t handle)
     if (eng->sub_peer_handle != NULL) {
         peer_destroy(eng->sub_peer_handle);
     }
-    if (eng->server_url != NULL) {
-        free(eng->server_url);
-    }
-    if (eng->token != NULL) {
-        free(eng->token);
-    }
+    SAFE_FREE(eng->server_url);
+    SAFE_FREE(eng->token);
     free(eng);
     return ENGINE_ERR_NONE;
 }

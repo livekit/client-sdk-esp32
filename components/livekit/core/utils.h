@@ -7,6 +7,8 @@
 extern "C" {
 #endif
 
+#define SAFE_FREE(ptr) if (ptr != NULL) { free(ptr); ptr = NULL; }
+
 int64_t get_unix_time_ms(void);
 
 /// Returns the backoff time in milliseconds for the given attempt number.
