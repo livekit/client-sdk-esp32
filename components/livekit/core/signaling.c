@@ -68,7 +68,7 @@ static signal_err_t send_request(signal_t *sg, livekit_pb_signal_request_t *requ
                 (const char *)enc_buf,
                 encoded_size,
                 portMAX_DELAY) < 0) {
-            ESP_LOGE(TAG, "Failed to send request");
+            //ESP_LOGE(TAG, "Failed to send request");
             ret = SIGNAL_ERR_MESSAGE;
             break;
         }
@@ -81,7 +81,7 @@ static void on_ping_interval_expired(TimerHandle_t handle)
 {
     signal_t *sg = (signal_t *)pvTimerGetTimerID(handle);
 
-    livekit_pb_signal_request_t req = LIVEKIT_PB_SIGNAL_REQUEST_INIT_DEFAULT;
+    livekit_pb_signal_request_t req = {};
     req.which_message = LIVEKIT_PB_SIGNAL_REQUEST_PING_REQ_TAG;
     req.message.ping_req.timestamp = get_unix_time_ms();
     req.message.ping_req.rtt = sg->rtt;
