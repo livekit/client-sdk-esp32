@@ -13,7 +13,6 @@ livekit_pb.ParticipantInfo.version type:FT_IGNORE
 livekit_pb.ParticipantInfo.permission label_override:LABEL_REQUIRED
 livekit_pb.ParticipantInfo.region type:FT_IGNORE
 livekit_pb.ParticipantInfo.is_publisher type:FT_IGNORE
-livekit_pb.ParticipantInfo.kind type:FT_POINTER
 livekit_pb.ParticipantInfo.attributes type:FT_IGNORE
 livekit_pb.ParticipantInfo.disconnect_reason type:FT_IGNORE
 livekit_pb.ParticipantInfo.kind_details type:FT_IGNORE
