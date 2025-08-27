@@ -10,11 +10,17 @@
 static const char *TAG = "livekit_example";
 
 static livekit_room_handle_t room_handle;
+static bool agent_joined = false;
 
 /// Invoked when the room's connection state changes.
 static void on_state_changed(livekit_connection_state_t state, void* ctx)
 {
-    ESP_LOGI(TAG, "Room state: %s", livekit_connection_state_str(state));
+    ESP_LOGI(TAG, "Room state changed: %s", livekit_connection_state_str(state));
+
+    livekit_failure_reason_t reason = livekit_room_get_failure_reason(room_handle);
+    if (reason != LIVEKIT_FAILURE_REASON_NONE) {
+        ESP_LOGE(TAG, "Failure reason: %s", livekit_failure_reason_str(reason));
+    }
 }
 
 /// Invoked when participant information is received.
@@ -24,18 +30,16 @@ static void on_participant_info(const livekit_participant_info_t* info, void* ct
         // Only handle agent participants for this example.
         return;
     }
-    char* verb;
+    bool joined = false;
     switch (info->state) {
-        case LIVEKIT_PARTICIPANT_STATE_ACTIVE:
-            verb = "joined";
-            break;
-        case LIVEKIT_PARTICIPANT_STATE_DISCONNECTED:
-            verb = "left";
-            break;
-        default:
-            return;
+        case LIVEKIT_PARTICIPANT_STATE_ACTIVE:       joined = true; break;
+        case LIVEKIT_PARTICIPANT_STATE_DISCONNECTED: joined = false; break;
+        default: return;
     }
-    ESP_LOGI(TAG, "Agent has %s the room", verb);
+    if (joined != agent_joined) {
+        ESP_LOGI(TAG, "Agent has %s the room", joined ? "joined" : "left");
+        agent_joined = joined;
+    }
 }
 
 /// Invoked by a remote participant to set the state of an on-board LED.
@@ -154,21 +158,6 @@ void join_room()
     if (connect_res != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to connect to room");
     }
-
-    const char* command = "G5 I0 J3 P0 Q-3 X2 Y3";
-
-    livekit_data_payload_t payload = {
-        .bytes = (uint8_t*)command,
-        .size = strlen(command)
-    };
-    livekit_data_publish_options_t options = {
-        .payload = &payload,
-        .topic = "gcode",
-        .lossy = false,
-        .destination_identities = (char*[]){ "printer-1" },
-        .destination_identities_count = 1
-    };
-    livekit_room_publish_data(room_handle, &options);
 }
 
 void leave_room()

@@ -35,10 +35,27 @@ livekit_pb.AddTrackRequest.stream type:FT_IGNORE
 livekit_pb.AddTrackRequest.backup_codec_policy type:FT_IGNORE
 livekit_pb.AddTrackRequest.audio_features max_count:8
 
-livekit_pb.TrackPublishedResponse.cid type:FT_POINTER
-livekit_pb.TrackPublishedResponse.track label_override:LABEL_REQUIRED
+livekit_pb.TrackPublishedResponse.cid type:FT_IGNORE
+livekit_pb.TrackPublishedResponse.track type:FT_IGNORE
+
+livekit_pb.TrackSubscribed.track_sid type:FT_IGNORE
 
 livekit_pb.ParticipantUpdate.participants type:FT_POINTER
 
 livekit_pb.UpdateSubscription.track_sids type:FT_POINTER
 livekit_pb.UpdateSubscription.participant_tracks type:FT_IGNORE
+
+livekit_pb.SignalResponse.connection_quality type:FT_IGNORE
+livekit_pb.SignalResponse.subscription_permission_update type:FT_IGNORE
+livekit_pb.SignalResponse.track_published type:FT_IGNORE
+livekit_pb.SignalResponse.track_subscribed type:FT_IGNORE
+livekit_pb.SignalResponse.mute type:FT_IGNORE
+livekit_pb.SignalResponse.speakers_changed type:FT_IGNORE
+livekit_pb.SignalResponse.stream_state_update type:FT_IGNORE
+livekit_pb.SignalResponse.subscribed_quality_update type:FT_IGNORE
+livekit_pb.SignalResponse.refresh_token type:FT_IGNORE
+livekit_pb.SignalResponse.track_unpublished type:FT_IGNORE
+livekit_pb.SignalResponse.reconnect type:FT_IGNORE
+livekit_pb.SignalResponse.subscription_response type:FT_IGNORE
+livekit_pb.SignalResponse.request_response type:FT_IGNORE
+livekit_pb.SignalResponse.room_moved type:FT_IGNORE

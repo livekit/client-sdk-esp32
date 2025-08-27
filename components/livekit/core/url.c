@@ -26,22 +26,26 @@ static const char *TAG = "livekit_url";
     "&protocol=" URL_PARAM_PROTOCOL \
     "&access_token=%s" // Keep at the end for log redaction
 
-bool url_build(const char *server_url, const char *token, char **out_url)
+bool url_build(const url_build_options *options, char **out_url)
 {
-    if (server_url == NULL || token == NULL || out_url == NULL) {
+    if (out_url == NULL ||
+        options == NULL ||
+        options->server_url == NULL ||
+        options->token == NULL) {
         return false;
     }
-    size_t server_url_len = strlen(server_url);
+    size_t server_url_len = strlen(options->server_url);
     if (server_url_len < 1) {
         ESP_LOGE(TAG, "Server URL cannot be empty");
         return false;
     }
-    if (strncmp(server_url, "ws://", 5) != 0 && strncmp(server_url, "wss://", 6) != 0) {
+    if (strncmp(options->server_url, "ws://", 5)  != 0 &&
+        strncmp(options->server_url, "wss://", 6) != 0) {
         ESP_LOGE(TAG, "Unsupported URL scheme");
         return false;
     }
     // Do not add a trailing slash if the URL already has one
-    const char *separator = server_url[server_url_len - 1] == '/' ? "" : "/";
+    const char *separator = options->server_url[server_url_len - 1] == '/' ? "" : "/";
 
     // Get chip and OS information
     esp_chip_info_t chip_info;
@@ -50,18 +54,18 @@ bool url_build(const char *server_url, const char *token, char **out_url)
     const char* idf_version = esp_get_idf_version();
 
     int final_len = asprintf(out_url, URL_FORMAT,
-        server_url,
+        options->server_url,
         separator,
         idf_version,
         model_code,
-        token
+        options->token
     );
     if (*out_url == NULL) {
         return false;
     }
     // Token is redacted from logging for security
     ESP_LOGI(TAG, "Built signaling URL: %.*s[REDACTED]",
-        (int)((size_t)final_len - strlen(token)),
+        (int)((size_t)final_len - strlen(options->token)),
         *out_url);
     return true;
 }

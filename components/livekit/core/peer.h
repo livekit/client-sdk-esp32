@@ -2,7 +2,6 @@
 #pragma once
 
 #include "common.h"
-#include "engine.h"
 #include "protocol.h"
 
 #define PEER_THREAD_NAME_PREFIX "lk_peer_"
@@ -22,10 +21,15 @@ typedef enum {
     PEER_ERR_MESSAGE        = -5
 } peer_err_t;
 
+typedef enum {
+    PEER_ROLE_PUBLISHER,
+    PEER_ROLE_SUBSCRIBER
+} peer_role_t;
+
 /// Options for creating a peer.
 typedef struct {
-    /// Whether the peer is a publisher or subscriber.
-    livekit_pb_signal_target_t target;
+    /// Peer role (publisher or subscriber).
+    peer_role_t role;
 
     /// ICE server list.
     esp_peer_ice_server_cfg_t* server_list;
@@ -36,25 +40,23 @@ typedef struct {
     /// Weather to force the use of relay ICE candidates.
     bool force_relay;
 
-    /// Whether the peer is the primary peer.
-    /// @note This determines which peer controls the data channels.
-    bool is_primary;
-
     /// Media options used for creating SDP messages.
     engine_media_options_t* media;
 
     /// Invoked when the peer's connection state changes.
-    void (*on_state_changed)(connection_state_t state, void *ctx);
+    void (*on_state_changed)(connection_state_t state, peer_role_t role, void *ctx);
+
+    /// Invoked when a data packet is received over the data channel.
+    ///
+    /// The receiver returns true to take ownership of the packet. If
+    /// ownership is not taken (false), the packet will be freed with
+    /// `protocol_data_packet_free` internally.
+    ///
+    bool (*on_data_packet)(livekit_pb_data_packet_t* packet, void *ctx);
 
     /// Invoked when an SDP message is available. This can be either
     /// an offer or answer depending on target configuration.
-    void (*on_sdp)(const char *sdp, void *ctx);
-
-    /// Invoked when a new ICE candidate is available.
-    void (*on_ice_candidate)(const char *candidate, void *ctx);
-
-    /// Invoked when a data packet is received over the data channel.
-    void (*on_packet_received)(livekit_pb_data_packet_t* packet, void *ctx);
+    void (*on_sdp)(const char *sdp, peer_role_t role, void *ctx);
 
     /// Invoked when information about an incoming audio stream is available.
     void (*on_audio_info)(esp_peer_audio_stream_info_t* info, void *ctx);
@@ -85,7 +87,7 @@ peer_err_t peer_handle_sdp(peer_handle_t handle, const char *sdp);
 peer_err_t peer_handle_ice_candidate(peer_handle_t handle, const char *candidate);
 
 /// Sends a data packet to the remote peer.
-peer_err_t peer_send_data_packet(peer_handle_t handle, const livekit_pb_data_packet_t* packet, livekit_pb_data_packet_kind_t kind);
+peer_err_t peer_send_data_packet(peer_handle_t handle, const livekit_pb_data_packet_t* packet, bool reliable);
 
 /// Sends an audio frame to the remote peer.
 /// @warning Only use on publisher peer.

@@ -2,7 +2,7 @@ livekit_pb.ClientConfiguration.video type:FT_IGNORE
 livekit_pb.ClientConfiguration.screen type:FT_IGNORE
 livekit_pb.ClientConfiguration.disabled_codecs type:FT_IGNORE
 
-livekit_pb.ParticipantInfo.sid type:FT_POINTER
+livekit_pb.ParticipantInfo.sid max_length:15
 livekit_pb.ParticipantInfo.identity type:FT_POINTER
 livekit_pb.ParticipantInfo.tracks type:FT_POINTER
 livekit_pb.ParticipantInfo.metadata type:FT_POINTER
@@ -13,7 +13,6 @@ livekit_pb.ParticipantInfo.version type:FT_IGNORE
 livekit_pb.ParticipantInfo.permission label_override:LABEL_REQUIRED
 livekit_pb.ParticipantInfo.region type:FT_IGNORE
 livekit_pb.ParticipantInfo.is_publisher type:FT_IGNORE
-livekit_pb.ParticipantInfo.kind type:FT_POINTER
 livekit_pb.ParticipantInfo.attributes type:FT_IGNORE
 livekit_pb.ParticipantInfo.disconnect_reason type:FT_IGNORE
 livekit_pb.ParticipantInfo.kind_details type:FT_IGNORE
@@ -29,10 +28,14 @@ livekit_pb.VideoLayer.ssrc type:FT_IGNORE
 
 livekit_pb.DataPacket.metrics type:FT_IGNORE
 livekit_pb.DataPacket.transcription type:FT_IGNORE
+livekit_pb.DataPacket.sip_dtmf type:FT_IGNORE
 livekit_pb.DataPacket.chat_message type:FT_IGNORE
+livekit_pb.DataPacket.stream_header type:FT_IGNORE
+livekit_pb.DataPacket.stream_chunk type:FT_IGNORE
+livekit_pb.DataPacket.stream_trailer type:FT_IGNORE
 livekit_pb.DataPacket.participant_identity type:FT_POINTER
 livekit_pb.DataPacket.destination_identities type:FT_POINTER
-livekit_pb.DataPacket.participant_sid type:FT_POINTER
+livekit_pb.DataPacket.participant_sid max_length:15
 
 livekit_pb.UserPacket.payload type:FT_POINTER
 livekit_pb.UserPacket.topic type:FT_POINTER

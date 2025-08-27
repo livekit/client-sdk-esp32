@@ -18,10 +18,7 @@ typedef struct {
 static bool send_reliable_packet(const livekit_pb_data_packet_t* packet, void *ctx)
 {
     livekit_room_t *room = (livekit_room_t *)ctx;
-    return engine_send_data_packet(
-        room->engine,
-        packet,
-        LIVEKIT_PB_DATA_PACKET_KIND_RELIABLE) == ENGINE_ERR_NONE;
+    return engine_send_data_packet(room->engine, packet, true) == ENGINE_ERR_NONE;
 }
 
 static void on_rpc_result(const livekit_rpc_result_t* result, void* ctx)
@@ -102,30 +99,12 @@ static void populate_media_options(
     media_options->renderer = sub_options->renderer;
 }
 
-static void on_eng_state_changed(connection_state_t engine_state, void *ctx)
+static void on_eng_state_changed(livekit_connection_state_t state, void *ctx)
 {
     livekit_room_t *room = (livekit_room_t *)ctx;
-    switch (engine_state) {
-        case CONNECTION_STATE_DISCONNECTED:
-            room->state = LIVEKIT_CONNECTION_STATE_DISCONNECTED;
-            break;
-        case CONNECTION_STATE_CONNECTED:
-            room->state = LIVEKIT_CONNECTION_STATE_CONNECTED;
-            break;
-        case CONNECTION_STATE_CONNECTING:
-            room->state = LIVEKIT_CONNECTION_STATE_CONNECTING;
-            break;
-        case CONNECTION_STATE_RECONNECTING:
-            room->state = LIVEKIT_CONNECTION_STATE_RECONNECTING;
-            break;
-        case CONNECTION_STATE_FAILED:
-            room->state = LIVEKIT_CONNECTION_STATE_FAILED;
-            break;
-        default:
-            return;
-    }
+    room->state = state;
     if (room->options.on_state_changed != NULL) {
-        room->options.on_state_changed(room->state, room->options.ctx);
+        room->options.on_state_changed(state, room->options.ctx);
     }
 }
 
@@ -233,7 +212,8 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_r
 
     int ret = LIVEKIT_ERR_OTHER;
     do {
-        if (engine_create(&room->engine, &eng_options) != ENGINE_ERR_NONE) {
+        room->engine = engine_init(&eng_options);
+        if (room->engine == NULL) {
             ESP_LOGE(TAG, "Failed to create engine");
             ret = LIVEKIT_ERR_ENGINE;
             break;
@@ -304,13 +284,50 @@ livekit_connection_state_t livekit_room_get_state(livekit_room_handle_t handle)
 const char* livekit_connection_state_str(livekit_connection_state_t state)
 {
     switch (state) {
-        case LIVEKIT_CONNECTION_STATE_DISCONNECTED: return "disconnected";
-        case LIVEKIT_CONNECTION_STATE_CONNECTING:   return "connecting";
-        case LIVEKIT_CONNECTION_STATE_CONNECTED:    return "connected";
-        case LIVEKIT_CONNECTION_STATE_RECONNECTING: return "reconnecting";
-        case LIVEKIT_CONNECTION_STATE_FAILED:       return "failed";
-        default: return "unknown";
+        case LIVEKIT_CONNECTION_STATE_DISCONNECTED: return "Disconnected";
+        case LIVEKIT_CONNECTION_STATE_CONNECTING:   return "Connecting";
+        case LIVEKIT_CONNECTION_STATE_CONNECTED:    return "Connected";
+        case LIVEKIT_CONNECTION_STATE_RECONNECTING: return "Reconnecting";
+        case LIVEKIT_CONNECTION_STATE_FAILED:       return "Failed";
+        default:                                    return "Unknown";
     }
+}
+
+const char* livekit_failure_reason_str(livekit_failure_reason_t reason)
+{
+    switch (reason) {
+        case LIVEKIT_FAILURE_REASON_NONE:                 return "None";
+        case LIVEKIT_FAILURE_REASON_UNREACHABLE:          return "Unreachable";
+        case LIVEKIT_FAILURE_REASON_BAD_TOKEN:            return "Bad Token";
+        case LIVEKIT_FAILURE_REASON_UNAUTHORIZED:         return "Unauthorized";
+        case LIVEKIT_FAILURE_REASON_RTC:                  return "RTC";
+        case LIVEKIT_FAILURE_REASON_MAX_RETRIES:          return "Max Retries";
+        case LIVEKIT_FAILURE_REASON_PING_TIMEOUT:         return "Ping Timeout";
+        case LIVEKIT_FAILURE_REASON_DUPLICATE_IDENTITY:   return "Duplicate Identity";
+        case LIVEKIT_FAILURE_REASON_SERVER_SHUTDOWN:      return "Server Shutdown";
+        case LIVEKIT_FAILURE_REASON_PARTICIPANT_REMOVED:  return "Participant Removed";
+        case LIVEKIT_FAILURE_REASON_ROOM_DELETED:         return "Room Deleted";
+        case LIVEKIT_FAILURE_REASON_STATE_MISMATCH:       return "State Mismatch";
+        case LIVEKIT_FAILURE_REASON_JOIN_INCOMPLETE:      return "Join Incomplete";
+        case LIVEKIT_FAILURE_REASON_MIGRATION:            return "Migration";
+        case LIVEKIT_FAILURE_REASON_SIGNAL_CLOSE:         return "Signal Close";
+        case LIVEKIT_FAILURE_REASON_ROOM_CLOSED:          return "Room Closed";
+        case LIVEKIT_FAILURE_REASON_SIP_USER_UNAVAILABLE: return "SIP User Unavailable";
+        case LIVEKIT_FAILURE_REASON_SIP_USER_REJECTED:    return "SIP User Rejected";
+        case LIVEKIT_FAILURE_REASON_SIP_TRUNK_FAILURE:    return "SIP Trunk Failure";
+        case LIVEKIT_FAILURE_REASON_CONNECTION_TIMEOUT:   return "Connection Timeout";
+        case LIVEKIT_FAILURE_REASON_MEDIA_FAILURE:        return "Media Failure";
+        default:                                          return "Other";
+    }
+}
+
+livekit_failure_reason_t livekit_room_get_failure_reason(livekit_room_handle_t handle)
+{
+    if (handle == NULL) {
+        return LIVEKIT_FAILURE_REASON_NONE;
+    }
+    livekit_room_t *room = (livekit_room_t *)handle;
+    return engine_get_failure_reason(room->engine);
 }
 
 livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_data_publish_options_t *options)
@@ -340,10 +357,7 @@ livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_da
     packet.destination_identities = options->destination_identities;
     // TODO: Set sender identity
 
-    livekit_pb_data_packet_kind_t kind = options->lossy ?
-        LIVEKIT_PB_DATA_PACKET_KIND_LOSSY : LIVEKIT_PB_DATA_PACKET_KIND_RELIABLE;
-
-    if (engine_send_data_packet(room->engine, &packet, kind) != ENGINE_ERR_NONE) {
+    if (engine_send_data_packet(room->engine, &packet, !options->lossy) != ENGINE_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to send data packet");
         free(bytes_array);
         return LIVEKIT_ERR_ENGINE;

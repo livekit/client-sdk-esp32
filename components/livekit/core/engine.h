@@ -6,6 +6,7 @@
 #include "esp_capture.h"
 #include "av_render.h"
 
+#include "livekit_types.h"
 #include "common.h"
 #include "protocol.h"
 
@@ -39,7 +40,7 @@ typedef struct {
 
 typedef struct {
     void *ctx;
-    void (*on_state_changed)(connection_state_t state, void *ctx);
+    void (*on_state_changed)(livekit_connection_state_t state, void *ctx);
     void (*on_data_packet)(livekit_pb_data_packet_t* packet, void *ctx);
     void (*on_room_info)(const livekit_pb_room_t* info, void *ctx);
     void (*on_participant_info)(const livekit_pb_participant_info_t* info, bool is_local, void *ctx);
@@ -47,8 +48,7 @@ typedef struct {
 } engine_options_t;
 
 /// Creates a new instance.
-/// @param[out] handle The handle to the new instance.
-engine_err_t engine_create(engine_handle_t *handle, engine_options_t *options);
+engine_handle_t engine_init(const engine_options_t *options);
 
 /// Destroys an instance.
 /// @param[in] handle The handle to the instance to destroy.
@@ -60,8 +60,11 @@ engine_err_t engine_connect(engine_handle_t handle, const char* server_url, cons
 /// Close the engine.
 engine_err_t engine_close(engine_handle_t handle);
 
+/// Returns the reason why the engine connection failed.
+livekit_failure_reason_t engine_get_failure_reason(engine_handle_t handle);
+
 /// Sends a data packet to the remote peer.
-engine_err_t engine_send_data_packet(engine_handle_t handle, const livekit_pb_data_packet_t* packet, livekit_pb_data_packet_kind_t kind);
+engine_err_t engine_send_data_packet(engine_handle_t handle, const livekit_pb_data_packet_t* packet, bool reliable);
 
 #ifdef __cplusplus
 }
