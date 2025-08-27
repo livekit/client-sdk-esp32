@@ -142,7 +142,7 @@ static int on_msg(esp_peer_msg_t *info, void *ctx)
             ESP_LOGI(TAG(peer), "Generated %s:\n%s",
                 peer->options.role == PEER_ROLE_PUBLISHER ? "offer" : "answer",
                 (char *)info->data);
-            peer->options.on_sdp((char *)info->data, peer->options.ctx);
+            peer->options.on_sdp((char *)info->data, peer->options.role, peer->options.ctx);
             break;
         default:
             ESP_LOGD(TAG(peer), "Unhandled msg type: %d", info->type);

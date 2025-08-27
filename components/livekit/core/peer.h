@@ -56,7 +56,7 @@ typedef struct {
 
     /// Invoked when an SDP message is available. This can be either
     /// an offer or answer depending on target configuration.
-    void (*on_sdp)(const char *sdp, void *ctx);
+    void (*on_sdp)(const char *sdp, peer_role_t role, void *ctx);
 
     /// Invoked when information about an incoming audio stream is available.
     void (*on_audio_info)(esp_peer_audio_stream_info_t* info, void *ctx);

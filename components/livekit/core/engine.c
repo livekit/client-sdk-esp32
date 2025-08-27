@@ -33,6 +33,7 @@ typedef enum {
     EV_SIG_STATE,           /// Signal state changed.
     EV_SIG_RES,             /// Signal response received.
     EV_PEER_STATE,          /// Peer state changed.
+    EV_PEER_SDP,            /// Peer provided SDP.
     EV_TIMER_EXP,           /// Timer expired.
     EV_MAX_RETRIES_REACHED, /// Maximum number of retry attempts reached.
     _EV_STATE_ENTER,        /// State enter hook (internal).
@@ -55,6 +56,12 @@ typedef struct {
 
         /// Detail for `EV_SIG_STATE`.
         signal_state_t sig_state;
+
+        /// Detail for `EV_PEER_SDP`.
+        struct {
+            const char *sdp;
+            peer_role_t role;
+        } peer_sdp;
 
         /// Detail for `EV_PEER_STATE`.
         struct {
@@ -143,6 +150,32 @@ static engine_err_t subscribe_tracks(engine_t *eng, livekit_pb_track_info_t *tra
         break;
     }
     return ENGINE_ERR_NONE;
+}
+
+static void on_peer_sub_audio_info(esp_peer_audio_stream_info_t* info, void *ctx)
+{
+    engine_t *eng = (engine_t *)ctx;
+
+    av_render_audio_info_t render_info = {};
+    convert_dec_aud_info(info, &render_info);
+    ESP_LOGD(TAG, "Audio render info: codec=%d, sample_rate=%" PRIu32 ", channels=%" PRIu8,
+        render_info.codec, render_info.sample_rate, render_info.channel);
+
+    if (av_render_add_audio_stream(eng->renderer_handle, &render_info) != ESP_MEDIA_ERR_OK) {
+        ESP_LOGE(TAG, "Failed to add audio stream to renderer");
+        return;
+    }
+}
+
+static void on_peer_sub_audio_frame(esp_peer_audio_frame_t* frame, void *ctx)
+{
+    engine_t *eng = (engine_t *)ctx;
+    av_render_audio_data_t audio_data = {
+        .pts = frame->pts,
+        .data = frame->data,
+        .size = frame->size,
+    };
+    av_render_add_audio_data(eng->renderer_handle, &audio_data);
 }
 
 // MARK: - Published media
@@ -360,6 +393,16 @@ static void on_peer_state_changed(connection_state_t state, peer_role_t role, vo
     event_enqueue(eng, &ev, true);
 }
 
+static void on_peer_sdp(const char *sdp, peer_role_t role, void *ctx)
+{
+    engine_t *eng = (engine_t *)ctx;
+    engine_event_t ev = {
+        .type = EV_PEER_SDP,
+        .detail.peer_sdp = { .sdp = strdup(sdp), .role = role }
+    };
+    event_enqueue(eng, &ev, false);
+}
+
 static bool on_peer_data_packet(livekit_pb_data_packet_t* packet, void *ctx)
 {
     engine_t *eng = (engine_t *)ctx;
@@ -368,48 +411,6 @@ static bool on_peer_data_packet(livekit_pb_data_packet_t* packet, void *ctx)
         eng->options.on_data_packet(packet, eng->options.ctx);
     }
     return false;
-}
-
-// MARK: - Publisher peer event handlers
-
-static void on_peer_pub_offer(const char *sdp, void *ctx)
-{
-    engine_t *eng = (engine_t *)ctx;
-    signal_send_offer(eng->signal_handle, sdp);
-}
-
-// MARK: - Subscriber peer event handlers
-
-static void on_peer_sub_answer(const char *sdp, void *ctx)
-{
-    engine_t *eng = (engine_t *)ctx;
-    signal_send_answer(eng->signal_handle, sdp);
-}
-
-static void on_peer_sub_audio_info(esp_peer_audio_stream_info_t* info, void *ctx)
-{
-    engine_t *eng = (engine_t *)ctx;
-
-    av_render_audio_info_t render_info = {};
-    convert_dec_aud_info(info, &render_info);
-    ESP_LOGD(TAG, "Audio render info: codec=%d, sample_rate=%" PRIu32 ", channels=%" PRIu8,
-        render_info.codec, render_info.sample_rate, render_info.channel);
-
-    if (av_render_add_audio_stream(eng->renderer_handle, &render_info) != ESP_MEDIA_ERR_OK) {
-        ESP_LOGE(TAG, "Failed to add audio stream to renderer");
-        return;
-    }
-}
-
-static void on_peer_sub_audio_frame(esp_peer_audio_frame_t* frame, void *ctx)
-{
-    engine_t *eng = (engine_t *)ctx;
-    av_render_audio_data_t audio_data = {
-        .pts = frame->pts,
-        .data = frame->data,
-        .size = frame->size,
-    };
-    av_render_add_audio_data(eng->renderer_handle, &audio_data);
 }
 
 // MARK: - Timer expired handler
@@ -511,21 +512,19 @@ static bool establish_peer_connections(engine_t *eng, livekit_pb_join_response_t
         .server_list      = server_list,
         .server_count     = server_count,
         .on_state_changed = on_peer_state_changed,
+        .on_sdp           = on_peer_sdp,
         .on_data_packet   = on_peer_data_packet,
         .ctx              = eng
     };
 
     // 1. Publisher
     options.role          = PEER_ROLE_PUBLISHER;
-    options.on_sdp        = on_peer_pub_offer;
-
     _create_and_connect_peer(&options, &eng->pub_peer_handle);
     if (eng->pub_peer_handle == NULL)
         return false;
 
     // 2. Subscriber
     options.role           = PEER_ROLE_SUBSCRIBER;
-    options.on_sdp         = on_peer_sub_answer;
     options.on_audio_info  = on_peer_sub_audio_info;
     options.on_audio_frame = on_peer_sub_audio_frame;
 
@@ -618,6 +617,9 @@ static void event_free(engine_event_t *ev)
             break;
         case EV_SIG_RES:
             protocol_signal_response_free(&ev->detail.res);
+            break;
+        case EV_PEER_SDP:
+            SAFE_FREE(ev->detail.peer_sdp.sdp);
             break;
         default: break;
     }
@@ -851,6 +853,15 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
                 }
             }
             break;
+        case EV_PEER_SDP:
+            const char *sdp = ev->detail.peer_sdp.sdp;
+            peer_role_t sdp_role = ev->detail.peer_sdp.role;
+            if (sdp_role == PEER_ROLE_PUBLISHER) {
+                signal_send_offer(eng->signal_handle, sdp);
+            } else {
+                signal_send_answer(eng->signal_handle, sdp);
+            }
+            break;
         default:
             break;
     }
@@ -932,6 +943,15 @@ static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
                 eng->failure_reason = LIVEKIT_FAILURE_REASON_RTC;
                 eng->state = ENGINE_STATE_BACKOFF;
             }
+            break;
+        case EV_PEER_SDP:
+            const char *sdp = ev->detail.peer_sdp.sdp;
+            peer_role_t sdp_role = ev->detail.peer_sdp.role;
+            if (sdp_role != PEER_ROLE_SUBSCRIBER) {
+                ESP_LOGW(TAG, "Unexpected SDP from publisher");
+                break;
+            }
+            signal_send_answer(eng->signal_handle, sdp);
             break;
         default:
             break;
