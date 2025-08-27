@@ -29,10 +29,14 @@ livekit_pb.VideoLayer.ssrc type:FT_IGNORE
 
 livekit_pb.DataPacket.metrics type:FT_IGNORE
 livekit_pb.DataPacket.transcription type:FT_IGNORE
+livekit_pb.DataPacket.sip_dtmf type:FT_IGNORE
 livekit_pb.DataPacket.chat_message type:FT_IGNORE
+livekit_pb.DataPacket.stream_header type:FT_IGNORE
+livekit_pb.DataPacket.stream_chunk type:FT_IGNORE
+livekit_pb.DataPacket.stream_trailer type:FT_IGNORE
 livekit_pb.DataPacket.participant_identity type:FT_POINTER
 livekit_pb.DataPacket.destination_identities type:FT_POINTER
-livekit_pb.DataPacket.participant_sid type:FT_POINTER
+livekit_pb.DataPacket.participant_sid max_length:15
 
 livekit_pb.UserPacket.payload type:FT_POINTER
 livekit_pb.UserPacket.topic type:FT_POINTER

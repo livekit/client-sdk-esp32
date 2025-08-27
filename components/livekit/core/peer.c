@@ -232,6 +232,11 @@ static int on_data(esp_peer_data_frame_t *frame, void *ctx)
         ESP_LOGE(TAG(peer), "Failed to decode data packet");
         return -1;
     }
+    if (packet.which_value == 0) {
+        // Packet type is not supported yet.
+        protocol_data_packet_free(&packet);
+        return -1;
+    }
     if (!peer->options.on_data_packet(&packet, peer->options.ctx)) {
         // Ownership was not taken.
         protocol_data_packet_free(&packet);

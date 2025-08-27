@@ -361,6 +361,26 @@ typedef struct livekit_pb_rpc_response {
     } value;
 } livekit_pb_rpc_response_t;
 
+/* new DataPacket API */
+typedef struct livekit_pb_data_packet {
+    pb_size_t which_value;
+    union {
+        livekit_pb_user_packet_t user;
+        livekit_pb_rpc_request_t rpc_request;
+        livekit_pb_rpc_ack_t rpc_ack;
+        livekit_pb_rpc_response_t rpc_response;
+    } value;
+    /* participant identity of user that sent the message */
+    char *participant_identity;
+    /* identities of participants who will receive the message (sent to all by default) */
+    pb_size_t destination_identities_count;
+    char **destination_identities;
+    /* sequence number of reliable packet */
+    uint32_t sequence;
+    /* sid of the user that sent the message */
+    char participant_sid[16];
+} livekit_pb_data_packet_t;
+
 typedef struct livekit_pb_participant_tracks {
     /* participant ID of participant to whom the tracks belong */
     pb_callback_t participant_sid;
@@ -585,30 +605,6 @@ typedef struct livekit_pb_data_stream_trailer {
     char reason[16]; /* reason why the stream was closed (could contain "error" / "interrupted" / empty for expected end) */
 } livekit_pb_data_stream_trailer_t;
 
-/* new DataPacket API */
-typedef struct livekit_pb_data_packet {
-    pb_size_t which_value;
-    union {
-        livekit_pb_user_packet_t user;
-        livekit_pb_sip_dtmf_t sip_dtmf;
-        livekit_pb_rpc_request_t rpc_request;
-        livekit_pb_rpc_ack_t rpc_ack;
-        livekit_pb_rpc_response_t rpc_response;
-        livekit_pb_data_stream_header_t stream_header;
-        livekit_pb_data_stream_chunk_t stream_chunk;
-        livekit_pb_data_stream_trailer_t stream_trailer;
-    } value;
-    /* participant identity of user that sent the message */
-    char *participant_identity;
-    /* identities of participants who will receive the message (sent to all by default) */
-    pb_size_t destination_identities_count;
-    char **destination_identities;
-    /* sequence number of reliable packet */
-    uint32_t sequence;
-    /* sid of the user that sent the message */
-    char *participant_sid;
-} livekit_pb_data_packet_t;
-
 typedef struct livekit_pb_webhook_config {
     pb_callback_t url;
     pb_callback_t signing_key;
@@ -772,7 +768,7 @@ extern "C" {
 #define LIVEKIT_PB_SIMULCAST_CODEC_INFO_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_TRACK_INFO_INIT_DEFAULT       {NULL, _LIVEKIT_PB_TRACK_TYPE_MIN, 0, NULL, 0, 0, {_LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN}}
 #define LIVEKIT_PB_VIDEO_LAYER_INIT_DEFAULT      {_LIVEKIT_PB_VIDEO_QUALITY_MIN, 0, 0}
-#define LIVEKIT_PB_DATA_PACKET_INIT_DEFAULT      {0, {LIVEKIT_PB_USER_PACKET_INIT_DEFAULT}, NULL, 0, NULL, 0, NULL}
+#define LIVEKIT_PB_DATA_PACKET_INIT_DEFAULT      {0, {LIVEKIT_PB_USER_PACKET_INIT_DEFAULT}, NULL, 0, NULL, 0, ""}
 #define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_INIT_DEFAULT {{{NULL}, NULL}}
 #define LIVEKIT_PB_SPEAKER_INFO_INIT_DEFAULT     {{{NULL}, NULL}, 0, 0}
 #define LIVEKIT_PB_USER_PACKET_INIT_DEFAULT      {NULL, NULL}
@@ -816,7 +812,7 @@ extern "C" {
 #define LIVEKIT_PB_SIMULCAST_CODEC_INFO_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_TRACK_INFO_INIT_ZERO          {NULL, _LIVEKIT_PB_TRACK_TYPE_MIN, 0, NULL, 0, 0, {_LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN}}
 #define LIVEKIT_PB_VIDEO_LAYER_INIT_ZERO         {_LIVEKIT_PB_VIDEO_QUALITY_MIN, 0, 0}
-#define LIVEKIT_PB_DATA_PACKET_INIT_ZERO         {0, {LIVEKIT_PB_USER_PACKET_INIT_ZERO}, NULL, 0, NULL, 0, NULL}
+#define LIVEKIT_PB_DATA_PACKET_INIT_ZERO         {0, {LIVEKIT_PB_USER_PACKET_INIT_ZERO}, NULL, 0, NULL, 0, ""}
 #define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_INIT_ZERO {{{NULL}, NULL}}
 #define LIVEKIT_PB_SPEAKER_INFO_INIT_ZERO        {{{NULL}, NULL}, 0, 0}
 #define LIVEKIT_PB_USER_PACKET_INIT_ZERO         {NULL, NULL}
@@ -922,6 +918,14 @@ extern "C" {
 #define LIVEKIT_PB_RPC_RESPONSE_REQUEST_ID_TAG   1
 #define LIVEKIT_PB_RPC_RESPONSE_PAYLOAD_TAG      2
 #define LIVEKIT_PB_RPC_RESPONSE_ERROR_TAG        3
+#define LIVEKIT_PB_DATA_PACKET_USER_TAG          2
+#define LIVEKIT_PB_DATA_PACKET_RPC_REQUEST_TAG   10
+#define LIVEKIT_PB_DATA_PACKET_RPC_ACK_TAG       11
+#define LIVEKIT_PB_DATA_PACKET_RPC_RESPONSE_TAG  12
+#define LIVEKIT_PB_DATA_PACKET_PARTICIPANT_IDENTITY_TAG 4
+#define LIVEKIT_PB_DATA_PACKET_DESTINATION_IDENTITIES_TAG 5
+#define LIVEKIT_PB_DATA_PACKET_SEQUENCE_TAG      16
+#define LIVEKIT_PB_DATA_PACKET_PARTICIPANT_SID_TAG 17
 #define LIVEKIT_PB_PARTICIPANT_TRACKS_PARTICIPANT_SID_TAG 1
 #define LIVEKIT_PB_PARTICIPANT_TRACKS_TRACK_SIDS_TAG 2
 #define LIVEKIT_PB_SERVER_INFO_EDITION_TAG       1
@@ -1052,18 +1056,6 @@ extern "C" {
 #define LIVEKIT_PB_DATA_STREAM_CHUNK_VERSION_TAG 4
 #define LIVEKIT_PB_DATA_STREAM_TRAILER_STREAM_ID_TAG 1
 #define LIVEKIT_PB_DATA_STREAM_TRAILER_REASON_TAG 2
-#define LIVEKIT_PB_DATA_PACKET_USER_TAG          2
-#define LIVEKIT_PB_DATA_PACKET_SIP_DTMF_TAG      6
-#define LIVEKIT_PB_DATA_PACKET_RPC_REQUEST_TAG   10
-#define LIVEKIT_PB_DATA_PACKET_RPC_ACK_TAG       11
-#define LIVEKIT_PB_DATA_PACKET_RPC_RESPONSE_TAG  12
-#define LIVEKIT_PB_DATA_PACKET_STREAM_HEADER_TAG 13
-#define LIVEKIT_PB_DATA_PACKET_STREAM_CHUNK_TAG  14
-#define LIVEKIT_PB_DATA_PACKET_STREAM_TRAILER_TAG 15
-#define LIVEKIT_PB_DATA_PACKET_PARTICIPANT_IDENTITY_TAG 4
-#define LIVEKIT_PB_DATA_PACKET_DESTINATION_IDENTITIES_TAG 5
-#define LIVEKIT_PB_DATA_PACKET_SEQUENCE_TAG      16
-#define LIVEKIT_PB_DATA_PACKET_PARTICIPANT_SID_TAG 17
 #define LIVEKIT_PB_WEBHOOK_CONFIG_URL_TAG        1
 #define LIVEKIT_PB_WEBHOOK_CONFIG_SIGNING_KEY_TAG 2
 
@@ -1157,25 +1149,17 @@ X(a, STATIC,   SINGULAR, UINT32,   height,            3)
 X(a, STATIC,   ONEOF,    MESSAGE,  (value,user,value.user),   2) \
 X(a, POINTER,  SINGULAR, STRING,   participant_identity,   4) \
 X(a, POINTER,  REPEATED, STRING,   destination_identities,   5) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (value,sip_dtmf,value.sip_dtmf),   6) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (value,rpc_request,value.rpc_request),  10) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (value,rpc_ack,value.rpc_ack),  11) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (value,rpc_response,value.rpc_response),  12) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (value,stream_header,value.stream_header),  13) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (value,stream_chunk,value.stream_chunk),  14) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (value,stream_trailer,value.stream_trailer),  15) \
 X(a, STATIC,   SINGULAR, UINT32,   sequence,         16) \
-X(a, POINTER,  SINGULAR, STRING,   participant_sid,  17)
+X(a, STATIC,   SINGULAR, STRING,   participant_sid,  17)
 #define LIVEKIT_PB_DATA_PACKET_CALLBACK NULL
 #define LIVEKIT_PB_DATA_PACKET_DEFAULT NULL
 #define livekit_pb_data_packet_t_value_user_MSGTYPE livekit_pb_user_packet_t
-#define livekit_pb_data_packet_t_value_sip_dtmf_MSGTYPE livekit_pb_sip_dtmf_t
 #define livekit_pb_data_packet_t_value_rpc_request_MSGTYPE livekit_pb_rpc_request_t
 #define livekit_pb_data_packet_t_value_rpc_ack_MSGTYPE livekit_pb_rpc_ack_t
 #define livekit_pb_data_packet_t_value_rpc_response_MSGTYPE livekit_pb_rpc_response_t
-#define livekit_pb_data_packet_t_value_stream_header_MSGTYPE livekit_pb_data_stream_header_t
-#define livekit_pb_data_packet_t_value_stream_chunk_MSGTYPE livekit_pb_data_stream_chunk_t
-#define livekit_pb_data_packet_t_value_stream_trailer_MSGTYPE livekit_pb_data_stream_trailer_t
 
 #define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_FIELDLIST(X, a) \
 X(a, CALLBACK, REPEATED, MESSAGE,  speakers,          1)
