@@ -6,6 +6,7 @@
 #include "esp_webrtc_defaults.h"
 #include "media_lib_os.h"
 #include "esp_codec_dev.h"
+#include "utils.h"
 
 #include "peer.h"
 
@@ -38,6 +39,10 @@ typedef struct {
 
     uint16_t reliable_stream_id;
     uint16_t lossy_stream_id;
+
+#if CONFIG_LK_BENCHMARK
+    uint64_t start_time;
+#endif
 } peer_t;
 
 static esp_peer_media_dir_t get_media_direction(esp_peer_media_dir_t direction, peer_role_t role) {
@@ -67,8 +72,6 @@ static void peer_task(void *ctx)
 
 static void create_data_channels(peer_t *peer)
 {
-    if (peer->options.role != PEER_ROLE_PUBLISHER) return;
-
     esp_peer_data_channel_cfg_t reliable_cfg = {
         .label = RELIABLE_CHANNEL_LABEL,
         .type = ESP_PEER_DATA_CHANNEL_RELIABLE,
@@ -106,13 +109,19 @@ static int on_state(esp_peer_state_t rtc_state, void *ctx)
             new_state = CONNECTION_STATE_CONNECTING;
             break;
         case ESP_PEER_STATE_CONNECTED:
-            create_data_channels(peer);
+            if (peer->options.role == PEER_ROLE_PUBLISHER) {
+                create_data_channels(peer);
+            }
             break;
         case ESP_PEER_STATE_DATA_CHANNEL_OPENED:
             // Don't enter the connected state until both data channels are opened.
             if (peer->reliable_stream_id == STREAM_ID_INVALID ||
                 peer->lossy_stream_id    == STREAM_ID_INVALID ) break;
             new_state = CONNECTION_STATE_CONNECTED;
+#if CONFIG_LK_BENCHMARK
+            ESP_LOGI(TAG(peer), "[BENCH] Connected in %" PRIu64 "ms",
+                get_unix_time_ms() - peer->start_time);
+#endif
             break;
         default:
             break;
@@ -327,6 +336,9 @@ peer_err_t peer_connect(peer_handle_t handle)
         return PEER_ERR_INVALID_ARG;
     }
     peer_t *peer = (peer_t *)handle;
+#if CONFIG_LK_BENCHMARK
+    peer->start_time = get_unix_time_ms();
+#endif
 
     peer->running = true;
     media_lib_thread_handle_t thread;

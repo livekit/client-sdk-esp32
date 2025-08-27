@@ -6,6 +6,9 @@ menu "LiveKit"
     config LK_MAX_ICE_SERVERS
         int "Maximum number of ICE servers"
         default 3
+    config LK_BENCHMARK
+        bool "Benchmark connection time"
+        default n
     config LK_ENGINE_QUEUE_SIZE
         int "Number of engine events to queue"
         default 32

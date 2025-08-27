@@ -29,6 +29,10 @@ typedef struct {
     TimerHandle_t ping_interval_timer;
     TimerHandle_t ping_timeout_timer;
     int64_t rtt;
+
+#if CONFIG_LK_BENCHMARK
+    uint64_t start_time;
+#endif
 } signal_t;
 
 static inline void change_state(signal_t *sg, signal_state_t state)
@@ -131,6 +135,9 @@ static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void
 
     switch (event_id) {
         case WEBSOCKET_EVENT_BEFORE_CONNECT:
+#if CONFIG_LK_BENCHMARK
+            sg->start_time = get_unix_time_ms();
+#endif
             sg->is_terminal_state = false;
             change_state(sg, SIGNAL_STATE_CONNECTING);
             break;
@@ -160,6 +167,10 @@ static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void
             change_state(sg, state);
             break;
         case WEBSOCKET_EVENT_CONNECTED:
+#if CONFIG_LK_BENCHMARK
+            ESP_LOGI(TAG, "[BENCH] Connected in %" PRIu64 "ms",
+                get_unix_time_ms() - sg->start_time);
+#endif
             change_state(sg, SIGNAL_STATE_CONNECTED);
             break;
         case WEBSOCKET_EVENT_DATA:
