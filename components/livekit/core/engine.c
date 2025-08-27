@@ -902,7 +902,6 @@ static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
                     livekit_pb_participant_update_t *update = &res->message.update;
                     handle_participant_update(eng, update);
                     break;
-                // TODO: Only handle if needed
                 case LIVEKIT_PB_SIGNAL_RESPONSE_ANSWER_TAG:
                     livekit_pb_session_description_t *answer = &res->message.answer;
                     peer_handle_sdp(eng->pub_peer_handle, answer->sdp);
