@@ -252,7 +252,20 @@ livekit_err_t livekit_room_destroy(livekit_room_handle_t handle);
 /// Connect and disconnect from a room.
 ///
 /// The connection state of a room can be monitored by setting a handler for
-/// @ref livekit_room_options_t::on_state_changed.
+/// @ref livekit_room_options_t::on_state_changed, for example:
+///
+/// @code
+/// static void on_state_changed(livekit_connection_state_t state, void* ctx)
+/// {
+///     ESP_LOGI(TAG, "Room state changed: %s", livekit_connection_state_str(state));
+///
+///     // If the connection failed, find out why:
+///     livekit_failure_reason_t reason = livekit_room_get_failure_reason(room_handle);
+///     if (reason != LIVEKIT_FAILURE_REASON_NONE) {
+///         ESP_LOGE(TAG, "Failure reason: %s", livekit_failure_reason_str(reason));
+///     }
+/// }
+/// @endcode
 ///
 /// @{
 
