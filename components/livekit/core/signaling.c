@@ -182,6 +182,11 @@ static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void
             if (!protocol_signal_response_decode((const uint8_t *)data->data_ptr, data->data_len, &res)) {
                 break;
             }
+            if (res.which_message == 0) {
+                // Response type is not supported yet.
+                protocol_signal_response_free(&res);
+                break;
+            }
             if (!res_middleware(sg, &res)) {
                 // Don't forward.
                 protocol_signal_response_free(&res);
