@@ -13,6 +13,7 @@ static livekit_room_handle_t room_handle;
 static void on_state_changed(livekit_connection_state_t state, void* ctx)
 {
     ESP_LOGI(TAG, "Room state changed: %s", livekit_connection_state_str(state));
+
     livekit_failure_reason_t reason = livekit_room_get_failure_reason(room_handle);
     if (reason != LIVEKIT_FAILURE_REASON_NONE) {
         ESP_LOGE(TAG, "Failure reason: %s", livekit_failure_reason_str(reason));
