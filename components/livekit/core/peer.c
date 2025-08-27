@@ -135,10 +135,6 @@ static int on_msg(esp_peer_msg_t *info, void *ctx)
                 (char *)info->data);
             peer->options.on_sdp((char *)info->data, peer->options.ctx);
             break;
-        case ESP_PEER_MSG_TYPE_CANDIDATE:
-            ESP_LOGI(TAG(peer), "Generated candidate: %s", (char *)info->data);
-            peer->options.on_ice_candidate((char *)info->data, peer->options.ctx);
-            break;
         default:
             ESP_LOGD(TAG(peer), "Unhandled msg type: %d", info->type);
             break;
@@ -238,7 +234,6 @@ peer_err_t peer_create(peer_handle_t *handle, peer_options_t *options)
 {
     if (handle == NULL ||
         options->on_state_changed == NULL ||
-        options->on_ice_candidate == NULL ||
         options->on_sdp == NULL) {
         return PEER_ERR_INVALID_ARG;
     }

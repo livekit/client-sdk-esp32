@@ -58,9 +58,6 @@ typedef struct {
     /// an offer or answer depending on target configuration.
     void (*on_sdp)(const char *sdp, void *ctx);
 
-    /// Invoked when a new ICE candidate is available.
-    void (*on_ice_candidate)(const char *candidate, void *ctx);
-
     /// Invoked when information about an incoming audio stream is available.
     void (*on_audio_info)(esp_peer_audio_stream_info_t* info, void *ctx);
 

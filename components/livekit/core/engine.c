@@ -376,11 +376,6 @@ static bool on_peer_data_packet(livekit_pb_data_packet_t* packet, void *ctx)
     return event_enqueue(eng, &ev, false);
 }
 
-static void on_peer_ice_candidate(const char *candidate, void *ctx)
-{
-    // TODO: Handle ICE candidate
-}
-
 // MARK: - Publisher peer event handlers
 
 static void on_peer_pub_offer(const char *sdp, void *ctx)
@@ -523,7 +518,6 @@ static bool establish_peer_connections(engine_t *eng, livekit_pb_join_response_t
         .server_count     = server_count,
         .on_state_changed = on_peer_state_changed,
         .on_data_packet   = on_peer_data_packet,
-        .on_ice_candidate = on_peer_ice_candidate,
         .ctx              = eng
     };
 
