@@ -10,6 +10,7 @@
 static const char *TAG = "livekit_example";
 
 static livekit_room_handle_t room_handle;
+static bool agent_joined = false;
 
 /// Invoked when the room's connection state changes.
 static void on_state_changed(livekit_connection_state_t state, void* ctx)
@@ -24,18 +25,16 @@ static void on_participant_info(const livekit_participant_info_t* info, void* ct
         // Only handle agent participants for this example.
         return;
     }
-    char* verb;
+    bool joined = false;
     switch (info->state) {
-        case LIVEKIT_PARTICIPANT_STATE_ACTIVE:
-            verb = "joined";
-            break;
-        case LIVEKIT_PARTICIPANT_STATE_DISCONNECTED:
-            verb = "left";
-            break;
-        default:
-            return;
+        case LIVEKIT_PARTICIPANT_STATE_ACTIVE:       joined = true; break;
+        case LIVEKIT_PARTICIPANT_STATE_DISCONNECTED: joined = false; break;
+        default: return;
     }
-    ESP_LOGI(TAG, "Agent has %s the room", verb);
+    if (joined != agent_joined) {
+        ESP_LOGI(TAG, "Agent has %s the room", joined ? "joined" : "left");
+        agent_joined = joined;
+    }
 }
 
 /// Invoked by a remote participant to set the state of an on-board LED.
