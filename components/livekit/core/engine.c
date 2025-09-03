@@ -20,6 +20,7 @@
 #include "freertos/event_groups.h"
 #include "media_lib_os.h"
 #include "esp_codec_dev.h"
+#include "esp_capture_sink.h"
 #include <inttypes.h>
 #include <stdlib.h>
 #include "esp_log.h"
@@ -102,7 +103,7 @@ typedef struct {
     peer_handle_t sub_peer_handle;
 
     esp_codec_dev_handle_t renderer_handle;
-    esp_capture_path_handle_t capturer_path;
+    esp_capture_sink_handle_t capturer_path;
     bool is_media_streaming;
 
     char* server_url;
@@ -196,24 +197,24 @@ static void on_peer_sub_audio_frame(esp_peer_audio_frame_t* frame, void *ctx)
 
 // MARK: - Published media
 
-/// Converts `esp_peer_audio_codec_t` to equivalent `esp_capture_codec_type_t` value.
-static inline esp_capture_codec_type_t capture_audio_codec_type(esp_peer_audio_codec_t peer_codec)
+/// Converts `esp_peer_audio_codec_t` to equivalent `esp_capture_format_id_t` value.
+static inline esp_capture_format_id_t capture_audio_codec_type(esp_peer_audio_codec_t peer_codec)
 {
     switch (peer_codec) {
-        case ESP_PEER_AUDIO_CODEC_G711A: return ESP_CAPTURE_CODEC_TYPE_G711A;
-        case ESP_PEER_AUDIO_CODEC_G711U: return ESP_CAPTURE_CODEC_TYPE_G711U;
-        case ESP_PEER_AUDIO_CODEC_OPUS:  return ESP_CAPTURE_CODEC_TYPE_OPUS;
-        default:                         return ESP_CAPTURE_CODEC_TYPE_NONE;
+        case ESP_PEER_AUDIO_CODEC_G711A: return ESP_CAPTURE_FMT_ID_G711A;
+        case ESP_PEER_AUDIO_CODEC_G711U: return ESP_CAPTURE_FMT_ID_G711U;
+        case ESP_PEER_AUDIO_CODEC_OPUS:  return ESP_CAPTURE_FMT_ID_OPUS;
+        default:                         return ESP_CAPTURE_FMT_ID_NONE;
     }
 }
 
-/// Converts `esp_peer_video_codec_t` to equivalent `esp_capture_codec_type_t` value.
-static inline esp_capture_codec_type_t capture_video_codec_type(esp_peer_video_codec_t peer_codec)
+/// Converts `esp_peer_video_codec_t` to equivalent `esp_capture_format_id_t` value.
+static inline esp_capture_format_id_t capture_video_codec_type(esp_peer_video_codec_t peer_codec)
 {
     switch (peer_codec) {
-        case ESP_PEER_VIDEO_CODEC_H264:  return ESP_CAPTURE_CODEC_TYPE_H264;
-        case ESP_PEER_VIDEO_CODEC_MJPEG: return ESP_CAPTURE_CODEC_TYPE_MJPEG;
-        default:                         return ESP_CAPTURE_CODEC_TYPE_NONE;
+        case ESP_PEER_VIDEO_CODEC_H264:  return ESP_CAPTURE_FMT_ID_H264;
+        case ESP_PEER_VIDEO_CODEC_MJPEG: return ESP_CAPTURE_FMT_ID_MJPEG;
+        default:                         return ESP_CAPTURE_FMT_ID_NONE;
     }
 }
 
@@ -224,14 +225,14 @@ static inline void _media_stream_send_audio(engine_t *eng)
     esp_capture_stream_frame_t audio_frame = {
         .stream_type = ESP_CAPTURE_STREAM_TYPE_AUDIO,
     };
-    while (esp_capture_acquire_path_frame(eng->capturer_path, &audio_frame, true) == ESP_CAPTURE_ERR_OK) {
+    while (esp_capture_sink_acquire_frame(eng->capturer_path, &audio_frame, true) == ESP_CAPTURE_ERR_OK) {
         esp_peer_audio_frame_t audio_send_frame = {
             .pts = audio_frame.pts,
             .data = audio_frame.data,
             .size = audio_frame.size,
         };
         peer_send_audio(eng->pub_peer_handle, &audio_send_frame);
-        esp_capture_release_path_frame(eng->capturer_path, &audio_frame);
+        esp_capture_sink_release_frame(eng->capturer_path, &audio_frame);
     }
 }
 
@@ -242,14 +243,14 @@ static inline void _media_stream_send_video(engine_t *eng)
     esp_capture_stream_frame_t video_frame = {
         .stream_type = ESP_CAPTURE_STREAM_TYPE_VIDEO,
     };
-    if (esp_capture_acquire_path_frame(eng->capturer_path, &video_frame, true) == ESP_CAPTURE_ERR_OK) {
+    if (esp_capture_sink_acquire_frame(eng->capturer_path, &video_frame, true) == ESP_CAPTURE_ERR_OK) {
         esp_peer_video_frame_t video_send_frame = {
             .pts = video_frame.pts,
             .data = video_frame.data,
             .size = video_frame.size,
         };
         peer_send_video(eng->pub_peer_handle, &video_send_frame);
-        esp_capture_release_path_frame(eng->capturer_path, &video_frame);
+        esp_capture_sink_release_frame(eng->capturer_path, &video_frame);
     }
 }
 
@@ -276,7 +277,7 @@ static engine_err_t media_stream_begin(engine_t *eng)
     }
     media_lib_thread_handle_t handle = NULL;
     eng->is_media_streaming = true;
-    if (media_lib_thread_create_from_scheduler(&handle, STREAM_THREAD_NAME, media_stream_task, eng) != ESP_OK) {
+    if (media_lib_thread_create_from_scheduler(&handle, "lk_eng_stream", media_stream_task, eng) != ESP_OK) {
         ESP_LOGE(TAG, "Failed to create media stream thread");
         eng->is_media_streaming = false;
         return ENGINE_ERR_MEDIA;
@@ -1127,13 +1128,13 @@ engine_handle_t engine_init(const engine_options_t *options)
 
     esp_capture_sink_cfg_t sink_cfg = {
         .audio_info = {
-            .codec = capture_audio_codec_type(eng->options.media.audio_info.codec),
+            .format_id = capture_audio_codec_type(eng->options.media.audio_info.codec),
             .sample_rate = eng->options.media.audio_info.sample_rate,
             .channel = eng->options.media.audio_info.channel,
             .bits_per_sample = 16,
         },
         .video_info = {
-            .codec = capture_video_codec_type(eng->options.media.video_info.codec),
+            .format_id = capture_video_codec_type(eng->options.media.video_info.codec),
             .width = eng->options.media.video_info.width,
             .height = eng->options.media.video_info.height,
             .fps = eng->options.media.video_info.fps,
@@ -1143,17 +1144,18 @@ engine_handle_t engine_init(const engine_options_t *options)
         // TODO: Can we ensure the renderer is valid? If not, return error.
         eng->renderer_handle = options->media.renderer;
     }
-    if (esp_capture_setup_path(
+
+    if (esp_capture_sink_setup(
         eng->options.media.capturer,
-        ESP_CAPTURE_PATH_PRIMARY,
+        0, // Path index
         &sink_cfg,
         &eng->capturer_path
     ) != ESP_CAPTURE_ERR_OK) {
         goto _init_failed;
     }
-    if (esp_capture_enable_path(
+    if (esp_capture_sink_enable(
         eng->capturer_path,
-        ESP_CAPTURE_RUN_TYPE_ALWAYS
+        ESP_CAPTURE_RUN_MODE_ALWAYS
     ) != ESP_CAPTURE_ERR_OK) {
         goto _init_failed;
     }

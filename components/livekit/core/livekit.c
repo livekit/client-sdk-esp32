@@ -180,8 +180,8 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_r
     if (handle == NULL || options == NULL) {
         return LIVEKIT_ERR_INVALID_ARG;
     }
-    if (!system_is_media_lib_setup()) {
-        ESP_LOGE(TAG, "Must perform system initialization before creating a room");
+    if (!system_init_is_done()) {
+        ESP_LOGE(TAG, "System initialization not performed or failed");
         return LIVEKIT_ERR_SYSTEM_INIT;
     }
 
@@ -412,8 +412,10 @@ livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const ch
 
 livekit_err_t livekit_system_init(void)
 {
-    if (!system_setup_media_lib()) {
-        return LIVEKIT_ERR_SYSTEM_INIT;
+    esp_err_t ret = system_init();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "System initialization failed");
+        return ret;
     }
     return LIVEKIT_ERR_NONE;
 }
