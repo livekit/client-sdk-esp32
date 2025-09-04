@@ -16,14 +16,19 @@
 
 #pragma once
 
+#include <stdbool.h>
+#include "esp_err.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-bool system_setup_media_lib(void);
-bool system_is_media_lib_setup(void);
+/// Performs one time system initialization tasks.
+esp_err_t system_init(void);
 
-bool system_sync_time(void);
+/// Returns whether system initialization has been performed
+/// with @ref system_init.
+bool system_init_is_done(void);
 
 #ifdef __cplusplus
 }

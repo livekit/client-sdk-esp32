@@ -9,12 +9,10 @@ idf_component_register(
         esp_codec_dev
         esp_netif
         esp_websocket_client
-        esp_webrtc
+        esp_peer
         json
         mbedtls
         media_lib_sal
-        peer_default
-        webrtc_utils
         nanopb
         khash
 )
