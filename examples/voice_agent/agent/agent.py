@@ -13,11 +13,8 @@ from livekit.agents import (
 )
 from livekit.plugins import (
     openai,
-    cartesia,
-    deepgram,
-    silero,
+    noise_cancellation
 )
-from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 # If enabled, RPC calls will not be performed.
 TEST_MODE = False
@@ -31,17 +28,12 @@ class LEDColor(str, Enum):
 class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(
-            instructions="""You are a helpful voice AI assistant running on an ESP-32 dev board.
+            instructions="""You are a helpful voice AI assistant running on an ESP32 dev board.
             You answer user's questions about the hardware state and control the hardware based on their requests.
             The board has discrete LEDs that can be controlled independently. Each LED has a static color
             that cannot be changed. While you are able to set the state of the LEDs, you are not able to read the
             state which could be changed without your knowledge. No markdown is allowed in your responses.
             """
-        )
-    async def on_enter(self) -> None:
-        await self.session.say(
-            "Hi, how can I help you today?",
-            allow_interruptions=False
         )
 
     @function_tool()
@@ -92,16 +84,17 @@ class Assistant(Agent):
 
 async def entrypoint(ctx: agents.JobContext):
     session = AgentSession(
-        stt=deepgram.STT(model="nova-3", language="multi"),
-        llm=openai.LLM(model="gpt-4o-mini"),
-        tts=cartesia.TTS(model="sonic-2", voice="c99d36f3-5ffd-4253-803a-535c1bc9c306"),
-        vad=silero.VAD.load(),
-        turn_detection=MultilingualModel(),
+        llm=openai.realtime.RealtimeModel(
+            voice="echo",
+            model="gpt-4o-mini-realtime-preview-2024-12-17"
+        )
     )
     await session.start(
         room=ctx.room,
         agent=Assistant(),
-        room_input_options=RoomInputOptions()
+        room_input_options=RoomInputOptions(
+            noise_cancellation=noise_cancellation.BVC()
+        )
     )
     await ctx.connect()
 
