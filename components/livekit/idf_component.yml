@@ -10,8 +10,7 @@ dependencies:
   espressif/esp_websocket_client: ^1.4.0
   espressif/esp_codec_dev: "~1.4"
   espressif/esp_capture: "~0.7"
-  esp_peer:
-    path: ../third_party/esp-webrtc-solution/components/esp_peer
+  espressif/esp_peer: ^1.2.3
   media_lib_sal:
     path: ../third_party/esp-webrtc-solution/components/media_lib_sal
   webrtc_utils:
