@@ -67,14 +67,14 @@ LiveKit for ESP32 puts your application in control of the media pipeline; your a
 #### Capturer: input from camera/microphone
 
 - Required for rooms which will publish media tracks
-- Created using the Espressif [*esp_capture*](./components/third_party/esp-webrtc-solution/components/esp_capture/README.md) component
+- Created using the Espressif [*esp_capture*](https://components.espressif.com/components/espressif/esp_capture/) component
 - Capture audio capture over I2S, video from MIPI CSI or DVI cameras
 - After configuration, you will provide the `esp_capture_handle_t` when creating a room
 
 #### Renderer: output to display/speaker
 
 - Required for rooms which will subscribe to media tracks
-- Created using the Espressif [*av_render*](./components/third_party/esp-webrtc-solution/components/av_render/README.md) component
+- Created using the Espressif [*av_render*](https://github.com/espressif/esp-webrtc-solution/tree/main/components/av_render) component
 - Playback audio over I2S, video on LCD displays supported by *esp_lcd*
 - After configuration, you will provide the `av_render_handle_t` when creating a room
 
