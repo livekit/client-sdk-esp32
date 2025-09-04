@@ -13,7 +13,6 @@ idf_component_register(
         json
         mbedtls
         media_lib_sal
-        webrtc_utils
         nanopb
         khash
 )

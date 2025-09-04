@@ -13,8 +13,6 @@ dependencies:
   espressif/esp_peer: ^1.2.3
   media_lib_sal:
     path: ../third_party/esp-webrtc-solution/components/media_lib_sal
-  webrtc_utils:
-    path: ../third_party/esp-webrtc-solution/components/webrtc_utils
   nanopb:
     path: ../third_party/nanopb
   khash:
