@@ -502,25 +502,17 @@ static inline size_t map_ice_servers(
 
 static bool establish_peer_connections(engine_t *eng, livekit_pb_join_response_t *join)
 {
-    esp_peer_ice_server_cfg_t server_list[] = {
-        { .stun_url = "stun:stun.l.google.com:19302" },
-        { .stun_url = "stun:stun1.l.google.com:19302" },
-        { .stun_url = "stun:stun2.l.google.com:19302" }
-    };
-    int server_count = sizeof(server_list) / sizeof(server_list[0]);
-
-    // TODO: Replace the above with the following to set the ICE servers dynamically:
-    // esp_peer_ice_server_cfg_t server_list[CONFIG_LK_MAX_ICE_SERVERS];
-    // int server_count = map_ice_servers(
-    //     join->ice_servers,
-    //     join->ice_servers_count,
-    //     server_list,
-    //     sizeof(server_list) / sizeof(server_list[0])
-    // );
-    // if (server_count < 1) {
-    //     ESP_LOGW(TAG, "No ICE servers available");
-    //     return false;
-    // }
+    esp_peer_ice_server_cfg_t server_list[CONFIG_LK_MAX_ICE_SERVERS];
+    int server_count = map_ice_servers(
+        join->ice_servers,
+        join->ice_servers_count,
+        server_list,
+        sizeof(server_list) / sizeof(server_list[0])
+    );
+    if (server_count < 1) {
+        ESP_LOGW(TAG, "No ICE servers available");
+        return false;
+    }
 
     peer_options_t options = {
         .force_relay      = join->client_configuration.force_relay
