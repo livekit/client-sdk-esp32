@@ -17,8 +17,6 @@ void board_init()
     // Initialize board support package and LEDs
     bsp_i2c_init();
     bsp_leds_init();
-    bsp_led_set(BSP_LED_RED, true);
-    bsp_led_set(BSP_LED_BLUE, true);
 
     // Initialize temperature sensor
     temperature_sensor_config_t temp_sensor_config = TEMPERATURE_SENSOR_CONFIG_DEFAULT(10, 50);
