@@ -7,6 +7,8 @@ discussion: "https://livekit.io/join-slack"
 version: 0.2.0
 dependencies:
   idf: ">=5.4"
+  av_render:
+    path: ../third_party/esp-webrtc-solution/components/av_render
   espressif/esp_websocket_client: ~1.5.0
   espressif/esp_codec_dev: ~1.4
   espressif/esp_capture: ~0.7
