@@ -16,7 +16,6 @@
 
 #pragma once
 
-#include "media_lib_os.h"
 #include "esp_capture.h"
 #include "av_render.h"
 
