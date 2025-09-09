@@ -65,20 +65,21 @@ static void set_led_state(const livekit_rpc_invocation_t* invocation, void* ctx)
         }
 
         const char *color = color_entry->valuestring;
+
         bool state = cJSON_IsTrue(state_entry);
 
         bsp_led_t led;
         if (strncmp(color, "red", 3) == 0) {
-            led = BSP_LED_RED;
-        } else if (strncmp(color, "blue", 4) == 0) {
+            // TODO: there is a bug in the Korvo2 BSP which causes the LED pins to be swapped
+            // (i.e., blue is mapped to red and red is mapped to blue): https://github.com/espressif/esp-bsp/pull/632
             led = BSP_LED_BLUE;
+        } else if (strncmp(color, "blue", 4) == 0) {
+            led = BSP_LED_RED;
         } else {
             error = "Unsupported color";
             break;
         }
-        // There is a known bug in the BSP component, so we need to invert the state for now.
-        // See https://github.com/espressif/esp-bsp/pull/610.
-        if (bsp_led_set(led, !state) != ESP_OK) {
+        if (bsp_led_set(led, state) != ESP_OK) {
             error = "Failed to set LED state";
             break;
         }
