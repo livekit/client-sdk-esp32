@@ -5,16 +5,16 @@ idf_component_register(
     REQUIRES
         av_render
         esp_capture
+        esp_codec_dev
         media_lib_sal
     PRIV_REQUIRES
-        esp_codec_dev
         esp_netif
-        esp_websocket_client
         esp_peer
+        esp_websocket_client
         json
+        khash
         mbedtls
         nanopb
-        khash
 )
 
 idf_component_get_property(LIVEKIT_SDK_VERSION ${COMPONENT_NAME} COMPONENT_VERSION)
