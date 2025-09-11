@@ -1,0 +1,34 @@
+name: ESP Registry
+on:
+  workflow_call:
+    inputs:
+      dry_run:
+        type: boolean
+        description: Do not actually upload the components
+        default: true
+jobs:
+  esp_registry:
+    runs-on: ubuntu-latest
+    env:
+      COMPONENTS: |
+        nanopb:./components/third_party/nanopb
+        khash:./components/third_party/khash
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+      - name: Upload Components (Dry Run)
+        uses: espressif/upload-components-ci-action@v2
+        if: ${{ inputs.dry_run }}
+        with:
+          components: ${{ env.COMPONENTS }}
+          namespace: livekit
+          api_token: ${{ secrets.ESP_REGISTRY_TOKEN }}
+          dry_run: true
+      - name: Upload Components
+        uses: espressif/upload-components-ci-action@v2
+        if: ${{ !inputs.dry_run }}
+        with:
+          components: ${{ env.COMPONENTS }}
+          namespace: livekit
+          api_token: ${{ secrets.ESP_REGISTRY_TOKEN }}
+          dry_run: false
