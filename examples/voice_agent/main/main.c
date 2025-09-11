@@ -1,6 +1,7 @@
 #include "esp_log.h"
 #include "media_lib_adapter.h"
 #include "media_lib_os.h"
+#include "esp_netif_sntp.h"
 #include "livekit.h"
 #include "network.h"
 #include "media.h"
@@ -27,5 +28,8 @@ void app_main(void)
     livekit_system_init();
     board_init();
     media_init();
+    esp_sntp_config_t sntp_config = ESP_NETIF_SNTP_DEFAULT_CONFIG_MULTIPLE(2,
+        ESP_SNTP_SERVER_LIST("time.google.com", "pool.ntp.org"));
+    esp_netif_sntp_init(&sntp_config);
     network_init(CONFIG_WIFI_SSID, CONFIG_WIFI_PASSWORD, network_event_handler);
 }
