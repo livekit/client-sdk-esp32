@@ -1,0 +1,35 @@
+name: Bug Report
+description: File a bug report.
+labels: [triage]
+assignees: [ladvoc]
+body:
+  - type: input
+    id: sdk-version
+    validations: { required: true }
+    attributes:
+      label: LiveKit SDK Version
+      description: What version of LiveKit SDK are you using?
+      placeholder: "v0.2.0"
+  - type: input
+    id: idf-version
+    validations: { required: true }
+    attributes:
+      label: IDF Version
+      description: What version of ESP IDF are you using?
+      placeholder: "v5.5"
+  - type: textarea
+    id: description
+    validations: { required: true }
+    attributes:
+      label: Issue Description
+      description: |
+        Please describe the issue, providing any relevant logs and code snippets.
+  - type: textarea
+    id: hardware
+    validations: { required: true }
+    attributes:
+      label: Hardware Configuration
+      description: |
+        Please describe the development board you are using, or if you are using a custom board,
+        please include details about its peripherals.
+      placeholder: ESP32-S3-Korvo-2
