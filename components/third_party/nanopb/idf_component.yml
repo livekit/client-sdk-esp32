@@ -1,6 +1,6 @@
-description: Nanopb
+version: 0.4.9
+description: Protocol buffer library for embedded systems.
 url: https://jpa.kapsi.fi/nanopb/
 repository: https://github.com/nanopb/nanopb/
 documentation: https://jpa.kapsi.fi/nanopb/docs/
-version: 0.4.9
 license: Zlib
