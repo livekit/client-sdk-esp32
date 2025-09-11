@@ -17,3 +17,7 @@ jobs:
   license-check:
     name: License Check
     uses: ./.github/workflows/license_check.yml
+  registry-check:
+    name: Registry Check
+    uses: ./.github/workflows/esp_registry.yml
+    with: { dry_run: true }

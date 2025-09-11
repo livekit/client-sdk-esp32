@@ -15,9 +15,7 @@ dependencies:
   espressif/esp_peer: ~1.2.3
   media_lib_sal:
     path: ../third_party/esp-webrtc-solution/components/media_lib_sal
-  nanopb:
-    path: ../third_party/nanopb
-  khash:
-    path: ../third_party/khash
+  livekit/nanopb: ~0.4.9
+  livekit/khash: ~0.1.0
 files:
   use_gitignore: true
