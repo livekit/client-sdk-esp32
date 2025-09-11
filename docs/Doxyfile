@@ -1,4 +1,5 @@
 PROJECT_NAME           = LiveKit ESP32 SDK
+PROJECT_ICON           = customization/favicon.ico
 OUTPUT_DIRECTORY       = ./output
 OPTIMIZE_OUTPUT_FOR_C  = YES
 WARN_IF_UNDOCUMENTED   = YES
@@ -17,4 +18,11 @@ TIMESTAMP              = YES
 INLINE_SIMPLE_STRUCTS  = YES
 TYPEDEF_HIDES_STRUCT   = YES
 SHOW_FILES             = NO
+TOC_EXPAND             = YES
 LAYOUT_FILE            = ./layout.xml
+HTML_HEADER            = customization/header.html
+PROJECT_NUMBER         = v0.2.0
+FULL_SIDEBAR           = NO
+HTML_EXTRA_STYLESHEET  = customization/doxygen-awesome.css \
+						 customization/custom.css
+HTML_COLORSTYLE        = LIGHT # required with Doxygen >= 1.9.5

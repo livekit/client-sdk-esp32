@@ -1,0 +1,51 @@
+@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Public+Sans:ital,wght@0,100..900;1,100..900&display=swap");
+
+html {
+  --font-family: "Public Sans", -apple-system, Helvetica Neue, sans-serif;
+  --font-family-monospace: "Fira Code", SFMono-Regular, SF Mono, Menlo, Consolas,
+    monospace;
+  --primary-color: rgb(10, 37, 159);
+  --primary-dark-color: rgb(22, 35, 89);
+  --primary-light-color: rgb(172, 175, 191);
+  --fragment-link: var(--primary-color);
+}
+
+#main-nav {
+  border-bottom: none;
+}
+
+#projectname {
+  display: flex;
+  gap: 0.35em;
+}
+
+#projectnumber {
+  background-color: #eee;
+  border-radius: var(--border-radius-medium);
+  padding-right: 0.5em;
+  padding-left: 0.25em;
+}
+
+#nav-sync {
+  display: none;
+}
+
+#nav-tree {
+  border-color: var(--separator-color);
+}
+
+#page-nav {
+  background-color: var(--side-nav-background);
+  border-left: none;
+}
+
+ul.page-outline li.vis {
+  background-color: rgba(0, 0, 0, 0.025);
+}
+
+.arrow {
+  vertical-align: unset;
+  text-align: unset;
+  margin-right: 0;
+  height: unset;
+}
