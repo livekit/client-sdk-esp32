@@ -8,6 +8,7 @@ on:
         default: true
 jobs:
   esp_registry:
+    name: Upload Components
     runs-on: ubuntu-latest
     env:
       COMPONENTS: |

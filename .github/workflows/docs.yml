@@ -1,11 +1,11 @@
 name: Build Documentation
 on:
-  workflow_dispatch:
-  push:
-    branches: [main]
-concurrency:
-  group: "docs"
-  cancel-in-progress: true
+  workflow_call:
+    inputs:
+      deploy:
+        type: boolean
+        description: Deploy to GitHub Pages
+        default: false
 jobs:
   build-docs:
     name: Build Documentation
@@ -21,11 +21,13 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload Generated Docs
+        if: ${{ inputs.deploy }}
         uses: actions/upload-pages-artifact@v3
         with: { path: docs/output/html }
-  deploy:
+  deploy-docs:
     name: Deploy Documentation
     needs: build-docs
+    if: ${{ inputs.deploy }}
     permissions:
       pages: write
       id-token: write
