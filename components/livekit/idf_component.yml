@@ -7,15 +7,12 @@ discussion: "https://livekit.io/join-slack"
 version: 0.2.0
 dependencies:
   idf: ">=5.4"
-  av_render:
-    path: ../third_party/esp-webrtc-solution/components/av_render
-  espressif/esp_websocket_client: ~1.5.0
-  espressif/esp_codec_dev: ~1.4
-  espressif/esp_capture: ~0.7
+  espressif/esp_capture: { version: ~0.7, public: true }
+  tempotian/av_render: { version: ~0.9.1, public: true }
+  tempotian/media_lib_sal: { version: ~0.9.0, public: true }
   espressif/esp_peer: ~1.2.3
-  media_lib_sal:
-    path: ../third_party/esp-webrtc-solution/components/media_lib_sal
-  livekit/nanopb: ~0.4.9
+  espressif/esp_websocket_client: ~1.5.0
   livekit/khash: ~0.1.0
+  livekit/nanopb: ~0.4.9
 files:
   use_gitignore: true

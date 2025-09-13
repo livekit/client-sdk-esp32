@@ -5,13 +5,13 @@ idf_component_register(
     REQUIRES
         av_render
         esp_capture
+        media_lib_sal
     PRIV_REQUIRES
         esp_netif
         esp_websocket_client
         esp_peer
         json
         mbedtls
-        media_lib_sal
         nanopb
         khash
 )
