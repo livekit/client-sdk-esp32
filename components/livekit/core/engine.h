@@ -16,10 +16,6 @@
 
 #pragma once
 
-#include "esp_peer.h"
-#include "esp_capture.h"
-#include "av_render.h"
-
 #include "livekit_types.h"
 #include "common.h"
 #include "protocol.h"
