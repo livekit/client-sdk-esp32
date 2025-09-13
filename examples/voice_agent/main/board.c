@@ -24,7 +24,7 @@ void board_init()
     ESP_ERROR_CHECK(temperature_sensor_enable(temp_sensor));
 
     // Initialize codec board
-    set_codec_board_type(CONFIG_CODEC_BOARD_TYPE);
+    set_codec_board_type(CONFIG_LK_EXAMPLE_CODEC_BOARD_TYPE);
     codec_init_cfg_t cfg = {
         .in_mode = CODEC_I2S_MODE_TDM,
         .in_use_tdm = true,

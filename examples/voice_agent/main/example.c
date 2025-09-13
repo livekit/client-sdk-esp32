@@ -137,13 +137,13 @@ void join_room()
     livekit_room_rpc_register(room_handle, "get_cpu_temp", get_cpu_temp);
 
     livekit_err_t connect_res;
-#ifdef CONFIG_LK_USE_SANDBOX
+#ifdef CONFIG_LK_EXAMPLE_USE_SANDBOX
     // Option A: Sandbox token server.
     livekit_sandbox_res_t res = {};
     livekit_sandbox_options_t gen_options = {
-        .sandbox_id = CONFIG_LK_SANDBOX_ID,
-        .room_name = CONFIG_LK_SANDBOX_ROOM_NAME,
-        .participant_name = CONFIG_LK_SANDBOX_PARTICIPANT_NAME
+        .sandbox_id = CONFIG_LK_EXAMPLE_SANDBOX_ID,
+        .room_name = CONFIG_LK_EXAMPLE_ROOM_NAME,
+        .participant_name = CONFIG_LK_EXAMPLE_PARTICIPANT_NAME
     };
     if (!livekit_sandbox_generate(&gen_options, &res)) {
         ESP_LOGE(TAG, "Failed to generate sandbox token");
@@ -153,7 +153,10 @@ void join_room()
     livekit_sandbox_res_free(&res);
 #else
     // Option B: Pre-generated token.
-    connect_res = livekit_room_connect(room_handle, CONFIG_LK_SERVER_URL, CONFIG_LK_TOKEN);
+    connect_res = livekit_room_connect(
+        room_handle,
+        CONFIG_LK_EXAMPLE_SERVER_URL,
+        CONFIG_LK_EXAMPLE_TOKEN);
 #endif
 
     if (connect_res != LIVEKIT_ERR_NONE) {
