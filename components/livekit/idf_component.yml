@@ -14,7 +14,7 @@ dependencies:
   tempotian/media_lib_sal: ~0.9.0
   espressif/esp_peer: ~1.2.3
   espressif/esp_websocket_client: ~1.5.0
-  livekit/khash: ~0.1.0
+  livekit/khash: ~0.2.8
   livekit/nanopb: ~0.4.9
 files:
   use_gitignore: true
