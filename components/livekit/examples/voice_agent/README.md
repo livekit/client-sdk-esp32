@@ -1,6 +1,8 @@
 # Voice Agent
 
-Example application combining this SDK with [LiveKit Agents](https://docs.livekit.io/agents/), enabling bidirectional voice communication with an AI agent. The agent can interact with hardware in response to user requests. Below is an example of a conversation between a user and the agent:
+Example of using LiveKit to enable bidirectional voice chat with an AI agent built with [LiveKit Agents](https://docs.livekit.io/agents/).
+
+The agent in this example can interact with hardware in response to user requests. Below is an example of a conversation between a user and the agent:
 
 > **User:** What is the current CPU temperature? \
 > **Agent:** The CPU temperature is currently 33°C.
@@ -11,76 +13,67 @@ Example application combining this SDK with [LiveKit Agents](https://docs.liveki
 > **User:** Turn on the yellow LED. \
 > **Agent:** I'm sorry, the board does not have a yellow LED.
 
-## Requirements
+## Configuration
 
-- Software:
-    - [IDF](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/index.html) release v5.4 or later
-    - Python 3.9 or later
-    - LiveKit Cloud Project
-    - Sandbox Token Server (created from your cloud project)
-    - API keys for OpenAI, Deepgram, and Cartesia.
-- Hardware
-    - Dev board: [ESP32-S3-Korvo-2](https://docs.espressif.com/projects/esp-adf/en/latest/design-guide/dev-boards/user-guide-esp32-s3-korvo-2.html)
-    - Two micro USB cables: one for power, one for flashing
-    - Mono enclosed speaker (example from [Adafruit](https://www.adafruit.com/product/3351))
+> [!TIP]
+> Options can either be set through *menuconfig* or added to *sdkconfig* as shown below.
 
-## Run example
+### Credentials
 
-To run the example on your board, begin in your terminal by navigating to the example's root directory: *[examples/voice_agent](./examples/voice_agent/)*.
+> [!IMPORTANT]
+> This example comes with a pre-configured Sandbox that automatically dispatches the hosted agent included with this example. Feel free to ignore this section until you are ready to use your own cloud project.
 
-### 1. Configuration
+**Option A**: Use a LiveKit Sandbox to get up and running quickly. Setup a LiveKit Sandbox from your [Cloud Project](https://cloud.livekit.io/projects/p_/sandbox), and use its ID in your configuration:
 
-The example requires a network connection and Sandbox ID from your [LiveKit Cloud Project](https://cloud.livekit.io/projects/p_/sandbox/templates/token-server). To configure these settings from your terminal, launch *menuconfig*:
-```sh
-idf.py menuconfig
+```ini
+CONFIG_LK_EXAMPLE_USE_SANDBOX=y
+CONFIG_LK_EXAMPLE_SANDBOX_ID="my-project-xxxxxx"
 ```
 
-With *menuconfig* open, navigate to the *LiveKit Example* menu and configure the following settings:
+**Option B**: Specify a server URL and pregenerated token:
 
-- Network → Wi-Fi SSID
-- Network → Wi-Fi password
-- Room connection → Sandbox ID
+```ini
+CONFIG_LK_EXAMPLE_USE_PREGENERATED=y
+CONFIG_LK_EXAMPLE_TOKEN="your-jwt-token"
+CONFIG_LK_EXAMPLE_SERVER_URL="ws://localhost:7880"
+```
 
-For more information about available options, please refer to [this guide](../README.md#configuration).
+### Network
 
-### 2. Build & flash
+Connect using WiFi as follows:
 
-Begin by connecting your dev board via USB. With the board connected, use the following command
-to build the example, flash it to your board, and monitor serial output:
+```ini
+CONFIG_NETWORK_CONNECT_MODE_WIFI=y
+CONFIG_NETWORK_CONNECT_WIFI_SSID="<your SSID>"
+CONFIG_NETWORK_CONNECT_WIFI_PASSWORD="<your password>"
+```
+
+### Development Board
+
+By default, this example targets the [ESP32-S3-Korvo-2](https://docs.espressif.com/projects/esp-adf/en/latest/design-guide/dev-boards/user-guide-esp32-s3-korvo-2.html) development board, using its corresponding [board support package](https://components.espressif.com/components/espressif/esp32_s3_korvo_2/) (BSP) to access the LED peripherals for the agent to control. If you wish to target a different board, this dependency can be easily removed or replaced.
+
+If using a board other than the ESP32-S3-Korvo-2, note that this example uses the Espressif [*codec_board*](https://components.espressif.com/components/tempotian/codec_board/) component to access board-specific peripherals for media capture and rendering. Supported boards are [defined here](https://github.com/espressif/esp-webrtc-solution/blob/65d13427dd83c37264b6cff966d60af0f84f649c/components/codec_board/board_cfg.txt). Locate the name of your board, and set it as follows:
+
+```ini
+CONFIG_LK_EXAMPLE_CODEC_BOARD_TYPE="S3_Korvo_V2"
+```
+
+## Build & Flash
+
+Navigate to this directory in your terminal. Run the following command to build your application, flash it to your board, and monitor serial output:
 
 ```sh
 idf.py flash monitor
 ```
 
-Once running on device, the example will establish a network connection and then connect to a LiveKit room. Once connected, you will see the following log message:
+Once running, the example will establish a network connection, connect to a LiveKit room, and print the following message:
 
-```sh
-I (19508) livekit_example: Room state: connected
+```txt
+I (19508) livekit_example: Room state: Connected
 ```
 
-If you encounter any issues during this process, please refer to the example [troubleshooting guide](../README.md/#troubleshooting).
+If you are using the provided Sandbox, you should be able to converse with the agent at this point. Start by asking "What's the CPU temperature."
 
-## Run agent
+## Next Steps
 
-With the example running on your board, the next step is to run the agent so it can join the room.
-Begin by navigating to the agent's source directory in your terminal: *[examples/voice_agent/agent](../voice_agent/agent)*.
-
-In this directory, create a *.env* file containing the required API keys:
-
-```sh
-DEEPGRAM_API_KEY=<your Deepgram API Key>
-OPENAI_API_KEY=<your OpenAI API Key>
-CARTESIA_API_KEY=<your Cartesia API Key>
-LIVEKIT_API_KEY=<your API Key>
-LIVEKIT_API_SECRET=<your API Secret>
-LIVEKIT_URL=<your server URL>
-```
-
-With the API keys in place, download the required files and run the agent in development mode as follows:
-
-```sh
-python agent.py download-files
-python agent.py dev
-```
-
-With the agent running, it will discover and join the room, and you will now be able to engage in two-way conversation. Try asking some of the questions shown above.
+Explore how the agent is built (see its source in the *./agent* directory). If you are unfamiliar with [LiveKit Agents](https://docs.livekit.io/agents/), refer to the [Voice AI Quickstart](https://docs.livekit.io/agents/start/voice-ai/) to learn how you can build upon the example agent or create your own from scratch.
