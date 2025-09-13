@@ -19,7 +19,6 @@
 #include "freertos/semphr.h"
 #include "freertos/event_groups.h"
 #include "media_lib_os.h"
-#include "esp_codec_dev.h"
 #include "esp_capture_sink.h"
 #include <inttypes.h>
 #include <stdlib.h>
@@ -28,6 +27,7 @@
 #include "signaling.h"
 #include "peer.h"
 #include "utils.h"
+
 #include "engine.h"
 
 // MARK: - Constants
@@ -102,7 +102,7 @@ typedef struct {
     peer_handle_t pub_peer_handle;
     peer_handle_t sub_peer_handle;
 
-    esp_codec_dev_handle_t renderer_handle;
+    av_render_handle_t renderer_handle;
     esp_capture_sink_handle_t capturer_path;
     bool is_media_streaming;
 

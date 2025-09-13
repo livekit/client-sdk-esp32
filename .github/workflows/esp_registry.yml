@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       COMPONENTS: |
+        livekit:./components/livekit
+        sandbox_token:./components/sandbox_token
+        example_utils:./components/example_utils
         nanopb:./components/third_party/nanopb
         khash:./components/third_party/khash
     steps:
@@ -33,3 +36,10 @@ jobs:
           namespace: livekit
           api_token: ${{ secrets.ESP_REGISTRY_TOKEN }}
           dry_run: false
+      - name: Save Archives
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: archives
+          path: components/**/*.tgz
+          if-no-files-found: error
