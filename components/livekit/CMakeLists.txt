@@ -6,7 +6,6 @@ idf_component_register(
         av_render
         esp_capture
     PRIV_REQUIRES
-        esp_codec_dev
         esp_netif
         esp_websocket_client
         esp_peer

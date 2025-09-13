@@ -19,7 +19,6 @@
 #include "esp_peer.h"
 #include "esp_peer_default.h"
 #include "media_lib_os.h"
-#include "esp_codec_dev.h"
 #include "utils.h"
 
 #include "peer.h"
