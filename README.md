@@ -10,46 +10,51 @@
 
 # ESP32 SDK for LiveKit
 
-![API Reference](https://img.shields.io/badge/API_Reference-blue?link=https%3A%2F%2Flivekit.github.io%2Fclient-sdk-esp32%2F)
-![Latest Release](https://img.shields.io/github/v/release/livekit/client-sdk-esp32?include_prereleases&label=Release)
-![CI Status](https://img.shields.io/github/actions/workflow/status/livekit/client-sdk-esp32/ci.yml?label=CI)
+[![API Reference](https://img.shields.io/badge/API_Reference-blue)](https://livekit.github.io/client-sdk-esp32/)
+[![Latest Release](https://img.shields.io/github/v/release/livekit/client-sdk-esp32?include_prereleases&label=Release)](https://github.com/livekit/client-sdk-esp32/releases)
+[![CI Status](https://img.shields.io/github/actions/workflow/status/livekit/client-sdk-esp32/ci.yml?label=CI)](https://github.com/livekit/client-sdk-esp32/actions/workflows/ci.yml)
 
 Use this SDK to add realtime video, audio and data features to your ESP32 projects. By connecting to [LiveKit](https://livekit.io/) Cloud or a self-hosted server, you can quickly build applications such as multi-modal AI, live streaming, or video calls with minimal setup.
 
-> [!WARNING]
+> [!IMPORTANT]
 > This SDK is currently in Developer Preview mode and not ready for production use.
-> There will be bugs and APIs may change during this period.
+> There may be bugs and APIs are subject to change during this period.
 
 ## Features
 
-- **Supported chipsets**: ESP32-S3 and ESP32-P4
+- **Supported chips**: ESP32-S3 and ESP32-P4
 - **Bidirectional audio**: Opus encoding, acoustic echo cancellation (AEC)
 - **Bidirectional video**: *video support coming soon*
+- **AI Agents**: interact with agents in the cloud built with [LiveKit Agents](https://docs.livekit.io/agents/)
 - **Real-time data**: data packets, remote method calls (RPC)
 
-## Examples
+## Getting Started
 
-One of the best ways to get started with LiveKit is by reviewing the examples and choosing one as a starting point for your project:
+### Examples
 
-### [Voice AI Agent](./examples/voice_agent/README.md)
+One of the best ways to get started with LiveKit is by reviewing the [examples](./examples) and choosing one as a starting point for your project:
 
-Conversational AI voice agent that interacts with hardware based on user requests.
+- [**Voice AI Agent**](./examples/voice_agent/README.md): Conversational AI voice agent that interacts with hardware based on user requests.
+- [**Minimal**](./examples/minimal/README.md): Basic example of connecting to a LiveKit room with bidirectional audio.
 
-## Basic usage
+Once you have chosen an example to be your starting point, create a fresh project from it locally, substituting *\<example\>* for the example's directory name:
+
+```sh
+idf.py create-project-from-example "livekit/livekit=0.2.0:<example>"
+```
 
 ### Installation
 
-In your application's IDF component manifest, add LiveKit as a Git dependency:
+If you would like to add LiveKit to your existing application, add it as a dependency as follows:
 
-```yaml
-dependencies:
-  livekit:
-    git: https://github.com/livekit/client-sdk-esp32.git
-    path: components/livekit
-    version: <current version tag>
+```sh
+idf.py add-dependency "livekit/livekit=0.2.0"
 ```
 
-Please be sure to pin to a specific version tag, as subsequent 0.x.x releases may have breaking changes. In the future, this SDK will be added to the [ESP component registry](https://components.espressif.com).
+> [!IMPORTANT]
+> Please be sure to pin to a specific version tag, as subsequent releases may have breaking changes.
+
+## API Overview
 
 With LiveKit added as a dependency to your application, include the LiveKit header and invoke
 `livekit_system_init` early in your application's main function:
@@ -81,8 +86,6 @@ LiveKit for ESP32 puts your application in control of the media pipeline; your a
 - Created using the Espressif [*av_render*](https://github.com/espressif/esp-webrtc-solution/tree/main/components/av_render) component
 - Playback audio over I2S, video on LCD displays supported by *esp_lcd*
 - After configuration, you will provide the `av_render_handle_t` when creating a room
-
-Please refer to the [examples](#examples) in this repository, which support many popular development boards via the Espressif [*codec_board*](./components/third_party/esp-webrtc-solution/components/codec_board/README.md) component.
 
 ### Create room
 
@@ -185,7 +188,7 @@ livekit_room_publish_data(room_handle, &options);
 
 ## Documentation
 
-Please refer to the [LiveKit Docs](https://docs.livekit.io/home/) for an introduction to the platform and its features, or see the [API Reference](https://livekit.github.io/client-sdk-esp32/) for specifics about this SDK.
+Please refer to the [LiveKit Docs](https://docs.livekit.io/home/) for an introduction to the platform and its features. For more detail about the APIs available in this SDK, please refer to the [API Reference](https://livekit.github.io/client-sdk-esp32/).
 
 ## Known Issues
 
