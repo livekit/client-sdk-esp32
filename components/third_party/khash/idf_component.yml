@@ -1,4 +1,4 @@
-version: 0.1.0
+version: "0.1.0"
 description: A generic hash table with open addressing.
 url: https://attractivechaos.github.io/klib/
 repository: https://github.com/attractivechaos/klib

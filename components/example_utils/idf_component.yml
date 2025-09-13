@@ -1,4 +1,4 @@
-version: 0.1.0
+version: "0.1.0"
 description: Utilities for reducing boilerplate code in examples
 tags: [Utilities, Network, WiFi]
 url: https://livekit.io/
