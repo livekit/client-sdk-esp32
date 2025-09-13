@@ -61,7 +61,7 @@ static int build_renderer_system(void)
     NULL_CHECK(renderer_system.audio_renderer, "Failed to create I2S renderer");
 
     // Set initial speaker volume
-    esp_codec_dev_set_out_vol(i2s_cfg.play_handle, CONFIG_DEFAULT_PLAYBACK_VOL);
+    esp_codec_dev_set_out_vol(i2s_cfg.play_handle, CONFIG_LK_EXAMPLE_SPEAKER_VOLUME);
 
     av_render_cfg_t render_cfg = {
         .audio_render = renderer_system.audio_renderer,
