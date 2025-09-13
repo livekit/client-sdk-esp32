@@ -20,7 +20,7 @@
 #include "esp_netif.h"
 #include "esp_wifi.h"
 
-#include "network_connect.h"
+#include "livekit_example_net.h"
 
 // MARK: - Constants
 
@@ -48,7 +48,7 @@ static void event_handler(void* arg,
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         esp_wifi_connect();
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        if (CONFIG_NETWORK_CONNECT_MAX_RETRIES < 0 || state.retry_attempt < CONFIG_NETWORK_CONNECT_MAX_RETRIES) {
+        if (CONFIG_LK_EXAMPLE_NETWORK_MAX_RETRIES < 0 || state.retry_attempt < CONFIG_LK_EXAMPLE_NETWORK_MAX_RETRIES) {
             ESP_LOGI(TAG, "Retry: attempt=%d", state.retry_attempt + 1);
             esp_wifi_connect();
             state.retry_attempt++;
@@ -92,11 +92,11 @@ static inline void init_common(void)
 
 static inline bool connect_wifi(void)
 {
-    if (strlen(CONFIG_NETWORK_CONNECT_WIFI_SSID) == 0) {
+    if (strlen(CONFIG_LK_EXAMPLE_WIFI_SSID) == 0) {
         ESP_LOGE(TAG, "WiFi SSID is empty");
         return false;
     }
-    if (strlen(CONFIG_NETWORK_CONNECT_WIFI_PASSWORD) == 0) {
+    if (strlen(CONFIG_LK_EXAMPLE_WIFI_PASSWORD) == 0) {
         // Ok in the case of an open network, just inform the user
         // in case this is unexpected.
         ESP_LOGI(TAG, "WiFi password is empty");
@@ -117,8 +117,8 @@ static inline bool connect_wifi(void)
     ));
 
     wifi_config_t wifi_config = {};
-    strlcpy((char *)wifi_config.sta.ssid, CONFIG_NETWORK_CONNECT_WIFI_SSID, sizeof(wifi_config.sta.ssid));
-    strlcpy((char *)wifi_config.sta.password, CONFIG_NETWORK_CONNECT_WIFI_PASSWORD, sizeof(wifi_config.sta.password));
+    strlcpy((char *)wifi_config.sta.ssid, CONFIG_LK_EXAMPLE_WIFI_SSID, sizeof(wifi_config.sta.ssid));
+    strlcpy((char *)wifi_config.sta.password, CONFIG_LK_EXAMPLE_WIFI_PASSWORD, sizeof(wifi_config.sta.password));
     wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
@@ -150,7 +150,7 @@ static inline bool wait_for_connection_or_failure(void)
 
 // MARK: - Public API
 
-bool network_connect()
+bool lk_example_network_connect()
 {
     init_common();
     if (!connect_wifi()) {

@@ -27,7 +27,7 @@ extern "C" {
 ///
 /// @return `true` if the network connection was established, `false` otherwise.
 ///
-bool network_connect();
+bool lk_example_network_connect();
 
 #ifdef __cplusplus
 }

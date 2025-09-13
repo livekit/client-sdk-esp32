@@ -43,9 +43,9 @@ CONFIG_LK_EXAMPLE_SERVER_URL="ws://localhost:7880"
 Connect using WiFi as follows:
 
 ```ini
-CONFIG_NETWORK_CONNECT_MODE_WIFI=y
-CONFIG_NETWORK_CONNECT_WIFI_SSID="<your SSID>"
-CONFIG_NETWORK_CONNECT_WIFI_PASSWORD="<your password>"
+CONFIG_LK_EXAMPLE_USE_WIFI=y
+CONFIG_LK_EXAMPLE_WIFI_SSID="<your SSID>"
+CONFIG_LK_EXAMPLE_WIFI_PASSWORD="<your password>"
 ```
 
 ### Development Board
@@ -72,7 +72,7 @@ Once running, the example will establish a network connection, connect to a Live
 I (19508) livekit_example: Room state: Connected
 ```
 
-If you are using the provided Sandbox, you should be able to converse with the agent at this point. Start by asking "What's the CPU temperature."
+If you are using the provided Sandbox, you should be able to converse with the agent at this point. Start by asking "What's the CPU temperature?"
 
 ## Next Steps
 

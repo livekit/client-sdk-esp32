@@ -6,7 +6,7 @@ dependencies:
   livekit/sandbox_token:
     version: ~0.1.0
     override_path: ../../../../sandbox_token
-  livekit/network_connect:
+  livekit/example_utils:
     version: ~0.1.0
-    override_path: ../../../../network_connect
+    override_path: ../../../../example_utils
   tempotian/codec_board: ~1.0.0
