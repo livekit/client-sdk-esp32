@@ -2,12 +2,12 @@ dependencies:
   idf: ">=5.4"
   livekit/livekit:
     version: "0.2.0"
-    override_path: ../../../components/livekit
+    override_path: ../../../
   livekit/sandbox_token:
     version: ~0.1.0
-    override_path: ../../../components/sandbox_token
+    override_path: ../../../../sandbox_token
   livekit/network_connect:
     version: ~0.1.0
-    override_path: ../../../components/network_connect
+    override_path: ../../../../network_connect
   tempotian/codec_board: ~1.0.0
   espressif/esp32_s3_korvo_2: "4.1.0"
