@@ -16,11 +16,12 @@ headerPath = "Apache-2.0.txt"
 excludes = [
     ".github/**",
     "docs/**",
-    "examples/**",
+    "**/examples/**",
     "components/third_party/**",
     "components/livekit/protocol/**",
     "CMakeLists.txt",
     "idf_component.yml",
+    "license.txt",
     "Kconfig"
 ]
 
