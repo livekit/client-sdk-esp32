@@ -11,7 +11,7 @@
 # ESP32 SDK for LiveKit
 
 [![API Reference](https://img.shields.io/badge/API_Reference-blue)](https://livekit.github.io/client-sdk-esp32/)
-[![Latest Release](https://img.shields.io/github/v/release/livekit/client-sdk-esp32?include_prereleases&label=Release)](https://github.com/livekit/client-sdk-esp32/releases)
+[![Component Registry](https://components.espressif.com/components/livekit/livekit/badge.svg)](https://components.espressif.com/components/livekit/livekit)
 [![CI Status](https://img.shields.io/github/actions/workflow/status/livekit/client-sdk-esp32/ci.yml?label=CI)](https://github.com/livekit/client-sdk-esp32/actions/workflows/ci.yml)
 
 Use this SDK to add realtime video, audio and data features to your ESP32 projects. By connecting to [LiveKit](https://livekit.io/) Cloud or a self-hosted server, you can quickly build applications such as multi-modal AI, live streaming, or video calls with minimal setup.
