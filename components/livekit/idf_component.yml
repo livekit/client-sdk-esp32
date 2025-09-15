@@ -18,4 +18,3 @@ dependencies:
   livekit/nanopb: ~0.4.9
 files:
   use_gitignore: true
-  exclude: ["**/*.options", "**/*.proto", "**/*.py"]
