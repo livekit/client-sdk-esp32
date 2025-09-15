@@ -1,0 +1,25 @@
+menu "LiveKit Example Utilities"
+    config LK_EXAMPLE_NETWORK_MAX_RETRIES
+        int "Maximum connection retries"
+        default 10
+            help
+                Maximum number of times to retry a failed connection.
+                Set to -1 for infinite retries.
+    choice LK_EXAMPLE_NETWORK_MODE
+        prompt "Choose network mode"
+        config LK_EXAMPLE_USE_WIFI
+            bool "WiFi"
+            help
+                Connect to the internet using WiFi.
+    endchoice
+    config LK_EXAMPLE_WIFI_SSID
+        depends on LK_EXAMPLE_USE_WIFI
+        string "WiFi SSID"
+        help
+            The SSID of the WiFi network to connect to.
+    config LK_EXAMPLE_WIFI_PASSWORD
+        depends on LK_EXAMPLE_USE_WIFI
+        string "WiFi password"
+        help
+            The password of the WiFi network to connect to.
+endmenu

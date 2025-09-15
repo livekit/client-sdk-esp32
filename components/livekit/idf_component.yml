@@ -1,21 +1,20 @@
-description: LiveKit ESP-32 SDK
-tags: [webrtc, media, agents]
-url: "https://livekit.io"
-repository: "https://github.com/livekit/client-sdk-esp32"
-issues: "https://github.com/livekit/client-sdk-esp32/issues"
-discussion: "https://livekit.io/join-slack"
-version: 0.2.0
+version: "0.3.0"
+description: LiveKit Client SDK for ESP32
+tags: [Agents, RPC, Media, WebRTC]
+targets: [esp32s3, esp32p4]
+url: https://livekit.io/
+repository: https://github.com/livekit/client-sdk-esp32/
+issues: https://github.com/livekit/client-sdk-esp32/issues/
+discussion: https://livekit.io/join-slack/
+license: Apache-2.0
 dependencies:
   idf: ">=5.4"
-  av_render:
-    path: ../third_party/esp-webrtc-solution/components/av_render
-  espressif/esp_websocket_client: ~1.5.0
-  espressif/esp_codec_dev: ~1.4
-  espressif/esp_capture: ~0.7
+  espressif/esp_capture: { version: ~0.7, public: true }
+  tempotian/av_render: { version: ~0.9.1, public: true }
+  tempotian/media_lib_sal: ~0.9.0
   espressif/esp_peer: ~1.2.3
-  media_lib_sal:
-    path: ../third_party/esp-webrtc-solution/components/media_lib_sal
+  espressif/esp_websocket_client: ~1.5.0
+  livekit/khash: ~0.2.8
   livekit/nanopb: ~0.4.9
-  livekit/khash: ~0.1.0
 files:
   use_gitignore: true
