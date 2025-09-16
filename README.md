@@ -87,7 +87,7 @@ LiveKit for ESP32 puts your application in control of the media pipeline; your a
 #### Renderer: output to display/speaker
 
 - Required for rooms which will subscribe to media tracks
-- Created using the Espressif [*av_render*](https://github.com/espressif/esp-webrtc-solution/tree/main/components/av_render) component
+- Created using the Espressif [*av_render*](https://components.espressif.com/components/tempotian/av_render/) component
 - Playback audio over I2S, video on LCD displays supported by *esp_lcd*
 - After configuration, you will provide the `av_render_handle_t` when creating a room
 
