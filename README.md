@@ -34,10 +34,10 @@ Before you begin, please ensure you have ESP IDF v5.4 or higher installed on you
 
 ### Examples
 
-One of the best ways to get started with LiveKit is by reviewing the [examples](./examples) and choosing one as a starting point for your project:
+One of the best ways to get started with LiveKit is by reviewing the [examples](./components/livekit/examples/) and choosing one as a starting point for your project:
 
-- [**Voice AI Agent**](./examples/voice_agent/README.md): Conversational AI voice agent that interacts with hardware based on user requests.
-- [**Minimal**](./examples/minimal/README.md): Basic example of connecting to a LiveKit room with bidirectional audio.
+- [**Voice AI Agent**](./components/livekit/examples/voice_agent/README.md): Conversational AI voice agent that interacts with hardware based on user requests.
+- [**Minimal**](./components/livekit/examples/minimal/README.md): Basic example of connecting to a LiveKit room with bidirectional audio.
 
 Once you have chosen an example to be your starting point, create a fresh project from it locally using the following command:
 
