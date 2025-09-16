@@ -34,10 +34,10 @@ Before you begin, please ensure you have ESP IDF v5.4 or higher installed on you
 
 ### Examples
 
-One of the best ways to get started with LiveKit is by reviewing the [examples](./examples) and choosing one as a starting point for your project:
+One of the best ways to get started with LiveKit is by reviewing the [examples](./components/livekit/examples/) and choosing one as a starting point for your project:
 
-- [**Voice AI Agent**](./examples/voice_agent/README.md): Conversational AI voice agent that interacts with hardware based on user requests.
-- [**Minimal**](./examples/minimal/README.md): Basic example of connecting to a LiveKit room with bidirectional audio.
+- [**Voice AI Agent**](./components/livekit/examples/voice_agent/README.md): Conversational AI voice agent that interacts with hardware based on user requests.
+- [**Minimal**](./components/livekit/examples/minimal/README.md): Basic example of connecting to a LiveKit room with bidirectional audio.
 
 Once you have chosen an example to be your starting point, create a fresh project from it locally using the following command:
 
@@ -87,7 +87,7 @@ LiveKit for ESP32 puts your application in control of the media pipeline; your a
 #### Renderer: output to display/speaker
 
 - Required for rooms which will subscribe to media tracks
-- Created using the Espressif [*av_render*](https://github.com/espressif/esp-webrtc-solution/tree/main/components/av_render) component
+- Created using the Espressif [*av_render*](https://components.espressif.com/components/tempotian/av_render/) component
 - Playback audio over I2S, video on LCD displays supported by *esp_lcd*
 - After configuration, you will provide the `av_render_handle_t` when creating a room
 
