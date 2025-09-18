@@ -50,7 +50,7 @@ static bool on_result(const livekit_rpc_result_t* result, void* ctx)
     livekit_pb_data_packet_t res_packet = {
         .which_value = LIVEKIT_PB_DATA_PACKET_RPC_RESPONSE_TAG
     };
-    strncpy(res_packet.value.rpc_response.request_id,
+    strlcpy(res_packet.value.rpc_response.request_id,
             result->id,
             sizeof(res_packet.value.rpc_response.request_id));
 
@@ -79,7 +79,7 @@ static rpc_manager_err_t handle_request_packet(rpc_manager_t *manager, const liv
     livekit_pb_data_packet_t ack_packet = {
         .which_value = LIVEKIT_PB_DATA_PACKET_RPC_ACK_TAG
     };
-    strncpy(ack_packet.value.rpc_ack.request_id,
+    strlcpy(ack_packet.value.rpc_ack.request_id,
             request->id,
             sizeof(ack_packet.value.rpc_ack.request_id));
 
@@ -98,7 +98,7 @@ static rpc_manager_err_t handle_request_packet(rpc_manager_t *manager, const liv
                 }
             }
         };
-        strncpy(res_packet.value.rpc_response.request_id,
+        strlcpy(res_packet.value.rpc_response.request_id,
                 request->id,
                 sizeof(res_packet.value.rpc_response.request_id));
 
@@ -120,7 +120,7 @@ static rpc_manager_err_t handle_request_packet(rpc_manager_t *manager, const liv
                 }
             }
         };
-        strncpy(res_packet.value.rpc_response.request_id,
+        strlcpy(res_packet.value.rpc_response.request_id,
                 request->id,
                 sizeof(res_packet.value.rpc_response.request_id));
 

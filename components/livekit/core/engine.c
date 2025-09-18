@@ -76,7 +76,7 @@ typedef struct {
 
         /// Detail for `EV_PEER_SDP`.
         struct {
-            const char *sdp;
+            char *sdp;
             peer_role_t role;
         } peer_sdp;
 
@@ -163,7 +163,7 @@ static engine_err_t subscribe_tracks(engine_t *eng, livekit_pb_track_info_t *tra
         // For now, subscribe to the first audio track.
         ESP_LOGI(TAG, "Subscribing to audio track: sid=%s", track->sid);
         signal_send_update_subscription(eng->signal_handle, track->sid, true);
-        strncpy(eng->session.sub_audio_track_sid, track->sid, sizeof(eng->session.sub_audio_track_sid));
+        strlcpy(eng->session.sub_audio_track_sid, track->sid, sizeof(eng->session.sub_audio_track_sid));
         break;
     }
     return ENGINE_ERR_NONE;
@@ -190,7 +190,7 @@ static void on_peer_sub_audio_frame(esp_peer_audio_frame_t* frame, void *ctx)
     av_render_audio_data_t audio_data = {
         .pts = frame->pts,
         .data = frame->data,
-        .size = frame->size,
+        .size = (uint32_t)frame->size,
     };
     av_render_add_audio_data(eng->renderer_handle, &audio_data);
 }
@@ -320,8 +320,8 @@ static engine_err_t send_add_video_track(engine_t *eng)
 {
     livekit_pb_video_layer_t video_layer = {
         .quality = LIVEKIT_PB_VIDEO_QUALITY_HIGH,
-        .width = eng->options.media.video_info.width,
-        .height = eng->options.media.video_info.height
+        .width = (uint32_t)eng->options.media.video_info.width,
+        .height = (uint32_t)eng->options.media.video_info.height
     };
     livekit_pb_add_track_request_t req = {
         .cid = "v0",
@@ -473,20 +473,20 @@ static void destroy_peer_connections(engine_t *eng)
 /// - Strings are not copied, so the caller must ensure the original ICE
 ///   server list stays alive until the peers are created.
 ///
-static inline size_t map_ice_servers(
-    livekit_pb_ice_server_t *pb_servers_list,
-    int pb_servers_count,
+static inline uint8_t map_ice_servers(
+    const livekit_pb_ice_server_t *pb_servers_list,
+    pb_size_t pb_servers_count,
     esp_peer_ice_server_cfg_t *server_list,
-    size_t server_list_capacity
+    uint8_t server_list_capacity
 ) {
     if (pb_servers_list      == NULL ||
         server_list          == NULL ||
         server_list_capacity == 0) {
         return 0;
     }
-    size_t count = 0;
-    for (int i = 0; i < pb_servers_count; i++) {
-        for (int j = 0; j < pb_servers_list[i].urls_count; j++) {
+    uint8_t count = 0;
+    for (pb_size_t i = 0; i < pb_servers_count; i++) {
+        for (pb_size_t j = 0; j < pb_servers_list[i].urls_count; j++) {
             if (count >= server_list_capacity) {
                 ESP_LOGW(TAG, "ICE server list capacity exceeded");
                 return count;
@@ -500,10 +500,10 @@ static inline size_t map_ice_servers(
     return count;
 }
 
-static bool establish_peer_connections(engine_t *eng, livekit_pb_join_response_t *join)
+static bool establish_peer_connections(engine_t *eng, const livekit_pb_join_response_t *join)
 {
     esp_peer_ice_server_cfg_t server_list[CONFIG_LK_MAX_ICE_SERVERS];
-    int server_count = map_ice_servers(
+    uint8_t server_count = map_ice_servers(
         join->ice_servers,
         join->ice_servers_count,
         server_list,
@@ -671,13 +671,13 @@ static inline void timer_stop(engine_t *eng)
     xTimerStop(eng->timer, 0);
 }
 
-static bool handle_join(engine_t *eng, livekit_pb_join_response_t *join)
+static bool handle_join(engine_t *eng, const livekit_pb_join_response_t *join)
 {
     // 1. Store connection settings
     eng->session.is_subscriber_primary = join->subscriber_primary;
 
     // 2. Store local Participant SID
-    strncpy(
+    strlcpy(
         eng->session.local_participant_sid,
         join->participant.sid,
         sizeof(eng->session.local_participant_sid)
@@ -704,7 +704,7 @@ static bool handle_join(engine_t *eng, livekit_pb_join_response_t *join)
     return true;
 }
 
-static void handle_trickle(engine_t *eng, livekit_pb_trickle_request_t *trickle)
+static void handle_trickle(engine_t *eng, const livekit_pb_trickle_request_t *trickle)
 {
     char* candidate = NULL;
     if (!protocol_signal_trickle_get_candidate(trickle, &candidate)) {
@@ -716,18 +716,18 @@ static void handle_trickle(engine_t *eng, livekit_pb_trickle_request_t *trickle)
     free(candidate);
 }
 
-static void handle_room_update(engine_t *eng, livekit_pb_room_update_t *room_update)
+static void handle_room_update(engine_t *eng, const livekit_pb_room_update_t *room_update)
 {
     if (eng->options.on_room_info && room_update->has_room) {
         eng->options.on_room_info(&room_update->room, eng->options.ctx);
     }
 }
 
-static void handle_participant_update(engine_t *eng, livekit_pb_participant_update_t *update)
+static void handle_participant_update(engine_t *eng, const livekit_pb_participant_update_t *update)
 {
     bool found_local = false;
     for (pb_size_t i = 0; i < update->participants_count; i++) {
-        livekit_pb_participant_info_t *participant = &update->participants[i];
+        const livekit_pb_participant_info_t *participant = &update->participants[i];
         bool is_local = !found_local && strncmp(
             participant->sid,
             eng->session.local_participant_sid,
@@ -794,37 +794,37 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
             ESP_LOGW(TAG, "Engine already connecting, ignoring connect command");
             break;
         case EV_SIG_RES:
-            livekit_pb_signal_response_t *res = &ev->detail.res;
+            const livekit_pb_signal_response_t *res = &ev->detail.res;
             switch (res->which_message) {
                 case LIVEKIT_PB_SIGNAL_RESPONSE_LEAVE_TAG:
-                    livekit_pb_leave_request_t *leave = &res->message.leave;
+                    const livekit_pb_leave_request_t *leave = &res->message.leave;
                     eng->failure_reason = map_disconnect_reason(leave->reason);
                     eng->state = ENGINE_STATE_DISCONNECTED;
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_ROOM_UPDATE_TAG:
-                    livekit_pb_room_update_t *room_update = &res->message.room_update;
+                    const livekit_pb_room_update_t *room_update = &res->message.room_update;
                     handle_room_update(eng, room_update);
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_UPDATE_TAG:
-                    livekit_pb_participant_update_t *update = &res->message.update;
+                    const livekit_pb_participant_update_t *update = &res->message.update;
                     handle_participant_update(eng, update);
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_JOIN_TAG:
-                    livekit_pb_join_response_t *join = &res->message.join;
+                    const livekit_pb_join_response_t *join = &res->message.join;
                     if (!handle_join(eng, join)) {
                         eng->state = ENGINE_STATE_BACKOFF;
                     }
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_ANSWER_TAG:
-                    livekit_pb_session_description_t *answer = &res->message.answer;
+                    const livekit_pb_session_description_t *answer = &res->message.answer;
                     peer_handle_sdp(eng->pub_peer_handle, answer->sdp);
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_OFFER_TAG:
-                    livekit_pb_session_description_t *offer = &res->message.offer;
+                    const livekit_pb_session_description_t *offer = &res->message.offer;
                     peer_handle_sdp(eng->sub_peer_handle, offer->sdp);
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_TRICKLE_TAG:
-                    livekit_pb_trickle_request_t *trickle = &res->message.trickle;
+                    const livekit_pb_trickle_request_t *trickle = &res->message.trickle;
                     handle_trickle(eng, trickle);
                     break;
                 default:
@@ -896,31 +896,31 @@ static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
             ESP_LOGW(TAG, "Engine already connected, ignoring connect command");
             break;
         case EV_SIG_RES:
-            livekit_pb_signal_response_t *res = &ev->detail.res;
-            switch (ev->detail.res.which_message) {
+            const livekit_pb_signal_response_t *res = &ev->detail.res;
+            switch (res->which_message) {
                 case LIVEKIT_PB_SIGNAL_RESPONSE_LEAVE_TAG:
-                    livekit_pb_leave_request_t *leave = &res->message.leave;
+                    const livekit_pb_leave_request_t *leave = &res->message.leave;
                     eng->failure_reason = map_disconnect_reason(leave->reason);
                     eng->state = ENGINE_STATE_DISCONNECTED;
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_ROOM_UPDATE_TAG:
-                    livekit_pb_room_update_t *room_update = &res->message.room_update;
+                    const livekit_pb_room_update_t *room_update = &res->message.room_update;
                     handle_room_update(eng, room_update);
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_UPDATE_TAG:
-                    livekit_pb_participant_update_t *update = &res->message.update;
+                    const livekit_pb_participant_update_t *update = &res->message.update;
                     handle_participant_update(eng, update);
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_ANSWER_TAG:
-                    livekit_pb_session_description_t *answer = &res->message.answer;
+                    const livekit_pb_session_description_t *answer = &res->message.answer;
                     peer_handle_sdp(eng->pub_peer_handle, answer->sdp);
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_OFFER_TAG:
-                    livekit_pb_session_description_t *offer = &res->message.offer;
+                    const livekit_pb_session_description_t *offer = &res->message.offer;
                     peer_handle_sdp(eng->sub_peer_handle, offer->sdp);
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_TRICKLE_TAG:
-                    livekit_pb_trickle_request_t *trickle = &res->message.trickle;
+                    const livekit_pb_trickle_request_t *trickle = &res->message.trickle;
                     handle_trickle(eng, trickle);
                     break;
                 default:
@@ -1127,9 +1127,9 @@ engine_handle_t engine_init(const engine_options_t *options)
         },
         .video_info = {
             .format_id = capture_video_codec_type(eng->options.media.video_info.codec),
-            .width = eng->options.media.video_info.width,
-            .height = eng->options.media.video_info.height,
-            .fps = eng->options.media.video_info.fps,
+            .width = (uint16_t)eng->options.media.video_info.width,
+            .height = (uint16_t)eng->options.media.video_info.height,
+            .fps = (uint8_t)eng->options.media.video_info.fps,
         },
     };
     if (options->media.audio_info.codec != ESP_PEER_AUDIO_CODEC_NONE) {

@@ -238,7 +238,7 @@ static int on_data(esp_peer_data_frame_t *frame, void *ctx)
     }
 
     livekit_pb_data_packet_t packet = {};
-    if (!protocol_data_packet_decode((const uint8_t *)frame->data, frame->size, &packet)) {
+    if (!protocol_data_packet_decode((const uint8_t *)frame->data, (size_t)frame->size, &packet)) {
         ESP_LOGE(TAG(peer), "Failed to decode data packet");
         return -1;
     }
@@ -408,7 +408,7 @@ peer_err_t peer_handle_sdp(peer_handle_t handle, const char *sdp)
     esp_peer_msg_t msg = {
         .type = ESP_PEER_MSG_TYPE_SDP,
         .data = (void *)sdp,
-        .size = strlen(sdp)
+        .size = (int)strlen(sdp)
     };
     if (esp_peer_send_msg(peer->connection, &msg) != ESP_PEER_ERR_NONE) {
         ESP_LOGE(TAG(peer), "Failed to handle answer");
@@ -427,7 +427,7 @@ peer_err_t peer_handle_ice_candidate(peer_handle_t handle, const char *candidate
     esp_peer_msg_t msg = {
         .type = ESP_PEER_MSG_TYPE_CANDIDATE,
         .data = (void *)candidate,
-        .size = strlen(candidate)
+        .size = (int)strlen(candidate)
     };
     if (esp_peer_send_msg(peer->connection, &msg) != ESP_PEER_ERR_NONE) {
         ESP_LOGE(TAG(peer), "Failed to handle ICE candidate");
@@ -469,7 +469,7 @@ peer_err_t peer_send_data_packet(peer_handle_t handle, const livekit_pb_data_pac
             break;
         }
         frame_info.data = enc_buf;
-        frame_info.size = encoded_size;
+        frame_info.size = (int)encoded_size;
         if (esp_peer_send_data(peer->connection, &frame_info) != ESP_PEER_ERR_NONE) {
             ESP_LOGE(TAG(peer), "Data channel send failed");
             ret = PEER_ERR_RTC;

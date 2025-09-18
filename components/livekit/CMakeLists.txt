@@ -18,3 +18,5 @@ idf_component_register(
 
 idf_component_get_property(LIVEKIT_SDK_VERSION ${COMPONENT_NAME} COMPONENT_VERSION)
 target_compile_definitions(${COMPONENT_LIB} PUBLIC "LIVEKIT_SDK_VERSION=\"${LIVEKIT_SDK_VERSION}\"")
+
+target_compile_options(${COMPONENT_LIB} PRIVATE "-Wconversion")

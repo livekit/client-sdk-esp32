@@ -86,7 +86,7 @@ static signal_err_t send_request(signal_t *sg, livekit_pb_signal_request_t *requ
         }
         if (esp_websocket_client_send_bin(sg->ws,
                 (const char *)enc_buf,
-                encoded_size,
+                (int)encoded_size,
                 portMAX_DELAY) < 0) {
             //ESP_LOGE(TAG, "Failed to send request");
             ret = SIGNAL_ERR_MESSAGE;
@@ -195,7 +195,7 @@ static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void
             }
             if (data->data_len < 1) break;
             livekit_pb_signal_response_t res = {};
-            if (!protocol_signal_response_decode((const uint8_t *)data->data_ptr, data->data_len, &res)) {
+            if (!protocol_signal_response_decode((const uint8_t *)data->data_ptr, (size_t)data->data_len, &res)) {
                 break;
             }
             if (res.which_message == 0) {
