@@ -76,7 +76,7 @@ typedef struct {
 
         /// Detail for `EV_PEER_SDP`.
         struct {
-            const char *sdp;
+            char *sdp;
             peer_role_t role;
         } peer_sdp;
 
