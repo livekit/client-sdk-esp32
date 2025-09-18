@@ -50,7 +50,7 @@ static esp_err_t _http_event_handler(esp_http_client_event_t *evt)
 
             int copy_len = MIN(evt->data_len, (MAX_HTTP_OUTPUT_BUFFER - output_len));
             if (copy_len > 0) {
-                memcpy(res_buffer + output_len, evt->data, copy_len);
+                memcpy(res_buffer + output_len, evt->data, (size_t)copy_len);
             }
             output_len += copy_len;
             break;
@@ -120,7 +120,7 @@ bool livekit_sandbox_generate(const livekit_sandbox_options_t *options, livekit_
     // Set headers and POST data
     esp_http_client_set_header(client, "Content-Type", "application/json");
     esp_http_client_set_header(client, "X-Sandbox-ID", options->sandbox_id);
-    esp_http_client_set_post_field(client, json_string, strlen(json_string));
+    esp_http_client_set_post_field(client, json_string, (int)strlen(json_string));
 
     bool success = false;
     cJSON *res_json = NULL;
