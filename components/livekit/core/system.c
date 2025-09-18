@@ -78,7 +78,7 @@ static void capture_scheduler(const char *name, esp_capture_thread_schedule_cfg_
     cfg->stack_in_ext = true;
     cfg->stack_size = media_lib_cfg.stack_size;
     cfg->priority = media_lib_cfg.priority;
-    cfg->core_id = media_lib_cfg.core_id;
+    cfg->core_id = (uint8_t)(media_lib_cfg.core_id & 0x0F);
 }
 
 // MARK: - Public API

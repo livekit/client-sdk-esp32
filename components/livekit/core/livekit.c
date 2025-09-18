@@ -358,7 +358,7 @@ livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_da
     if (bytes_array == NULL) {
         return LIVEKIT_ERR_NO_MEM;
     }
-    bytes_array->size = options->payload->size;
+    bytes_array->size = (pb_size_t)options->payload->size;
     memcpy(bytes_array->bytes, options->payload->bytes, options->payload->size);
 
     livekit_pb_user_packet_t user_packet = {
@@ -369,7 +369,7 @@ livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_da
     packet.which_value = LIVEKIT_PB_DATA_PACKET_USER_TAG;
     packet.value.user = user_packet;
 
-    packet.destination_identities_count = options->destination_identities_count;
+    packet.destination_identities_count = (pb_size_t)options->destination_identities_count;
     packet.destination_identities = options->destination_identities;
     // TODO: Set sender identity
 

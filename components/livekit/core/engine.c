@@ -190,7 +190,7 @@ static void on_peer_sub_audio_frame(esp_peer_audio_frame_t* frame, void *ctx)
     av_render_audio_data_t audio_data = {
         .pts = frame->pts,
         .data = frame->data,
-        .size = frame->size,
+        .size = (uint32_t)frame->size,
     };
     av_render_add_audio_data(eng->renderer_handle, &audio_data);
 }
@@ -320,8 +320,8 @@ static engine_err_t send_add_video_track(engine_t *eng)
 {
     livekit_pb_video_layer_t video_layer = {
         .quality = LIVEKIT_PB_VIDEO_QUALITY_HIGH,
-        .width = eng->options.media.video_info.width,
-        .height = eng->options.media.video_info.height
+        .width = (uint32_t)eng->options.media.video_info.width,
+        .height = (uint32_t)eng->options.media.video_info.height
     };
     livekit_pb_add_track_request_t req = {
         .cid = "v0",
@@ -473,20 +473,20 @@ static void destroy_peer_connections(engine_t *eng)
 /// - Strings are not copied, so the caller must ensure the original ICE
 ///   server list stays alive until the peers are created.
 ///
-static inline size_t map_ice_servers(
+static inline uint8_t map_ice_servers(
     const livekit_pb_ice_server_t *pb_servers_list,
-    int pb_servers_count,
+    pb_size_t pb_servers_count,
     esp_peer_ice_server_cfg_t *server_list,
-    size_t server_list_capacity
+    uint8_t server_list_capacity
 ) {
     if (pb_servers_list      == NULL ||
         server_list          == NULL ||
         server_list_capacity == 0) {
         return 0;
     }
-    size_t count = 0;
-    for (int i = 0; i < pb_servers_count; i++) {
-        for (int j = 0; j < pb_servers_list[i].urls_count; j++) {
+    uint8_t count = 0;
+    for (pb_size_t i = 0; i < pb_servers_count; i++) {
+        for (pb_size_t j = 0; j < pb_servers_list[i].urls_count; j++) {
             if (count >= server_list_capacity) {
                 ESP_LOGW(TAG, "ICE server list capacity exceeded");
                 return count;
@@ -503,7 +503,7 @@ static inline size_t map_ice_servers(
 static bool establish_peer_connections(engine_t *eng, const livekit_pb_join_response_t *join)
 {
     esp_peer_ice_server_cfg_t server_list[CONFIG_LK_MAX_ICE_SERVERS];
-    int server_count = map_ice_servers(
+    uint8_t server_count = map_ice_servers(
         join->ice_servers,
         join->ice_servers_count,
         server_list,
@@ -1127,9 +1127,9 @@ engine_handle_t engine_init(const engine_options_t *options)
         },
         .video_info = {
             .format_id = capture_video_codec_type(eng->options.media.video_info.codec),
-            .width = eng->options.media.video_info.width,
-            .height = eng->options.media.video_info.height,
-            .fps = eng->options.media.video_info.fps,
+            .width = (uint16_t)eng->options.media.video_info.width,
+            .height = (uint16_t)eng->options.media.video_info.height,
+            .fps = (uint8_t)eng->options.media.video_info.fps,
         },
     };
     if (options->media.audio_info.codec != ESP_PEER_AUDIO_CODEC_NONE) {

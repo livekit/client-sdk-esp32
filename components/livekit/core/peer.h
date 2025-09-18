@@ -48,7 +48,7 @@ typedef struct {
     esp_peer_ice_server_cfg_t* server_list;
 
     /// Number of servers in the list.
-    int server_count;
+    uint8_t server_count;
 
     /// Weather to force the use of relay ICE candidates.
     bool force_relay;
