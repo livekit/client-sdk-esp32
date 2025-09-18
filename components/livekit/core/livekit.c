@@ -147,7 +147,7 @@ static void on_eng_room_info(const livekit_pb_room_t* info, void *ctx)
     if (room->options.on_room_info == NULL) {
         return;
     }
-    livekit_room_info_t room_info = {
+    const livekit_room_info_t room_info = {
         .sid = info->sid,
         .name = info->name,
         .metadata = info->metadata,
@@ -163,7 +163,7 @@ static void on_eng_participant_info(const livekit_pb_participant_info_t* info, b
     if (room->options.on_participant_info == NULL) {
         return;
     }
-    livekit_participant_info_t participant_info = {
+    const livekit_participant_info_t participant_info = {
         .sid = info->sid,
         .identity = info->identity,
         .name = info->name,
