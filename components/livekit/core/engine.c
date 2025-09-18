@@ -163,7 +163,7 @@ static engine_err_t subscribe_tracks(engine_t *eng, livekit_pb_track_info_t *tra
         // For now, subscribe to the first audio track.
         ESP_LOGI(TAG, "Subscribing to audio track: sid=%s", track->sid);
         signal_send_update_subscription(eng->signal_handle, track->sid, true);
-        strncpy(eng->session.sub_audio_track_sid, track->sid, sizeof(eng->session.sub_audio_track_sid));
+        strlcpy(eng->session.sub_audio_track_sid, track->sid, sizeof(eng->session.sub_audio_track_sid));
         break;
     }
     return ENGINE_ERR_NONE;
@@ -677,7 +677,7 @@ static bool handle_join(engine_t *eng, const livekit_pb_join_response_t *join)
     eng->session.is_subscriber_primary = join->subscriber_primary;
 
     // 2. Store local Participant SID
-    strncpy(
+    strlcpy(
         eng->session.local_participant_sid,
         join->participant.sid,
         sizeof(eng->session.local_participant_sid)
