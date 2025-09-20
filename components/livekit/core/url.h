@@ -25,7 +25,6 @@ extern "C" {
 /// Options for building a signaling URL.
 typedef struct {
     const char *server_url;
-    const char *token;
 } url_build_options;
 
 /// Constructs a signaling URL.

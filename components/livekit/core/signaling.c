@@ -307,14 +307,32 @@ signal_err_t signal_connect(signal_handle_t handle, const char* server_url, cons
 
     char* url = NULL;
     url_build_options options = {
-        .server_url = server_url,
-        .token = token
+        .server_url = server_url
     };
     if (!url_build(&options, &url)) {
         return SIGNAL_ERR_INVALID_URL;
     }
+    ESP_LOGI(TAG, "Connecting to server: %s", url);
     esp_websocket_client_set_uri(sg->ws, url);
     free(url);
+
+    if (!sg->is_terminal_state) {
+        // Initial connection (transport not created yet)
+        char* auth_value = NULL;
+        if (asprintf(&auth_value, "Bearer %s", token) < 0) {
+            return SIGNAL_ERR_NO_MEM;
+        }
+        esp_websocket_client_append_header(sg->ws, "Authorization", auth_value);
+        free(auth_value);
+    } else {
+        // Subsequent connection (transport already created)
+        char* header_string = NULL;
+        if (asprintf(&header_string, "Authorization: Bearer %s\r\n", token) < 0) {
+            return SIGNAL_ERR_NO_MEM;
+        }
+        esp_websocket_client_set_headers(sg->ws, header_string);
+        free(header_string);
+    }
 
     if (esp_websocket_client_start(sg->ws) != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start WebSocket");
