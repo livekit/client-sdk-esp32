@@ -35,7 +35,6 @@ jobs:
           components: ${{ env.COMPONENTS }}
           namespace: livekit
           api_token: ${{ secrets.ESP_REGISTRY_TOKEN }}
-          dry_run: false
       - name: Save Archives
         if: always()
         uses: actions/upload-artifact@v4
