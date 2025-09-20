@@ -6,6 +6,9 @@ on:
         type: boolean
         description: Do not actually upload the components
         default: true
+    secrets:
+      ESP_REGISTRY_TOKEN:
+        required: true
 jobs:
   esp_registry:
     name: Upload Components
@@ -26,7 +29,6 @@ jobs:
         with:
           components: ${{ env.COMPONENTS }}
           namespace: livekit
-          api_token: ${{ secrets.ESP_REGISTRY_TOKEN }}
           dry_run: true
       - name: Upload Components
         uses: espressif/upload-components-ci-action@v2
