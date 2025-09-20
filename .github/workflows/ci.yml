@@ -21,3 +21,5 @@ jobs:
     name: Registry Check
     uses: ./.github/workflows/esp_registry.yml
     with: { dry_run: true }
+    secrets:
+      ESP_REGISTRY_TOKEN: ${{ secrets.ESP_REGISTRY_TOKEN }}
