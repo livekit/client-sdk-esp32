@@ -39,15 +39,13 @@ static const char *TAG = "livekit_url";
     "&os_version=%s" \
     "&device_model=%d" \
     "&auto_subscribe=false" \
-    "&protocol=" URL_PARAM_PROTOCOL \
-    "&access_token=%s" // Keep at the end for log redaction
+    "&protocol=" URL_PARAM_PROTOCOL
 
 bool url_build(const url_build_options *options, char **out_url)
 {
     if (out_url == NULL ||
         options == NULL ||
-        options->server_url == NULL ||
-        options->token == NULL) {
+        options->server_url == NULL) {
         return false;
     }
     size_t server_url_len = strlen(options->server_url);
@@ -69,19 +67,15 @@ bool url_build(const url_build_options *options, char **out_url)
     int model_code = chip_info.model;
     const char* idf_version = esp_get_idf_version();
 
+    // TODO: Now that token is not included in the URL, use a fixed size buffer
     int final_len = asprintf(out_url, URL_FORMAT,
         options->server_url,
         separator,
         idf_version,
-        model_code,
-        options->token
+        model_code
     );
     if (*out_url == NULL) {
         return false;
     }
-    // Token is redacted from logging for security
-    ESP_LOGI(TAG, "Built signaling URL: %.*s[REDACTED]",
-        (int)((size_t)final_len - strlen(options->token)),
-        *out_url);
     return true;
 }
