@@ -1,0 +1,12 @@
+dependencies:
+  idf: ">=5.4"
+  livekit/livekit:
+    version: "0.3.1"
+    override_path: ../../../
+  livekit/sandbox_token:
+    version: ~0.1.0
+    override_path: ../../../../sandbox_token
+  livekit/example_utils:
+    version: ~0.1.0
+    override_path: ../../../../example_utils
+  tempotian/codec_board: ~1.0.0
