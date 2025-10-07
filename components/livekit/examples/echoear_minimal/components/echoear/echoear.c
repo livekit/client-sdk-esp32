@@ -430,7 +430,7 @@ static lv_disp_t *bsp_display_lcd_init(const bsp_display_cfg_t *cfg)
             .buff_dma = cfg->flags.buff_dma,
             .buff_spiram = cfg->flags.buff_spiram,
             .swap_bytes = true,
-            .default_dummy_draw = cfg->flags.default_dummy_draw,
+            //.default_dummy_draw = cfg->flags.default_dummy_draw,
         }
     };
 

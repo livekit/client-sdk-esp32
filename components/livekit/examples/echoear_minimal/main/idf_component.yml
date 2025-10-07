@@ -9,4 +9,8 @@ dependencies:
   livekit/example_utils:
     version: ~0.1.0
     override_path: ../../../../example_utils
+  # Used to access audio peripherals
   tempotian/codec_board: ~1.0.0
+  # EchoEar board support package (BSP), used to access LCD
+  echoear:
+    path: ../components/echoear

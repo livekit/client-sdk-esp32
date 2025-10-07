@@ -1,12 +1,5 @@
 menu "LiveKit Example"
 
-    config LK_EXAMPLE_CODEC_BOARD_TYPE
-        string "Codec board type"
-        default "DUMMY_CODEC_BOARD"
-        help
-            The model of dev board you are using. See board_cfg.txt from the codec
-            board component for a list of supported boards.
-
     choice LK_EXAMPLE_CONNECTION_METHOD
         prompt "Choose room connection method"
         help
