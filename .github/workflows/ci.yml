@@ -17,6 +17,9 @@ jobs:
   license-check:
     name: License Check
     uses: ./.github/workflows/license_check.yml
+  link-check:
+    name: Link Check
+    uses: ./.github/workflows/link_check.yml
   registry-check:
     name: Registry Check
     uses: ./.github/workflows/esp_registry.yml
