@@ -329,9 +329,11 @@ static engine_err_t send_add_video_track(engine_t *eng)
         .type = LIVEKIT_PB_TRACK_TYPE_VIDEO,
         .source = LIVEKIT_PB_TRACK_SOURCE_CAMERA,
         .muted = false,
+        .width = video_layer.width,
+        .height = video_layer.height,
         .layers_count = 1,
         .layers = { video_layer },
-        .audio_features_count = 0
+        .backup_codec_policy = LIVEKIT_PB_BACKUP_CODEC_POLICY_REGRESSION
     };
 
     if (signal_send_add_track(eng->signal_handle, &req) != SIGNAL_ERR_NONE) {
@@ -341,36 +343,21 @@ static engine_err_t send_add_video_track(engine_t *eng)
     return ENGINE_ERR_NONE;
 }
 
-/// Begins media streaming and sends add track requests.
-static engine_err_t publish_tracks(engine_t *eng)
+/// Send add track requests based on the media options.
+///
+/// Note: SFU expects add track request before publisher peer offer is sent.
+///
+static engine_err_t send_add_track_requests(engine_t *eng)
 {
-    if (eng->options.media.audio_info.codec == ESP_PEER_AUDIO_CODEC_NONE &&
-        eng->options.media.video_info.codec == ESP_PEER_VIDEO_CODEC_NONE) {
-        ESP_LOGI(TAG, "No media tracks to publish");
-        return ENGINE_ERR_NONE;
+    if (eng->options.media.audio_info.codec != ESP_PEER_AUDIO_CODEC_NONE &&
+        send_add_audio_track(eng) != ENGINE_ERR_NONE) {
+        return ENGINE_ERR_SIGNALING;
     }
-
-    int ret = ENGINE_ERR_OTHER;
-    do {
-        if (media_stream_begin(eng) != ENGINE_ERR_NONE) {
-            ret = ENGINE_ERR_MEDIA;
-            break;
-        }
-        if (eng->options.media.audio_info.codec != ESP_PEER_AUDIO_CODEC_NONE &&
-            send_add_audio_track(eng) != ENGINE_ERR_NONE) {
-            ret = ENGINE_ERR_SIGNALING;
-            break;
-        }
-        if (eng->options.media.video_info.codec != ESP_PEER_VIDEO_CODEC_NONE &&
-            send_add_video_track(eng) != ENGINE_ERR_NONE) {
-            ret = ENGINE_ERR_SIGNALING;
-            break;
-        }
-        return ENGINE_ERR_NONE;
-    } while (0);
-
-    media_stream_end(eng);
-    return ret;
+    if (eng->options.media.video_info.codec != ESP_PEER_VIDEO_CODEC_NONE &&
+        send_add_video_track(eng) != ENGINE_ERR_NONE) {
+        return ENGINE_ERR_SIGNALING;
+    }
+    return ENGINE_ERR_NONE;
 }
 
 // MARK: - Signal event handlers
@@ -419,6 +406,7 @@ static void on_peer_sdp(const char *sdp, peer_role_t role, void *ctx)
     };
     event_enqueue(eng, &ev, false);
 }
+
 
 static bool on_peer_data_packet(livekit_pb_data_packet_t* packet, void *ctx)
 {
@@ -833,7 +821,9 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
             break;
         case EV_SIG_STATE:
             signal_state_t sig_state = ev->detail.sig_state;
-            if (sig_state == SIGNAL_STATE_DISCONNECTED) {
+            if (sig_state == SIGNAL_STATE_CONNECTED) {
+                send_add_track_requests(eng);
+            } else if(sig_state == SIGNAL_STATE_DISCONNECTED) {
                 eng->failure_reason = LIVEKIT_FAILURE_REASON_OTHER;
                 eng->state = ENGINE_STATE_BACKOFF;
             } else if (sig_state & SIGNAL_STATE_FAILED_ANY) {
@@ -886,7 +876,7 @@ static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
         case _EV_STATE_ENTER:
             eng->retry_count = 0;
             eng->failure_reason = LIVEKIT_FAILURE_REASON_NONE;
-            publish_tracks(eng);
+            media_stream_begin(eng);
             break;
         case EV_CMD_CLOSE:
             signal_send_leave(eng->signal_handle);
@@ -1066,6 +1056,45 @@ static void engine_task(void *arg)
     vTaskDelete(NULL);
 }
 
+static engine_err_t enable_capture_sink(engine_t *eng)
+{
+    esp_capture_sink_cfg_t sink_cfg = {
+        .audio_info = {
+            .format_id = capture_audio_codec_type(eng->options.media.audio_info.codec),
+            .sample_rate = eng->options.media.audio_info.sample_rate,
+            .channel = eng->options.media.audio_info.channel,
+            .bits_per_sample = 16,
+        },
+        .video_info = {
+            .format_id = ESP_CAPTURE_FMT_ID_H264,
+            .width = (uint16_t)eng->options.media.video_info.width,
+            .height = (uint16_t)eng->options.media.video_info.height,
+            .fps = (uint8_t)eng->options.media.video_info.fps,
+        },
+    };
+
+    if (esp_capture_sink_setup(
+        eng->options.media.capturer,
+        0, // Path index
+        &sink_cfg,
+        &eng->capturer_path
+    ) != ESP_CAPTURE_ERR_OK) {
+        ESP_LOGE(TAG, "Capture sink setup failed");
+        return ENGINE_ERR_MEDIA;
+    }
+
+    // TODO: Add muxer
+
+    if (esp_capture_sink_enable(
+        eng->capturer_path,
+        ESP_CAPTURE_RUN_MODE_ALWAYS
+    ) != ESP_CAPTURE_ERR_OK) {
+        ESP_LOGE(TAG, "Capture sink enable failed");
+        return ENGINE_ERR_MEDIA;
+    }
+    return ENGINE_ERR_NONE;
+}
+
 // MARK: - Public API
 
 engine_handle_t engine_init(const engine_options_t *options)
@@ -1117,38 +1146,9 @@ engine_handle_t engine_init(const engine_options_t *options)
     if (eng->signal_handle == NULL) {
         goto _init_failed;
     }
+    eng->renderer_handle = options->media.renderer;
 
-    esp_capture_sink_cfg_t sink_cfg = {
-        .audio_info = {
-            .format_id = capture_audio_codec_type(eng->options.media.audio_info.codec),
-            .sample_rate = eng->options.media.audio_info.sample_rate,
-            .channel = eng->options.media.audio_info.channel,
-            .bits_per_sample = 16,
-        },
-        .video_info = {
-            .format_id = capture_video_codec_type(eng->options.media.video_info.codec),
-            .width = (uint16_t)eng->options.media.video_info.width,
-            .height = (uint16_t)eng->options.media.video_info.height,
-            .fps = (uint8_t)eng->options.media.video_info.fps,
-        },
-    };
-    if (options->media.audio_info.codec != ESP_PEER_AUDIO_CODEC_NONE) {
-        // TODO: Can we ensure the renderer is valid? If not, return error.
-        eng->renderer_handle = options->media.renderer;
-    }
-
-    if (esp_capture_sink_setup(
-        eng->options.media.capturer,
-        0, // Path index
-        &sink_cfg,
-        &eng->capturer_path
-    ) != ESP_CAPTURE_ERR_OK) {
-        goto _init_failed;
-    }
-    if (esp_capture_sink_enable(
-        eng->capturer_path,
-        ESP_CAPTURE_RUN_MODE_ALWAYS
-    ) != ESP_CAPTURE_ERR_OK) {
+    if (enable_capture_sink(eng) != ENGINE_ERR_NONE) {
         goto _init_failed;
     }
     return eng;

@@ -10,6 +10,6 @@ Use this SDK to add realtime video, audio and data features to your ESP32 projec
 
 - **Supported chips**: ESP32-S3 and ESP32-P4
 - **Bidirectional audio**: Opus encoding, acoustic echo cancellation (AEC)
-- **Bidirectional video**: *video support coming soon*
+- **Video publishing**: H.264 encoding, subscribing coming soon
 - **AI Agents**: interact with agents in the cloud built with [LiveKit Agents](https://docs.livekit.io/agents/)
 - **Real-time data**: data packets, remote method calls (RPC)
