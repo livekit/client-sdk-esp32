@@ -39,3 +39,6 @@ coverage_report/
 
 # Doxygen
 docs/output
+
+# Lychee
+.lycheecache

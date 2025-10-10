@@ -22,7 +22,8 @@ excludes = [
     "CMakeLists.txt",
     "idf_component.yml",
     "license.txt",
-    "Kconfig"
+    "Kconfig",
+    "lychee.toml"
 ]
 
 [properties]
