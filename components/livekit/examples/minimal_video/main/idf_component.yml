@@ -1,7 +1,7 @@
 dependencies:
   idf: ">=5.4"
   livekit/livekit:
-    version: "0.3.1"
+    version: "0.3.2"
     override_path: ../../../
   livekit/sandbox_token:
     version: ~0.1.0
