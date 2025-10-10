@@ -21,10 +21,8 @@ livekit_pb.SessionDescription.sdp type:FT_POINTER
 
 livekit_pb.TrickleRequest.candidateInit type:FT_POINTER
 
-livekit_pb.AddTrackRequest.cid max_length:15
+livekit_pb.AddTrackRequest.cid max_length:2
 livekit_pb.AddTrackRequest.name max_length:15
-livekit_pb.AddTrackRequest.width type:FT_IGNORE
-livekit_pb.AddTrackRequest.height type:FT_IGNORE
 livekit_pb.AddTrackRequest.layers max_count:1
 livekit_pb.AddTrackRequest.simulcast_codecs type:FT_IGNORE
 livekit_pb.AddTrackRequest.sid type:FT_IGNORE
@@ -32,8 +30,7 @@ livekit_pb.AddTrackRequest.stereo type:FT_IGNORE
 livekit_pb.AddTrackRequest.disable_red type:FT_IGNORE
 livekit_pb.AddTrackRequest.encryption type:FT_IGNORE
 livekit_pb.AddTrackRequest.stream type:FT_IGNORE
-livekit_pb.AddTrackRequest.backup_codec_policy type:FT_IGNORE
-livekit_pb.AddTrackRequest.audio_features max_count:8
+livekit_pb.AddTrackRequest.audio_features max_count:1
 
 livekit_pb.TrackPublishedResponse.cid type:FT_IGNORE
 livekit_pb.TrackPublishedResponse.track type:FT_IGNORE
