@@ -1,4 +1,4 @@
-version: "0.3.1"
+version: "0.3.2"
 description: LiveKit Client SDK for ESP32
 tags: [Agents, RPC, Media, WebRTC]
 targets: [esp32s3, esp32p4]

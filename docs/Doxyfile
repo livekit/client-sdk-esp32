@@ -21,7 +21,7 @@ SHOW_FILES             = NO
 TOC_EXPAND             = YES
 LAYOUT_FILE            = ./layout.xml
 HTML_HEADER            = customization/header.html
-PROJECT_NUMBER         = v0.2.0
+PROJECT_NUMBER         = v0.3.2
 FULL_SIDEBAR           = NO
 HTML_EXTRA_STYLESHEET  = customization/doxygen-awesome.css \
 						 customization/custom.css
