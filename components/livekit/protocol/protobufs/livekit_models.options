@@ -24,7 +24,7 @@ livekit_pb.ParticipantPermission.can_update_metadata type:FT_IGNORE
 livekit_pb.ParticipantPermission.can_subscribe_metrics type:FT_IGNORE
 
 livekit_pb.VideoLayer.bitrate type:FT_IGNORE
-livekit_pb.VideoLayer.ssrc type:FT_IGNORE
+# livekit_pb.VideoLayer.ssrc type:FT_IGNORE
 
 livekit_pb.DataPacket.metrics type:FT_IGNORE
 livekit_pb.DataPacket.transcription type:FT_IGNORE

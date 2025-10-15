@@ -1,0 +1,21 @@
+dependencies:
+  idf: ">=5.4"
+  livekit/livekit:
+    version: "0.3.2"
+    override_path: ../../../
+  livekit/sandbox_token:
+    version: ~0.1.0
+    override_path: ../../../../sandbox_token
+  livekit/example_utils:
+    version: ~0.1.0
+    override_path: ../../../../example_utils
+  tempotian/codec_board: ~1.0.0
+  # The following components are required to connect to WiFi for ESP32-P4-based
+  # development board that supports WiFi. The versions here are known to work with
+  # the ESP32-P4-Function-EV-Board out-of-the-box.
+  espressif/esp_hosted:
+    version: ~2.0.13
+    rules: [{if: "target in [esp32p4]"}]
+  espressif/esp_wifi_remote:
+    version: ~0.14.3
+    rules: [{if: "target in [esp32p4]"}]

@@ -24,7 +24,7 @@ Use this SDK to add realtime video, audio and data features to your ESP32 projec
 
 - **Supported chips**: ESP32-S3 and ESP32-P4
 - **Bidirectional audio**: Opus encoding, acoustic echo cancellation (AEC)
-- **Bidirectional video**: *video support coming soon*
+- **Video publishing**: H.264 encoding, subscribing coming soon
 - **AI Agents**: interact with agents in the cloud built with [LiveKit Agents](https://docs.livekit.io/agents/)
 - **Real-time data**: data packets, remote method calls (RPC)
 
@@ -38,11 +38,12 @@ One of the best ways to get started with LiveKit is by reviewing the [examples](
 
 - [**Voice AI Agent**](./components/livekit/examples/voice_agent/README.md): Conversational AI voice agent that interacts with hardware based on user requests.
 - [**Minimal**](./components/livekit/examples/minimal/README.md): Basic example of connecting to a LiveKit room with bidirectional audio.
+- [**Minimal Video**](./components/livekit/examples/minimal_video/README.md): Equivalent to the minimal example with video publishing.
 
 Once you have chosen an example to be your starting point, create a fresh project from it locally using the following command:
 
 ```sh
-idf.py create-project-from-example "livekit/livekit=0.3.1:<example>"
+idf.py create-project-from-example "livekit/livekit=0.3.2:<example>"
 ```
 
 Substitute *\<example\>* for the example's directory name.
@@ -52,7 +53,7 @@ Substitute *\<example\>* for the example's directory name.
 If you would like to add LiveKit to your existing application, add it as a dependency using IDF:
 
 ```sh
-idf.py add-dependency "livekit/livekit=0.3.1"
+idf.py add-dependency "livekit/livekit=0.3.2"
 ```
 
 > [!IMPORTANT]
