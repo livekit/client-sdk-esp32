@@ -795,6 +795,7 @@ static bool handle_state_connecting(engine_t *eng, const engine_event_t *ev)
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_UPDATE_TAG:
                     const livekit_pb_participant_update_t *update = &res->message.update;
+                    ESP_LOGI(TAG, "[!] Participant update in connecting state");
                     handle_participant_update(eng, update);
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_JOIN_TAG:
@@ -899,6 +900,7 @@ static bool handle_state_connected(engine_t *eng, const engine_event_t *ev)
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_UPDATE_TAG:
                     const livekit_pb_participant_update_t *update = &res->message.update;
+                    ESP_LOGI(TAG, "[!] Participant update in connected state");
                     handle_participant_update(eng, update);
                     break;
                 case LIVEKIT_PB_SIGNAL_RESPONSE_ANSWER_TAG:

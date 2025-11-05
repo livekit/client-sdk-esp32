@@ -119,12 +119,34 @@ static void on_ping_timeout_expired(TimerHandle_t handle)
 static inline bool res_middleware(signal_t *sg, livekit_pb_signal_response_t *res)
 {
     if (res->which_message != LIVEKIT_PB_SIGNAL_RESPONSE_PONG_RESP_TAG &&
-        res->which_message != LIVEKIT_PB_SIGNAL_RESPONSE_JOIN_TAG) {
+        res->which_message != LIVEKIT_PB_SIGNAL_RESPONSE_JOIN_TAG &&
+        res->which_message != LIVEKIT_PB_SIGNAL_RESPONSE_UPDATE_TAG) {
         return true;
     }
     switch (res->which_message) {
+        case LIVEKIT_PB_SIGNAL_RESPONSE_UPDATE_TAG:
+            livekit_pb_participant_update_t *update = &res->message.update;
+            ESP_LOGI(TAG, "[!] Participant update");
+            for (pb_size_t i = 0; i < update->participants_count; i++) {
+                ESP_LOGI(TAG, "[!] Participant: %s", update->participants[i].sid);
+                for (pb_size_t j = 0; j < update->participants[i].tracks_count; j++) {
+                    ESP_LOGI(TAG, "[!]   Track: sid=%s, type=%d",
+                            update->participants[i].tracks[j].sid,
+                            update->participants[i].tracks[j].type);
+                }
+            }
+            return true;
         case LIVEKIT_PB_SIGNAL_RESPONSE_JOIN_TAG:
             livekit_pb_join_response_t *join = &res->message.join;
+            ESP_LOGI(TAG, "[!] Join response");
+            for (pb_size_t i = 0; i < join->other_participants_count; i++) {
+                ESP_LOGI(TAG, "[!]   Other participant: %s", join->other_participants[i].sid);
+                for (pb_size_t j = 0; j < join->other_participants[i].tracks_count; j++) {
+                    ESP_LOGI(TAG, "[!]     Track: sid=%s, type=%d",
+                            join->other_participants[i].tracks[j].sid,
+                            join->other_participants[i].tracks[j].type);
+                }
+            }
             // Calculate timer intervals and start timers: seconds -> ms, min 1s.
             int32_t ping_interval_ms = (join->ping_interval < 1 ? 1 : join->ping_interval) * 1000;
             xTimerChangePeriod(sg->ping_interval_timer, pdMS_TO_TICKS(ping_interval_ms), 0);
@@ -376,6 +398,7 @@ signal_err_t signal_send_answer(signal_handle_t handle, const char *sdp)
     if (sdp == NULL || handle == NULL) {
         return SIGNAL_ERR_INVALID_ARG;
     }
+    ESP_LOGI(TAG, "[!] Sending answer: %s", sdp);
     signal_t *sg = (signal_t *)handle;
     livekit_pb_signal_request_t req = LIVEKIT_PB_SIGNAL_REQUEST_INIT_ZERO;
 
@@ -424,6 +447,7 @@ signal_err_t signal_send_update_subscription(signal_handle_t handle, const char 
     }
     signal_t *sg = (signal_t *)handle;
     livekit_pb_signal_request_t req = LIVEKIT_PB_SIGNAL_REQUEST_INIT_ZERO;
+    ESP_LOGI(TAG, "[!] Sending update subscription: sid=%s, subscribe=%d", sid, subscribe);
 
     livekit_pb_update_subscription_t subscription = {
         .track_sids = (char*[]){(char*)sid},
