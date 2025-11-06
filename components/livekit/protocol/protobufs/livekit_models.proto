@@ -28,9 +28,16 @@ message Pagination {
   int32  limit = 2;
 }
 
+message TokenPagination {
+  string token = 1;
+}
+
 // ListUpdate is used for updated APIs where 'repeated string' field is modified.
 message ListUpdate {
   repeated string set = 1; // set the field to a new list
+  repeated string add = 2; // append items to a list, avoiding duplicates
+  repeated string remove = 3; // delete items from a list
+  bool clear = 4; // sets the list to an empty list
 }
 
 message Room {
@@ -61,6 +68,7 @@ enum AudioCodec {
   DEFAULT_AC = 0;
   OPUS = 1;
   AAC = 2;
+  AC_MP3 = 3;
 }
 
 enum VideoCodec {
@@ -140,8 +148,9 @@ message ParticipantInfo {
     SIP = 3;
     // LiveKit agents
     AGENT = 4;
-
-    // NEXT_ID: 7
+    // Connectors participants
+    CONNECTOR = 7;
+    // NEXT_ID: 8
   }
   enum KindDetail {
     CLOUD_AGENT = 0;
@@ -198,6 +207,12 @@ message SimulcastCodecInfo {
   string mid = 2;
   string cid = 3;
   repeated VideoLayer layers = 4;
+  VideoLayer.Mode video_layer_mode = 5;
+  // cid (client side id for track) could be different between
+  // signalling (AddTrackRequest) and SDP offer. This field
+  // will be populated only if it is different to avoid
+  // duplication and keep the representation concise.
+  string sdp_cid = 6;
 }
 
 message TrackInfo {
@@ -211,17 +226,17 @@ message TrackInfo {
   // original height of video (unset for audio)
   uint32 height = 6;
   // true if track is simulcasted
-  bool simulcast = 7;
+  bool simulcast = 7 [deprecated = true]; // see `video_layer_mode` in `codecs`
   // true if DTX (Discontinuous Transmission) is disabled for audio
-  bool disable_dtx = 8;
+  bool disable_dtx = 8 [deprecated=true];   // deprecated in favor of `audio_features`
   // source of media
   TrackSource source = 9;
-  repeated VideoLayer layers = 10;
+  repeated VideoLayer layers = 10 [deprecated=true]; // see `codecs` for layers of individual codec
   // mime type of codec
   string mime_type = 11;
   string mid = 12;
   repeated SimulcastCodecInfo codecs = 13;
-  bool stereo = 14;
+  bool stereo = 14 [deprecated=true];   // deprecated in favor of `audio_features`
   // true if RED (Redundant Encoding) is disabled for audio
   bool disable_red = 15;
   Encryption.Type encryption = 16;
@@ -240,6 +255,13 @@ enum VideoQuality {
 
 // provide information about available spatial layers
 message VideoLayer {
+  enum Mode {
+    MODE_UNUSED = 0;
+    ONE_SPATIAL_LAYER_PER_STREAM = 1;
+    MULTIPLE_SPATIAL_LAYERS_PER_STREAM = 2;
+    ONE_SPATIAL_LAYER_PER_STREAM_INCOMPLETE_RTCP_SR = 3;
+  }
+
   // for tracks with a single layer, this should be HIGH
   VideoQuality quality = 1;
   uint32 width = 2;
@@ -247,6 +269,8 @@ message VideoLayer {
   // target bitrate in bit per second (bps), server will measure actual
   uint32 bitrate = 4;
   uint32 ssrc = 5;
+  int32 spatial_layer = 6;
+  string rid = 7;
 }
 
 // new DataPacket API
@@ -273,16 +297,41 @@ message DataPacket {
     DataStream.Header stream_header = 13;
     DataStream.Chunk stream_chunk = 14;
     DataStream.Trailer stream_trailer = 15;
+    EncryptedPacket encrypted_packet = 18;
   }
   // sequence number of reliable packet
   uint32 sequence = 16;
   // sid of the user that sent the message
   string participant_sid = 17;
 
-  // NEXT_ID: 18
+  // NEXT_ID: 19
 }
 
+message EncryptedPacket {
+  Encryption.Type encryption_type = 1;
+  bytes iv = 2;
+  uint32 key_index = 3;
+  bytes encrypted_value = 4; // This is an encrypted EncryptedPacketPayload message representation
+}
+
+message EncryptedPacketPayload {
+  oneof value {
+    UserPacket user = 1;
+    ChatMessage chat_message = 3;
+    RpcRequest rpc_request = 4;
+    RpcAck rpc_ack = 5;
+    RpcResponse rpc_response = 6;
+    DataStream.Header stream_header = 7;
+    DataStream.Chunk stream_chunk = 8;
+    DataStream.Trailer stream_trailer = 9;
+
+    // NEXT_ID: 10
+  }
+}
+
+
 message ActiveSpeakerUpdate {
+  option deprecated = true;
   repeated SpeakerInfo speakers = 1;
 }
 
@@ -306,7 +355,7 @@ message UserPacket {
   repeated string destination_identities = 6 [deprecated=true];
   // topic under which the message was published
   optional string topic = 4;
-  // Unique ID to indentify the message
+  // Unique ID to identify the message
   optional string id = 8;
   // start and end time allow relating the message to specific media time
   optional uint64 start_time = 9;
@@ -421,6 +470,7 @@ message ClientInfo {
      UNITY_WEB = 11;
      NODE = 12;
      UNREAL = 13;
+     ESP32 = 14;
   }
 
   SDK sdk = 1;
@@ -683,7 +733,7 @@ message DataStream {
     string topic = 3;
     string mime_type = 4;
     optional uint64 total_length = 5;  // only populated for finite streams, if it's a stream of unknown size this stays empty
-    Encryption.Type encryption_type = 7;  // defaults to NONE
+    Encryption.Type encryption_type = 7 [deprecated=true];  //  this is set on the DataPacket
     map<string, string> attributes = 8;  // user defined attributes map that can carry additional info
 
     // oneof to choose between specific header types
@@ -698,7 +748,7 @@ message DataStream {
     uint64 chunk_index = 2;
     bytes content = 3; // content as binary (bytes)
     int32 version = 4; // a version indicating that this chunk_index has been retroactively modified and the original one needs to be replaced
-    optional bytes iv = 5; // optional, initialization vector for AES-GCM encryption
+    optional bytes iv = 5 [deprecated=true]; // this is set on the DataPacket
   }
 
   message Trailer {
@@ -708,7 +758,18 @@ message DataStream {
   }
 }
 
+message FilterParams {
+  repeated string include_events = 1;
+  repeated string exclude_events = 2;
+}
+
 message WebhookConfig {
   string url = 1;
   string signing_key = 2;
+  FilterParams filter_params = 3;
+}
+
+message SubscribedAudioCodec {
+  string codec = 1;
+  bool enabled = 2;
 }

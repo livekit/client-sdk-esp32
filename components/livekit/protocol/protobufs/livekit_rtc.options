@@ -18,6 +18,7 @@ livekit_pb.ICEServer.credential type:FT_POINTER
 
 livekit_pb.SessionDescription.type max_length:8
 livekit_pb.SessionDescription.sdp type:FT_POINTER
+livekit_pb.SessionDescription.mid_to_track_id type:FT_IGNORE
 
 livekit_pb.TrickleRequest.candidateInit type:FT_POINTER
 
@@ -56,3 +57,12 @@ livekit_pb.SignalResponse.reconnect type:FT_IGNORE
 livekit_pb.SignalResponse.subscription_response type:FT_IGNORE
 livekit_pb.SignalResponse.request_response type:FT_IGNORE
 livekit_pb.SignalResponse.room_moved type:FT_IGNORE
+livekit_pb.SignalResponse.media_sections_requirement type:FT_IGNORE
+livekit_pb.SignalResponse.subscribed_audio_codec_update type:FT_IGNORE
+
+livekit_pb.JoinRequest.metadata type:FT_IGNORE
+livekit_pb.JoinRequest.participant_attributes type:FT_IGNORE
+livekit_pb.JoinRequest.reconnect type:FT_IGNORE
+livekit_pb.JoinRequest.reconnect_reason type:FT_IGNORE
+livekit_pb.JoinRequest.participant_sid type:FT_IGNORE
+livekit_pb.JoinRequest.sync_state type:FT_IGNORE

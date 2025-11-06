@@ -18,6 +18,9 @@ PB_BIND(LIVEKIT_PB_METRIC_SAMPLE, livekit_pb_metric_sample_t, AUTO)
 PB_BIND(LIVEKIT_PB_EVENT_METRIC, livekit_pb_event_metric_t, AUTO)
 
 
+PB_BIND(LIVEKIT_PB_METRICS_RECORDING_HEADER, livekit_pb_metrics_recording_header_t, AUTO)
+
+
 
 
 

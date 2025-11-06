@@ -45,7 +45,7 @@ typedef struct livekit_pb_metrics_batch {
  This is useful for storing participant identities, track names, etc.
  There is also a predefined list of labels that can be used to reference common metrics.
  They have reserved indices from 0 to (METRIC_LABEL_PREDEFINED_MAX_VALUE - 1).
- Indexes pointing at str_data should start from METRIC_LABEL_PREDEFINED_MAX_VALUE, 
+ Indexes pointing at str_data should start from METRIC_LABEL_PREDEFINED_MAX_VALUE,
  such that str_data[0] == index of METRIC_LABEL_PREDEFINED_MAX_VALUE. */
     pb_callback_t str_data;
     pb_callback_t time_series;
@@ -84,6 +84,12 @@ typedef struct livekit_pb_event_metric {
     uint32_t rid; /* index into 'str_data' */
 } livekit_pb_event_metric_t;
 
+typedef struct livekit_pb_metrics_recording_header {
+    pb_callback_t room_id;
+    bool has_enable_user_data_training;
+    bool enable_user_data_training;
+} livekit_pb_metrics_recording_header_t;
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -99,15 +105,18 @@ extern "C" {
 
 
 
+
 /* Initializer values for message structs */
 #define LIVEKIT_PB_METRICS_BATCH_INIT_DEFAULT    {0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_TIME_SERIES_METRIC_INIT_DEFAULT {0, 0, 0, {{NULL}, NULL}, 0}
 #define LIVEKIT_PB_METRIC_SAMPLE_INIT_DEFAULT    {0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, 0}
 #define LIVEKIT_PB_EVENT_METRIC_INIT_DEFAULT     {0, 0, 0, 0, false, 0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_DEFAULT, {{NULL}, NULL}, 0}
+#define LIVEKIT_PB_METRICS_RECORDING_HEADER_INIT_DEFAULT {{{NULL}, NULL}, false, 0}
 #define LIVEKIT_PB_METRICS_BATCH_INIT_ZERO       {0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_TIME_SERIES_METRIC_INIT_ZERO  {0, 0, 0, {{NULL}, NULL}, 0}
 #define LIVEKIT_PB_METRIC_SAMPLE_INIT_ZERO       {0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, 0}
 #define LIVEKIT_PB_EVENT_METRIC_INIT_ZERO        {0, 0, 0, 0, false, 0, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, false, GOOGLE_PROTOBUF_TIMESTAMP_INIT_ZERO, {{NULL}, NULL}, 0}
+#define LIVEKIT_PB_METRICS_RECORDING_HEADER_INIT_ZERO {{{NULL}, NULL}, false, 0}
 
 /* Field tags (for use in manual encoding/decoding) */
 #define LIVEKIT_PB_METRICS_BATCH_TIMESTAMP_MS_TAG 1
@@ -132,6 +141,8 @@ extern "C" {
 #define LIVEKIT_PB_EVENT_METRIC_NORMALIZED_END_TIMESTAMP_TAG 7
 #define LIVEKIT_PB_EVENT_METRIC_METADATA_TAG     8
 #define LIVEKIT_PB_EVENT_METRIC_RID_TAG          9
+#define LIVEKIT_PB_METRICS_RECORDING_HEADER_ROOM_ID_TAG 1
+#define LIVEKIT_PB_METRICS_RECORDING_HEADER_ENABLE_USER_DATA_TRAINING_TAG 2
 
 /* Struct field encoding specification for nanopb */
 #define LIVEKIT_PB_METRICS_BATCH_FIELDLIST(X, a) \
@@ -179,21 +190,30 @@ X(a, STATIC,   SINGULAR, UINT32,   rid,               9)
 #define livekit_pb_event_metric_t_normalized_start_timestamp_MSGTYPE google_protobuf_timestamp_t
 #define livekit_pb_event_metric_t_normalized_end_timestamp_MSGTYPE google_protobuf_timestamp_t
 
+#define LIVEKIT_PB_METRICS_RECORDING_HEADER_FIELDLIST(X, a) \
+X(a, CALLBACK, SINGULAR, STRING,   room_id,           1) \
+X(a, STATIC,   OPTIONAL, BOOL,     enable_user_data_training,   2)
+#define LIVEKIT_PB_METRICS_RECORDING_HEADER_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_METRICS_RECORDING_HEADER_DEFAULT NULL
+
 extern const pb_msgdesc_t livekit_pb_metrics_batch_t_msg;
 extern const pb_msgdesc_t livekit_pb_time_series_metric_t_msg;
 extern const pb_msgdesc_t livekit_pb_metric_sample_t_msg;
 extern const pb_msgdesc_t livekit_pb_event_metric_t_msg;
+extern const pb_msgdesc_t livekit_pb_metrics_recording_header_t_msg;
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
 #define LIVEKIT_PB_METRICS_BATCH_FIELDS &livekit_pb_metrics_batch_t_msg
 #define LIVEKIT_PB_TIME_SERIES_METRIC_FIELDS &livekit_pb_time_series_metric_t_msg
 #define LIVEKIT_PB_METRIC_SAMPLE_FIELDS &livekit_pb_metric_sample_t_msg
 #define LIVEKIT_PB_EVENT_METRIC_FIELDS &livekit_pb_event_metric_t_msg
+#define LIVEKIT_PB_METRICS_RECORDING_HEADER_FIELDS &livekit_pb_metrics_recording_header_t_msg
 
 /* Maximum encoded size of messages (where known) */
 /* livekit_pb_MetricsBatch_size depends on runtime parameters */
 /* livekit_pb_TimeSeriesMetric_size depends on runtime parameters */
 /* livekit_pb_EventMetric_size depends on runtime parameters */
+/* livekit_pb_MetricsRecordingHeader_size depends on runtime parameters */
 #define LIVEKIT_LIVEKIT_METRICS_PB_H_MAX_SIZE    LIVEKIT_PB_METRIC_SAMPLE_SIZE
 #define LIVEKIT_PB_METRIC_SAMPLE_SIZE            40
 
@@ -203,6 +223,7 @@ extern const pb_msgdesc_t livekit_pb_event_metric_t_msg;
 #define livekit_TimeSeriesMetric livekit_pb_TimeSeriesMetric
 #define livekit_MetricSample livekit_pb_MetricSample
 #define livekit_EventMetric livekit_pb_EventMetric
+#define livekit_MetricsRecordingHeader livekit_pb_MetricsRecordingHeader
 #define _LIVEKIT_METRIC_LABEL_MIN _LIVEKIT_PB_METRIC_LABEL_MIN
 #define _LIVEKIT_METRIC_LABEL_MAX _LIVEKIT_PB_METRIC_LABEL_MAX
 #define _LIVEKIT_METRIC_LABEL_ARRAYSIZE _LIVEKIT_PB_METRIC_LABEL_ARRAYSIZE
@@ -210,10 +231,12 @@ extern const pb_msgdesc_t livekit_pb_event_metric_t_msg;
 #define LIVEKIT_TIME_SERIES_METRIC_INIT_DEFAULT LIVEKIT_PB_TIME_SERIES_METRIC_INIT_DEFAULT
 #define LIVEKIT_METRIC_SAMPLE_INIT_DEFAULT LIVEKIT_PB_METRIC_SAMPLE_INIT_DEFAULT
 #define LIVEKIT_EVENT_METRIC_INIT_DEFAULT LIVEKIT_PB_EVENT_METRIC_INIT_DEFAULT
+#define LIVEKIT_METRICS_RECORDING_HEADER_INIT_DEFAULT LIVEKIT_PB_METRICS_RECORDING_HEADER_INIT_DEFAULT
 #define LIVEKIT_METRICS_BATCH_INIT_ZERO LIVEKIT_PB_METRICS_BATCH_INIT_ZERO
 #define LIVEKIT_TIME_SERIES_METRIC_INIT_ZERO LIVEKIT_PB_TIME_SERIES_METRIC_INIT_ZERO
 #define LIVEKIT_METRIC_SAMPLE_INIT_ZERO LIVEKIT_PB_METRIC_SAMPLE_INIT_ZERO
 #define LIVEKIT_EVENT_METRIC_INIT_ZERO LIVEKIT_PB_EVENT_METRIC_INIT_ZERO
+#define LIVEKIT_METRICS_RECORDING_HEADER_INIT_ZERO LIVEKIT_PB_METRICS_RECORDING_HEADER_INIT_ZERO
 
 #ifdef __cplusplus
 } /* extern "C" */
