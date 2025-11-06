@@ -68,7 +68,7 @@ bool url_build(const url_build_options *options, char **out_url)
     const char* idf_version = esp_get_idf_version();
 
     // TODO: Now that token is not included in the URL, use a fixed size buffer
-    int final_len = asprintf(out_url, URL_FORMAT,
+    asprintf(out_url, URL_FORMAT,
         options->server_url,
         separator,
         idf_version,
