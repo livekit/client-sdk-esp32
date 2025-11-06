@@ -35,6 +35,7 @@ typedef enum {
     ENGINE_ERR_RTC         = -4,
     ENGINE_ERR_MEDIA       = -5,
     ENGINE_ERR_OTHER       = -6,
+    ENGINE_ERR_MAX_SUB     = -7, // No more subscriptions allowed.
     // TODO: Add more error cases as needed
 } engine_err_t;
 

@@ -153,7 +153,7 @@ static engine_err_t subscribe_tracks(engine_t *eng, livekit_pb_track_info_t *tra
         return ENGINE_ERR_INVALID_ARG;
     }
     if (eng->session.sub_audio_track_sid[0] != '\0') {
-        return ENGINE_ERR_NONE;
+        return ENGINE_ERR_MAX_SUB;
     }
     for (int i = 0; i < count; i++) {
         livekit_pb_track_info_t *track = &tracks[i];
@@ -688,6 +688,16 @@ static bool handle_join(engine_t *eng, const livekit_pb_join_response_t *join)
     if (!establish_peer_connections(eng, join)) {
         ESP_LOGE(TAG, "Failed to establish peer connections");
         return false;
+    }
+
+    // 6. Subscribe to remote tracks that have already been published.
+    for (pb_size_t i = 0; i < join->other_participants_count; i++) {
+        engine_err_t ret = subscribe_tracks(
+            eng,
+            join->other_participants[i].tracks,
+            join->other_participants[i].tracks_count
+        );
+        if (ret == ENGINE_ERR_MAX_SUB) break;
     }
     return true;
 }
