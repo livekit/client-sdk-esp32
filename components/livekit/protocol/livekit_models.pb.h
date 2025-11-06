@@ -15,7 +15,8 @@
 typedef enum livekit_pb_audio_codec {
     LIVEKIT_PB_AUDIO_CODEC_DEFAULT_AC = 0,
     LIVEKIT_PB_AUDIO_CODEC_OPUS = 1,
-    LIVEKIT_PB_AUDIO_CODEC_AAC = 2
+    LIVEKIT_PB_AUDIO_CODEC_AAC = 2,
+    LIVEKIT_PB_AUDIO_CODEC_AC_MP3 = 3
 } livekit_pb_audio_codec_t;
 
 typedef enum livekit_pb_video_codec {
@@ -155,7 +156,9 @@ typedef enum livekit_pb_participant_info_kind {
     /* SIP participants */
     LIVEKIT_PB_PARTICIPANT_INFO_KIND_SIP = 3,
     /* LiveKit agents */
-    LIVEKIT_PB_PARTICIPANT_INFO_KIND_AGENT = 4
+    LIVEKIT_PB_PARTICIPANT_INFO_KIND_AGENT = 4,
+    /* Connectors participants */
+    LIVEKIT_PB_PARTICIPANT_INFO_KIND_CONNECTOR = 7 /* NEXT_ID: 8 */
 } livekit_pb_participant_info_kind_t;
 
 typedef enum livekit_pb_participant_info_kind_detail {
@@ -168,6 +171,13 @@ typedef enum livekit_pb_encryption_type {
     LIVEKIT_PB_ENCRYPTION_TYPE_GCM = 1,
     LIVEKIT_PB_ENCRYPTION_TYPE_CUSTOM = 2
 } livekit_pb_encryption_type_t;
+
+typedef enum livekit_pb_video_layer_mode {
+    LIVEKIT_PB_VIDEO_LAYER_MODE_MODE_UNUSED = 0,
+    LIVEKIT_PB_VIDEO_LAYER_MODE_ONE_SPATIAL_LAYER_PER_STREAM = 1,
+    LIVEKIT_PB_VIDEO_LAYER_MODE_MULTIPLE_SPATIAL_LAYERS_PER_STREAM = 2,
+    LIVEKIT_PB_VIDEO_LAYER_MODE_ONE_SPATIAL_LAYER_PER_STREAM_INCOMPLETE_RTCP_SR = 3
+} livekit_pb_video_layer_mode_t;
 
 typedef enum livekit_pb_data_packet_kind {
     LIVEKIT_PB_DATA_PACKET_KIND_RELIABLE = 0,
@@ -193,7 +203,8 @@ typedef enum livekit_pb_client_info_sdk {
     LIVEKIT_PB_CLIENT_INFO_SDK_CPP = 10,
     LIVEKIT_PB_CLIENT_INFO_SDK_UNITY_WEB = 11,
     LIVEKIT_PB_CLIENT_INFO_SDK_NODE = 12,
-    LIVEKIT_PB_CLIENT_INFO_SDK_UNREAL = 13
+    LIVEKIT_PB_CLIENT_INFO_SDK_UNREAL = 13,
+    LIVEKIT_PB_CLIENT_INFO_SDK_ESP32 = 14
 } livekit_pb_client_info_sdk_t;
 
 /* enum for operation types (specific to TextHeader) */
@@ -210,9 +221,16 @@ typedef struct livekit_pb_pagination {
     int32_t limit;
 } livekit_pb_pagination_t;
 
+typedef struct livekit_pb_token_pagination {
+    pb_callback_t token;
+} livekit_pb_token_pagination_t;
+
 /* ListUpdate is used for updated APIs where 'repeated string' field is modified. */
 typedef struct livekit_pb_list_update {
     pb_callback_t set; /* set the field to a new list */
+    pb_callback_t add; /* append items to a list, avoiding duplicates */
+    pb_callback_t remove; /* delete items from a list */
+    bool clear; /* sets the list to an empty list */
 } livekit_pb_list_update_t;
 
 typedef struct livekit_pb_room {
@@ -264,6 +282,12 @@ typedef struct livekit_pb_simulcast_codec_info {
     pb_callback_t mid;
     pb_callback_t cid;
     pb_callback_t layers;
+    livekit_pb_video_layer_mode_t video_layer_mode;
+    /* cid (client side id for track) could be different between
+ signalling (AddTrackRequest) and SDP offer. This field
+ will be populated only if it is different to avoid
+ duplication and keep the representation concise. */
+    pb_callback_t sdp_cid;
 } livekit_pb_simulcast_codec_info_t;
 
 typedef struct livekit_pb_track_info {
@@ -272,7 +296,6 @@ typedef struct livekit_pb_track_info {
     bool muted;
     /* mime type of codec */
     char *mime_type;
-    bool stereo;
     pb_size_t audio_features_count;
     livekit_pb_audio_track_feature_t audio_features[8];
 } livekit_pb_track_info_t;
@@ -286,9 +309,12 @@ typedef struct livekit_pb_video_layer {
     uint32_t ssrc;
 } livekit_pb_video_layer_t;
 
-typedef struct livekit_pb_active_speaker_update {
-    pb_callback_t speakers;
-} livekit_pb_active_speaker_update_t;
+typedef struct livekit_pb_encrypted_packet {
+    livekit_pb_encryption_type_t encryption_type;
+    pb_callback_t iv;
+    uint32_t key_index;
+    pb_callback_t encrypted_value; /* This is an encrypted EncryptedPacketPayload message representation */
+} livekit_pb_encrypted_packet_t;
 
 typedef struct livekit_pb_speaker_info {
     pb_callback_t sid;
@@ -403,19 +429,11 @@ typedef struct livekit_pb_server_info {
 /* details about the client */
 typedef struct livekit_pb_client_info {
     livekit_pb_client_info_sdk_t sdk;
-    pb_callback_t version;
+    char version[16];
     int32_t protocol;
-    pb_callback_t os;
-    pb_callback_t os_version;
-    pb_callback_t device_model;
-    pb_callback_t browser;
-    pb_callback_t browser_version;
-    pb_callback_t address;
-    /* wifi, wired, cellular, vpn, empty if not known */
-    pb_callback_t network;
-    /* comma separated list of additional LiveKit SDKs in use of this client, with versions
- e.g. "components-js:1.2.3,track-processors-js:1.2.3" */
-    pb_callback_t other_sdks;
+    char os[4];
+    char os_version[16];
+    char device_model[4];
 } livekit_pb_client_info_t;
 
 /* server provided client configuration */
@@ -606,10 +624,36 @@ typedef struct livekit_pb_data_stream_trailer {
     char reason[16]; /* reason why the stream was closed (could contain "error" / "interrupted" / empty for expected end) */
 } livekit_pb_data_stream_trailer_t;
 
+typedef struct livekit_pb_encrypted_packet_payload {
+    pb_size_t which_value;
+    union {
+        livekit_pb_user_packet_t user;
+        livekit_pb_chat_message_t chat_message;
+        livekit_pb_rpc_request_t rpc_request;
+        livekit_pb_rpc_ack_t rpc_ack;
+        livekit_pb_rpc_response_t rpc_response;
+        livekit_pb_data_stream_header_t stream_header;
+        livekit_pb_data_stream_chunk_t stream_chunk;
+        livekit_pb_data_stream_trailer_t stream_trailer;
+    } value;
+} livekit_pb_encrypted_packet_payload_t;
+
+typedef struct livekit_pb_filter_params {
+    pb_callback_t include_events;
+    pb_callback_t exclude_events;
+} livekit_pb_filter_params_t;
+
 typedef struct livekit_pb_webhook_config {
     pb_callback_t url;
     pb_callback_t signing_key;
+    bool has_filter_params;
+    livekit_pb_filter_params_t filter_params;
 } livekit_pb_webhook_config_t;
+
+typedef struct livekit_pb_subscribed_audio_codec {
+    pb_callback_t codec;
+    bool enabled;
+} livekit_pb_subscribed_audio_codec_t;
 
 
 #ifdef __cplusplus
@@ -618,8 +662,8 @@ extern "C" {
 
 /* Helper constants for enums */
 #define _LIVEKIT_PB_AUDIO_CODEC_MIN LIVEKIT_PB_AUDIO_CODEC_DEFAULT_AC
-#define _LIVEKIT_PB_AUDIO_CODEC_MAX LIVEKIT_PB_AUDIO_CODEC_AAC
-#define _LIVEKIT_PB_AUDIO_CODEC_ARRAYSIZE ((livekit_pb_audio_codec_t)(LIVEKIT_PB_AUDIO_CODEC_AAC+1))
+#define _LIVEKIT_PB_AUDIO_CODEC_MAX LIVEKIT_PB_AUDIO_CODEC_AC_MP3
+#define _LIVEKIT_PB_AUDIO_CODEC_ARRAYSIZE ((livekit_pb_audio_codec_t)(LIVEKIT_PB_AUDIO_CODEC_AC_MP3+1))
 
 #define _LIVEKIT_PB_VIDEO_CODEC_MIN LIVEKIT_PB_VIDEO_CODEC_DEFAULT_VC
 #define _LIVEKIT_PB_VIDEO_CODEC_MAX LIVEKIT_PB_VIDEO_CODEC_VP8
@@ -674,8 +718,8 @@ extern "C" {
 #define _LIVEKIT_PB_PARTICIPANT_INFO_STATE_ARRAYSIZE ((livekit_pb_participant_info_state_t)(LIVEKIT_PB_PARTICIPANT_INFO_STATE_DISCONNECTED+1))
 
 #define _LIVEKIT_PB_PARTICIPANT_INFO_KIND_MIN LIVEKIT_PB_PARTICIPANT_INFO_KIND_STANDARD
-#define _LIVEKIT_PB_PARTICIPANT_INFO_KIND_MAX LIVEKIT_PB_PARTICIPANT_INFO_KIND_AGENT
-#define _LIVEKIT_PB_PARTICIPANT_INFO_KIND_ARRAYSIZE ((livekit_pb_participant_info_kind_t)(LIVEKIT_PB_PARTICIPANT_INFO_KIND_AGENT+1))
+#define _LIVEKIT_PB_PARTICIPANT_INFO_KIND_MAX LIVEKIT_PB_PARTICIPANT_INFO_KIND_CONNECTOR
+#define _LIVEKIT_PB_PARTICIPANT_INFO_KIND_ARRAYSIZE ((livekit_pb_participant_info_kind_t)(LIVEKIT_PB_PARTICIPANT_INFO_KIND_CONNECTOR+1))
 
 #define _LIVEKIT_PB_PARTICIPANT_INFO_KIND_DETAIL_MIN LIVEKIT_PB_PARTICIPANT_INFO_KIND_DETAIL_CLOUD_AGENT
 #define _LIVEKIT_PB_PARTICIPANT_INFO_KIND_DETAIL_MAX LIVEKIT_PB_PARTICIPANT_INFO_KIND_DETAIL_FORWARDED
@@ -684,6 +728,10 @@ extern "C" {
 #define _LIVEKIT_PB_ENCRYPTION_TYPE_MIN LIVEKIT_PB_ENCRYPTION_TYPE_NONE
 #define _LIVEKIT_PB_ENCRYPTION_TYPE_MAX LIVEKIT_PB_ENCRYPTION_TYPE_CUSTOM
 #define _LIVEKIT_PB_ENCRYPTION_TYPE_ARRAYSIZE ((livekit_pb_encryption_type_t)(LIVEKIT_PB_ENCRYPTION_TYPE_CUSTOM+1))
+
+#define _LIVEKIT_PB_VIDEO_LAYER_MODE_MIN LIVEKIT_PB_VIDEO_LAYER_MODE_MODE_UNUSED
+#define _LIVEKIT_PB_VIDEO_LAYER_MODE_MAX LIVEKIT_PB_VIDEO_LAYER_MODE_ONE_SPATIAL_LAYER_PER_STREAM_INCOMPLETE_RTCP_SR
+#define _LIVEKIT_PB_VIDEO_LAYER_MODE_ARRAYSIZE ((livekit_pb_video_layer_mode_t)(LIVEKIT_PB_VIDEO_LAYER_MODE_ONE_SPATIAL_LAYER_PER_STREAM_INCOMPLETE_RTCP_SR+1))
 
 #define _LIVEKIT_PB_DATA_PACKET_KIND_MIN LIVEKIT_PB_DATA_PACKET_KIND_RELIABLE
 #define _LIVEKIT_PB_DATA_PACKET_KIND_MAX LIVEKIT_PB_DATA_PACKET_KIND_LOSSY
@@ -694,8 +742,8 @@ extern "C" {
 #define _LIVEKIT_PB_SERVER_INFO_EDITION_ARRAYSIZE ((livekit_pb_server_info_edition_t)(LIVEKIT_PB_SERVER_INFO_EDITION_CLOUD+1))
 
 #define _LIVEKIT_PB_CLIENT_INFO_SDK_MIN LIVEKIT_PB_CLIENT_INFO_SDK_UNKNOWN
-#define _LIVEKIT_PB_CLIENT_INFO_SDK_MAX LIVEKIT_PB_CLIENT_INFO_SDK_UNREAL
-#define _LIVEKIT_PB_CLIENT_INFO_SDK_ARRAYSIZE ((livekit_pb_client_info_sdk_t)(LIVEKIT_PB_CLIENT_INFO_SDK_UNREAL+1))
+#define _LIVEKIT_PB_CLIENT_INFO_SDK_MAX LIVEKIT_PB_CLIENT_INFO_SDK_ESP32
+#define _LIVEKIT_PB_CLIENT_INFO_SDK_ARRAYSIZE ((livekit_pb_client_info_sdk_t)(LIVEKIT_PB_CLIENT_INFO_SDK_ESP32+1))
 
 #define _LIVEKIT_PB_DATA_STREAM_OPERATION_TYPE_MIN LIVEKIT_PB_DATA_STREAM_OPERATION_TYPE_CREATE
 #define _LIVEKIT_PB_DATA_STREAM_OPERATION_TYPE_MAX LIVEKIT_PB_DATA_STREAM_OPERATION_TYPE_REACTION
@@ -707,16 +755,20 @@ extern "C" {
 
 
 
+
 #define livekit_pb_participant_info_t_state_ENUMTYPE livekit_pb_participant_info_state_t
 #define livekit_pb_participant_info_t_kind_ENUMTYPE livekit_pb_participant_info_kind_t
 
 
+#define livekit_pb_simulcast_codec_info_t_video_layer_mode_ENUMTYPE livekit_pb_video_layer_mode_t
 
 #define livekit_pb_track_info_t_type_ENUMTYPE livekit_pb_track_type_t
 #define livekit_pb_track_info_t_audio_features_ENUMTYPE livekit_pb_audio_track_feature_t
 
 #define livekit_pb_video_layer_t_quality_ENUMTYPE livekit_pb_video_quality_t
 
+
+#define livekit_pb_encrypted_packet_t_encryption_type_ENUMTYPE livekit_pb_encryption_type_t
 
 
 
@@ -757,20 +809,24 @@ extern "C" {
 
 
 
+
+
 /* Initializer values for message structs */
 #define LIVEKIT_PB_PAGINATION_INIT_DEFAULT       {{{NULL}, NULL}, 0}
-#define LIVEKIT_PB_LIST_UPDATE_INIT_DEFAULT      {{{NULL}, NULL}}
+#define LIVEKIT_PB_TOKEN_PAGINATION_INIT_DEFAULT {{{NULL}, NULL}}
+#define LIVEKIT_PB_LIST_UPDATE_INIT_DEFAULT      {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0}
 #define LIVEKIT_PB_ROOM_INIT_DEFAULT             {NULL, NULL, NULL, 0, 0}
 #define LIVEKIT_PB_CODEC_INIT_DEFAULT            {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_PLAYOUT_DELAY_INIT_DEFAULT    {0, 0, 0}
 #define LIVEKIT_PB_PARTICIPANT_PERMISSION_INIT_DEFAULT {0, 0, 0}
 #define LIVEKIT_PB_PARTICIPANT_INFO_INIT_DEFAULT {"", NULL, _LIVEKIT_PB_PARTICIPANT_INFO_STATE_MIN, 0, NULL, NULL, NULL, LIVEKIT_PB_PARTICIPANT_PERMISSION_INIT_DEFAULT, _LIVEKIT_PB_PARTICIPANT_INFO_KIND_MIN}
 #define LIVEKIT_PB_ENCRYPTION_INIT_DEFAULT       {0}
-#define LIVEKIT_PB_SIMULCAST_CODEC_INFO_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_PB_TRACK_INFO_INIT_DEFAULT       {NULL, _LIVEKIT_PB_TRACK_TYPE_MIN, 0, NULL, 0, 0, {_LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN}}
+#define LIVEKIT_PB_SIMULCAST_CODEC_INFO_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, _LIVEKIT_PB_VIDEO_LAYER_MODE_MIN, {{NULL}, NULL}}
+#define LIVEKIT_PB_TRACK_INFO_INIT_DEFAULT       {NULL, _LIVEKIT_PB_TRACK_TYPE_MIN, 0, NULL, 0, {_LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN}}
 #define LIVEKIT_PB_VIDEO_LAYER_INIT_DEFAULT      {_LIVEKIT_PB_VIDEO_QUALITY_MIN, 0, 0, 0}
 #define LIVEKIT_PB_DATA_PACKET_INIT_DEFAULT      {0, {LIVEKIT_PB_USER_PACKET_INIT_DEFAULT}, NULL, 0, NULL, 0, ""}
-#define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_INIT_DEFAULT {{{NULL}, NULL}}
+#define LIVEKIT_PB_ENCRYPTED_PACKET_INIT_DEFAULT {_LIVEKIT_PB_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, 0, {{NULL}, NULL}}
+#define LIVEKIT_PB_ENCRYPTED_PACKET_PAYLOAD_INIT_DEFAULT {0, {LIVEKIT_PB_USER_PACKET_INIT_DEFAULT}}
 #define LIVEKIT_PB_SPEAKER_INFO_INIT_DEFAULT     {{{NULL}, NULL}, 0, 0}
 #define LIVEKIT_PB_USER_PACKET_INIT_DEFAULT      {NULL, NULL}
 #define LIVEKIT_PB_SIP_DTMF_INIT_DEFAULT         {0, ""}
@@ -783,7 +839,7 @@ extern "C" {
 #define LIVEKIT_PB_RPC_ERROR_INIT_DEFAULT        {0, NULL}
 #define LIVEKIT_PB_PARTICIPANT_TRACKS_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_SERVER_INFO_INIT_DEFAULT      {_LIVEKIT_PB_SERVER_INFO_EDITION_MIN, {{NULL}, NULL}, 0, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0}
-#define LIVEKIT_PB_CLIENT_INFO_INIT_DEFAULT      {_LIVEKIT_PB_CLIENT_INFO_SDK_MIN, {{NULL}, NULL}, 0, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_CLIENT_INFO_INIT_DEFAULT      {_LIVEKIT_PB_CLIENT_INFO_SDK_MIN, "", 0, "", "", ""}
 #define LIVEKIT_PB_CLIENT_CONFIGURATION_INIT_DEFAULT {_LIVEKIT_PB_CLIENT_CONFIG_SETTING_MIN, _LIVEKIT_PB_CLIENT_CONFIG_SETTING_MIN}
 #define LIVEKIT_PB_VIDEO_CONFIGURATION_INIT_DEFAULT {_LIVEKIT_PB_CLIENT_CONFIG_SETTING_MIN}
 #define LIVEKIT_PB_DISABLED_CODECS_INIT_DEFAULT  {{{NULL}, NULL}, {{NULL}, NULL}}
@@ -801,20 +857,24 @@ extern "C" {
 #define LIVEKIT_PB_DATA_STREAM_HEADER_INIT_DEFAULT {"", 0, NULL, NULL, false, 0, 0, {LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_INIT_DEFAULT}}
 #define LIVEKIT_PB_DATA_STREAM_CHUNK_INIT_DEFAULT {"", 0, NULL, 0}
 #define LIVEKIT_PB_DATA_STREAM_TRAILER_INIT_DEFAULT {"", ""}
-#define LIVEKIT_PB_WEBHOOK_CONFIG_INIT_DEFAULT   {{{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_FILTER_PARAMS_INIT_DEFAULT    {{{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_WEBHOOK_CONFIG_INIT_DEFAULT   {{{NULL}, NULL}, {{NULL}, NULL}, false, LIVEKIT_PB_FILTER_PARAMS_INIT_DEFAULT}
+#define LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_INIT_DEFAULT {{{NULL}, NULL}, 0}
 #define LIVEKIT_PB_PAGINATION_INIT_ZERO          {{{NULL}, NULL}, 0}
-#define LIVEKIT_PB_LIST_UPDATE_INIT_ZERO         {{{NULL}, NULL}}
+#define LIVEKIT_PB_TOKEN_PAGINATION_INIT_ZERO    {{{NULL}, NULL}}
+#define LIVEKIT_PB_LIST_UPDATE_INIT_ZERO         {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0}
 #define LIVEKIT_PB_ROOM_INIT_ZERO                {NULL, NULL, NULL, 0, 0}
 #define LIVEKIT_PB_CODEC_INIT_ZERO               {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_PLAYOUT_DELAY_INIT_ZERO       {0, 0, 0}
 #define LIVEKIT_PB_PARTICIPANT_PERMISSION_INIT_ZERO {0, 0, 0}
 #define LIVEKIT_PB_PARTICIPANT_INFO_INIT_ZERO    {"", NULL, _LIVEKIT_PB_PARTICIPANT_INFO_STATE_MIN, 0, NULL, NULL, NULL, LIVEKIT_PB_PARTICIPANT_PERMISSION_INIT_ZERO, _LIVEKIT_PB_PARTICIPANT_INFO_KIND_MIN}
 #define LIVEKIT_PB_ENCRYPTION_INIT_ZERO          {0}
-#define LIVEKIT_PB_SIMULCAST_CODEC_INFO_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
-#define LIVEKIT_PB_TRACK_INFO_INIT_ZERO          {NULL, _LIVEKIT_PB_TRACK_TYPE_MIN, 0, NULL, 0, 0, {_LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN}}
+#define LIVEKIT_PB_SIMULCAST_CODEC_INFO_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, _LIVEKIT_PB_VIDEO_LAYER_MODE_MIN, {{NULL}, NULL}}
+#define LIVEKIT_PB_TRACK_INFO_INIT_ZERO          {NULL, _LIVEKIT_PB_TRACK_TYPE_MIN, 0, NULL, 0, {_LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN, _LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN}}
 #define LIVEKIT_PB_VIDEO_LAYER_INIT_ZERO         {_LIVEKIT_PB_VIDEO_QUALITY_MIN, 0, 0, 0}
 #define LIVEKIT_PB_DATA_PACKET_INIT_ZERO         {0, {LIVEKIT_PB_USER_PACKET_INIT_ZERO}, NULL, 0, NULL, 0, ""}
-#define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_INIT_ZERO {{{NULL}, NULL}}
+#define LIVEKIT_PB_ENCRYPTED_PACKET_INIT_ZERO    {_LIVEKIT_PB_ENCRYPTION_TYPE_MIN, {{NULL}, NULL}, 0, {{NULL}, NULL}}
+#define LIVEKIT_PB_ENCRYPTED_PACKET_PAYLOAD_INIT_ZERO {0, {LIVEKIT_PB_USER_PACKET_INIT_ZERO}}
 #define LIVEKIT_PB_SPEAKER_INFO_INIT_ZERO        {{{NULL}, NULL}, 0, 0}
 #define LIVEKIT_PB_USER_PACKET_INIT_ZERO         {NULL, NULL}
 #define LIVEKIT_PB_SIP_DTMF_INIT_ZERO            {0, ""}
@@ -827,7 +887,7 @@ extern "C" {
 #define LIVEKIT_PB_RPC_ERROR_INIT_ZERO           {0, NULL}
 #define LIVEKIT_PB_PARTICIPANT_TRACKS_INIT_ZERO  {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_SERVER_INFO_INIT_ZERO         {_LIVEKIT_PB_SERVER_INFO_EDITION_MIN, {{NULL}, NULL}, 0, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, 0}
-#define LIVEKIT_PB_CLIENT_INFO_INIT_ZERO         {_LIVEKIT_PB_CLIENT_INFO_SDK_MIN, {{NULL}, NULL}, 0, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_CLIENT_INFO_INIT_ZERO         {_LIVEKIT_PB_CLIENT_INFO_SDK_MIN, "", 0, "", "", ""}
 #define LIVEKIT_PB_CLIENT_CONFIGURATION_INIT_ZERO {_LIVEKIT_PB_CLIENT_CONFIG_SETTING_MIN, _LIVEKIT_PB_CLIENT_CONFIG_SETTING_MIN}
 #define LIVEKIT_PB_VIDEO_CONFIGURATION_INIT_ZERO {_LIVEKIT_PB_CLIENT_CONFIG_SETTING_MIN}
 #define LIVEKIT_PB_DISABLED_CODECS_INIT_ZERO     {{{NULL}, NULL}, {{NULL}, NULL}}
@@ -845,12 +905,18 @@ extern "C" {
 #define LIVEKIT_PB_DATA_STREAM_HEADER_INIT_ZERO  {"", 0, NULL, NULL, false, 0, 0, {LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_INIT_ZERO}}
 #define LIVEKIT_PB_DATA_STREAM_CHUNK_INIT_ZERO   {"", 0, NULL, 0}
 #define LIVEKIT_PB_DATA_STREAM_TRAILER_INIT_ZERO {"", ""}
-#define LIVEKIT_PB_WEBHOOK_CONFIG_INIT_ZERO      {{{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_FILTER_PARAMS_INIT_ZERO       {{{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_WEBHOOK_CONFIG_INIT_ZERO      {{{NULL}, NULL}, {{NULL}, NULL}, false, LIVEKIT_PB_FILTER_PARAMS_INIT_ZERO}
+#define LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_INIT_ZERO {{{NULL}, NULL}, 0}
 
 /* Field tags (for use in manual encoding/decoding) */
 #define LIVEKIT_PB_PAGINATION_AFTER_ID_TAG       1
 #define LIVEKIT_PB_PAGINATION_LIMIT_TAG          2
+#define LIVEKIT_PB_TOKEN_PAGINATION_TOKEN_TAG    1
 #define LIVEKIT_PB_LIST_UPDATE_SET_TAG           1
+#define LIVEKIT_PB_LIST_UPDATE_ADD_TAG           2
+#define LIVEKIT_PB_LIST_UPDATE_REMOVE_TAG        3
+#define LIVEKIT_PB_LIST_UPDATE_CLEAR_TAG         4
 #define LIVEKIT_PB_ROOM_SID_TAG                  1
 #define LIVEKIT_PB_ROOM_NAME_TAG                 2
 #define LIVEKIT_PB_ROOM_METADATA_TAG             8
@@ -876,17 +942,21 @@ extern "C" {
 #define LIVEKIT_PB_SIMULCAST_CODEC_INFO_MID_TAG  2
 #define LIVEKIT_PB_SIMULCAST_CODEC_INFO_CID_TAG  3
 #define LIVEKIT_PB_SIMULCAST_CODEC_INFO_LAYERS_TAG 4
+#define LIVEKIT_PB_SIMULCAST_CODEC_INFO_VIDEO_LAYER_MODE_TAG 5
+#define LIVEKIT_PB_SIMULCAST_CODEC_INFO_SDP_CID_TAG 6
 #define LIVEKIT_PB_TRACK_INFO_SID_TAG            1
 #define LIVEKIT_PB_TRACK_INFO_TYPE_TAG           2
 #define LIVEKIT_PB_TRACK_INFO_MUTED_TAG          4
 #define LIVEKIT_PB_TRACK_INFO_MIME_TYPE_TAG      11
-#define LIVEKIT_PB_TRACK_INFO_STEREO_TAG         14
 #define LIVEKIT_PB_TRACK_INFO_AUDIO_FEATURES_TAG 19
 #define LIVEKIT_PB_VIDEO_LAYER_QUALITY_TAG       1
 #define LIVEKIT_PB_VIDEO_LAYER_WIDTH_TAG         2
 #define LIVEKIT_PB_VIDEO_LAYER_HEIGHT_TAG        3
 #define LIVEKIT_PB_VIDEO_LAYER_SSRC_TAG          5
-#define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_SPEAKERS_TAG 1
+#define LIVEKIT_PB_ENCRYPTED_PACKET_ENCRYPTION_TYPE_TAG 1
+#define LIVEKIT_PB_ENCRYPTED_PACKET_IV_TAG       2
+#define LIVEKIT_PB_ENCRYPTED_PACKET_KEY_INDEX_TAG 3
+#define LIVEKIT_PB_ENCRYPTED_PACKET_ENCRYPTED_VALUE_TAG 4
 #define LIVEKIT_PB_SPEAKER_INFO_SID_TAG          1
 #define LIVEKIT_PB_SPEAKER_INFO_LEVEL_TAG        2
 #define LIVEKIT_PB_SPEAKER_INFO_ACTIVE_TAG       3
@@ -943,11 +1013,6 @@ extern "C" {
 #define LIVEKIT_PB_CLIENT_INFO_OS_TAG            4
 #define LIVEKIT_PB_CLIENT_INFO_OS_VERSION_TAG    5
 #define LIVEKIT_PB_CLIENT_INFO_DEVICE_MODEL_TAG  6
-#define LIVEKIT_PB_CLIENT_INFO_BROWSER_TAG       7
-#define LIVEKIT_PB_CLIENT_INFO_BROWSER_VERSION_TAG 8
-#define LIVEKIT_PB_CLIENT_INFO_ADDRESS_TAG       9
-#define LIVEKIT_PB_CLIENT_INFO_NETWORK_TAG       10
-#define LIVEKIT_PB_CLIENT_INFO_OTHER_SDKS_TAG    11
 #define LIVEKIT_PB_CLIENT_CONFIGURATION_RESUME_CONNECTION_TAG 3
 #define LIVEKIT_PB_CLIENT_CONFIGURATION_FORCE_RELAY_TAG 5
 #define LIVEKIT_PB_VIDEO_CONFIGURATION_HARDWARE_ENCODER_TAG 1
@@ -1058,8 +1123,21 @@ extern "C" {
 #define LIVEKIT_PB_DATA_STREAM_CHUNK_VERSION_TAG 4
 #define LIVEKIT_PB_DATA_STREAM_TRAILER_STREAM_ID_TAG 1
 #define LIVEKIT_PB_DATA_STREAM_TRAILER_REASON_TAG 2
+#define LIVEKIT_PB_ENCRYPTED_PACKET_PAYLOAD_USER_TAG 1
+#define LIVEKIT_PB_ENCRYPTED_PACKET_PAYLOAD_CHAT_MESSAGE_TAG 3
+#define LIVEKIT_PB_ENCRYPTED_PACKET_PAYLOAD_RPC_REQUEST_TAG 4
+#define LIVEKIT_PB_ENCRYPTED_PACKET_PAYLOAD_RPC_ACK_TAG 5
+#define LIVEKIT_PB_ENCRYPTED_PACKET_PAYLOAD_RPC_RESPONSE_TAG 6
+#define LIVEKIT_PB_ENCRYPTED_PACKET_PAYLOAD_STREAM_HEADER_TAG 7
+#define LIVEKIT_PB_ENCRYPTED_PACKET_PAYLOAD_STREAM_CHUNK_TAG 8
+#define LIVEKIT_PB_ENCRYPTED_PACKET_PAYLOAD_STREAM_TRAILER_TAG 9
+#define LIVEKIT_PB_FILTER_PARAMS_INCLUDE_EVENTS_TAG 1
+#define LIVEKIT_PB_FILTER_PARAMS_EXCLUDE_EVENTS_TAG 2
 #define LIVEKIT_PB_WEBHOOK_CONFIG_URL_TAG        1
 #define LIVEKIT_PB_WEBHOOK_CONFIG_SIGNING_KEY_TAG 2
+#define LIVEKIT_PB_WEBHOOK_CONFIG_FILTER_PARAMS_TAG 3
+#define LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_CODEC_TAG 1
+#define LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_ENABLED_TAG 2
 
 /* Struct field encoding specification for nanopb */
 #define LIVEKIT_PB_PAGINATION_FIELDLIST(X, a) \
@@ -1068,8 +1146,16 @@ X(a, STATIC,   SINGULAR, INT32,    limit,             2)
 #define LIVEKIT_PB_PAGINATION_CALLBACK pb_default_field_callback
 #define LIVEKIT_PB_PAGINATION_DEFAULT NULL
 
+#define LIVEKIT_PB_TOKEN_PAGINATION_FIELDLIST(X, a) \
+X(a, CALLBACK, SINGULAR, STRING,   token,             1)
+#define LIVEKIT_PB_TOKEN_PAGINATION_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_TOKEN_PAGINATION_DEFAULT NULL
+
 #define LIVEKIT_PB_LIST_UPDATE_FIELDLIST(X, a) \
-X(a, CALLBACK, REPEATED, STRING,   set,               1)
+X(a, CALLBACK, REPEATED, STRING,   set,               1) \
+X(a, CALLBACK, REPEATED, STRING,   add,               2) \
+X(a, CALLBACK, REPEATED, STRING,   remove,            3) \
+X(a, STATIC,   SINGULAR, BOOL,     clear,             4)
 #define LIVEKIT_PB_LIST_UPDATE_CALLBACK pb_default_field_callback
 #define LIVEKIT_PB_LIST_UPDATE_DEFAULT NULL
 
@@ -1125,7 +1211,9 @@ X(a, STATIC,   SINGULAR, UENUM,    kind,             14)
 X(a, CALLBACK, SINGULAR, STRING,   mime_type,         1) \
 X(a, CALLBACK, SINGULAR, STRING,   mid,               2) \
 X(a, CALLBACK, SINGULAR, STRING,   cid,               3) \
-X(a, CALLBACK, REPEATED, MESSAGE,  layers,            4)
+X(a, CALLBACK, REPEATED, MESSAGE,  layers,            4) \
+X(a, STATIC,   SINGULAR, UENUM,    video_layer_mode,   5) \
+X(a, CALLBACK, SINGULAR, STRING,   sdp_cid,           6)
 #define LIVEKIT_PB_SIMULCAST_CODEC_INFO_CALLBACK pb_default_field_callback
 #define LIVEKIT_PB_SIMULCAST_CODEC_INFO_DEFAULT NULL
 #define livekit_pb_simulcast_codec_info_t_layers_MSGTYPE livekit_pb_video_layer_t
@@ -1135,7 +1223,6 @@ X(a, POINTER,  SINGULAR, STRING,   sid,               1) \
 X(a, STATIC,   SINGULAR, UENUM,    type,              2) \
 X(a, STATIC,   SINGULAR, BOOL,     muted,             4) \
 X(a, POINTER,  SINGULAR, STRING,   mime_type,        11) \
-X(a, STATIC,   SINGULAR, BOOL,     stereo,           14) \
 X(a, STATIC,   REPEATED, UENUM,    audio_features,   19)
 #define LIVEKIT_PB_TRACK_INFO_CALLBACK NULL
 #define LIVEKIT_PB_TRACK_INFO_DEFAULT NULL
@@ -1164,11 +1251,33 @@ X(a, STATIC,   SINGULAR, STRING,   participant_sid,  17)
 #define livekit_pb_data_packet_t_value_rpc_ack_MSGTYPE livekit_pb_rpc_ack_t
 #define livekit_pb_data_packet_t_value_rpc_response_MSGTYPE livekit_pb_rpc_response_t
 
-#define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_FIELDLIST(X, a) \
-X(a, CALLBACK, REPEATED, MESSAGE,  speakers,          1)
-#define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_CALLBACK pb_default_field_callback
-#define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_DEFAULT NULL
-#define livekit_pb_active_speaker_update_t_speakers_MSGTYPE livekit_pb_speaker_info_t
+#define LIVEKIT_PB_ENCRYPTED_PACKET_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, UENUM,    encryption_type,   1) \
+X(a, CALLBACK, SINGULAR, BYTES,    iv,                2) \
+X(a, STATIC,   SINGULAR, UINT32,   key_index,         3) \
+X(a, CALLBACK, SINGULAR, BYTES,    encrypted_value,   4)
+#define LIVEKIT_PB_ENCRYPTED_PACKET_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_ENCRYPTED_PACKET_DEFAULT NULL
+
+#define LIVEKIT_PB_ENCRYPTED_PACKET_PAYLOAD_FIELDLIST(X, a) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (value,user,value.user),   1) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (value,chat_message,value.chat_message),   3) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (value,rpc_request,value.rpc_request),   4) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (value,rpc_ack,value.rpc_ack),   5) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (value,rpc_response,value.rpc_response),   6) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (value,stream_header,value.stream_header),   7) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (value,stream_chunk,value.stream_chunk),   8) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (value,stream_trailer,value.stream_trailer),   9)
+#define LIVEKIT_PB_ENCRYPTED_PACKET_PAYLOAD_CALLBACK NULL
+#define LIVEKIT_PB_ENCRYPTED_PACKET_PAYLOAD_DEFAULT NULL
+#define livekit_pb_encrypted_packet_payload_t_value_user_MSGTYPE livekit_pb_user_packet_t
+#define livekit_pb_encrypted_packet_payload_t_value_chat_message_MSGTYPE livekit_pb_chat_message_t
+#define livekit_pb_encrypted_packet_payload_t_value_rpc_request_MSGTYPE livekit_pb_rpc_request_t
+#define livekit_pb_encrypted_packet_payload_t_value_rpc_ack_MSGTYPE livekit_pb_rpc_ack_t
+#define livekit_pb_encrypted_packet_payload_t_value_rpc_response_MSGTYPE livekit_pb_rpc_response_t
+#define livekit_pb_encrypted_packet_payload_t_value_stream_header_MSGTYPE livekit_pb_data_stream_header_t
+#define livekit_pb_encrypted_packet_payload_t_value_stream_chunk_MSGTYPE livekit_pb_data_stream_chunk_t
+#define livekit_pb_encrypted_packet_payload_t_value_stream_trailer_MSGTYPE livekit_pb_data_stream_trailer_t
 
 #define LIVEKIT_PB_SPEAKER_INFO_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   sid,               1) \
@@ -1264,17 +1373,12 @@ X(a, STATIC,   SINGULAR, INT32,    agent_protocol,    7)
 
 #define LIVEKIT_PB_CLIENT_INFO_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UENUM,    sdk,               1) \
-X(a, CALLBACK, SINGULAR, STRING,   version,           2) \
+X(a, STATIC,   SINGULAR, STRING,   version,           2) \
 X(a, STATIC,   SINGULAR, INT32,    protocol,          3) \
-X(a, CALLBACK, SINGULAR, STRING,   os,                4) \
-X(a, CALLBACK, SINGULAR, STRING,   os_version,        5) \
-X(a, CALLBACK, SINGULAR, STRING,   device_model,      6) \
-X(a, CALLBACK, SINGULAR, STRING,   browser,           7) \
-X(a, CALLBACK, SINGULAR, STRING,   browser_version,   8) \
-X(a, CALLBACK, SINGULAR, STRING,   address,           9) \
-X(a, CALLBACK, SINGULAR, STRING,   network,          10) \
-X(a, CALLBACK, SINGULAR, STRING,   other_sdks,       11)
-#define LIVEKIT_PB_CLIENT_INFO_CALLBACK pb_default_field_callback
+X(a, STATIC,   SINGULAR, STRING,   os,                4) \
+X(a, STATIC,   SINGULAR, STRING,   os_version,        5) \
+X(a, STATIC,   SINGULAR, STRING,   device_model,      6)
+#define LIVEKIT_PB_CLIENT_INFO_CALLBACK NULL
 #define LIVEKIT_PB_CLIENT_INFO_DEFAULT NULL
 
 #define LIVEKIT_PB_CLIENT_CONFIGURATION_FIELDLIST(X, a) \
@@ -1476,13 +1580,28 @@ X(a, STATIC,   SINGULAR, STRING,   reason,            2)
 #define LIVEKIT_PB_DATA_STREAM_TRAILER_CALLBACK NULL
 #define LIVEKIT_PB_DATA_STREAM_TRAILER_DEFAULT NULL
 
+#define LIVEKIT_PB_FILTER_PARAMS_FIELDLIST(X, a) \
+X(a, CALLBACK, REPEATED, STRING,   include_events,    1) \
+X(a, CALLBACK, REPEATED, STRING,   exclude_events,    2)
+#define LIVEKIT_PB_FILTER_PARAMS_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_FILTER_PARAMS_DEFAULT NULL
+
 #define LIVEKIT_PB_WEBHOOK_CONFIG_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   url,               1) \
-X(a, CALLBACK, SINGULAR, STRING,   signing_key,       2)
+X(a, CALLBACK, SINGULAR, STRING,   signing_key,       2) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  filter_params,     3)
 #define LIVEKIT_PB_WEBHOOK_CONFIG_CALLBACK pb_default_field_callback
 #define LIVEKIT_PB_WEBHOOK_CONFIG_DEFAULT NULL
+#define livekit_pb_webhook_config_t_filter_params_MSGTYPE livekit_pb_filter_params_t
+
+#define LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_FIELDLIST(X, a) \
+X(a, CALLBACK, SINGULAR, STRING,   codec,             1) \
+X(a, STATIC,   SINGULAR, BOOL,     enabled,           2)
+#define LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_DEFAULT NULL
 
 extern const pb_msgdesc_t livekit_pb_pagination_t_msg;
+extern const pb_msgdesc_t livekit_pb_token_pagination_t_msg;
 extern const pb_msgdesc_t livekit_pb_list_update_t_msg;
 extern const pb_msgdesc_t livekit_pb_room_t_msg;
 extern const pb_msgdesc_t livekit_pb_codec_t_msg;
@@ -1494,7 +1613,8 @@ extern const pb_msgdesc_t livekit_pb_simulcast_codec_info_t_msg;
 extern const pb_msgdesc_t livekit_pb_track_info_t_msg;
 extern const pb_msgdesc_t livekit_pb_video_layer_t_msg;
 extern const pb_msgdesc_t livekit_pb_data_packet_t_msg;
-extern const pb_msgdesc_t livekit_pb_active_speaker_update_t_msg;
+extern const pb_msgdesc_t livekit_pb_encrypted_packet_t_msg;
+extern const pb_msgdesc_t livekit_pb_encrypted_packet_payload_t_msg;
 extern const pb_msgdesc_t livekit_pb_speaker_info_t_msg;
 extern const pb_msgdesc_t livekit_pb_user_packet_t_msg;
 extern const pb_msgdesc_t livekit_pb_sip_dtmf_t_msg;
@@ -1525,10 +1645,13 @@ extern const pb_msgdesc_t livekit_pb_data_stream_byte_header_t_msg;
 extern const pb_msgdesc_t livekit_pb_data_stream_header_t_msg;
 extern const pb_msgdesc_t livekit_pb_data_stream_chunk_t_msg;
 extern const pb_msgdesc_t livekit_pb_data_stream_trailer_t_msg;
+extern const pb_msgdesc_t livekit_pb_filter_params_t_msg;
 extern const pb_msgdesc_t livekit_pb_webhook_config_t_msg;
+extern const pb_msgdesc_t livekit_pb_subscribed_audio_codec_t_msg;
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
 #define LIVEKIT_PB_PAGINATION_FIELDS &livekit_pb_pagination_t_msg
+#define LIVEKIT_PB_TOKEN_PAGINATION_FIELDS &livekit_pb_token_pagination_t_msg
 #define LIVEKIT_PB_LIST_UPDATE_FIELDS &livekit_pb_list_update_t_msg
 #define LIVEKIT_PB_ROOM_FIELDS &livekit_pb_room_t_msg
 #define LIVEKIT_PB_CODEC_FIELDS &livekit_pb_codec_t_msg
@@ -1540,7 +1663,8 @@ extern const pb_msgdesc_t livekit_pb_webhook_config_t_msg;
 #define LIVEKIT_PB_TRACK_INFO_FIELDS &livekit_pb_track_info_t_msg
 #define LIVEKIT_PB_VIDEO_LAYER_FIELDS &livekit_pb_video_layer_t_msg
 #define LIVEKIT_PB_DATA_PACKET_FIELDS &livekit_pb_data_packet_t_msg
-#define LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_FIELDS &livekit_pb_active_speaker_update_t_msg
+#define LIVEKIT_PB_ENCRYPTED_PACKET_FIELDS &livekit_pb_encrypted_packet_t_msg
+#define LIVEKIT_PB_ENCRYPTED_PACKET_PAYLOAD_FIELDS &livekit_pb_encrypted_packet_payload_t_msg
 #define LIVEKIT_PB_SPEAKER_INFO_FIELDS &livekit_pb_speaker_info_t_msg
 #define LIVEKIT_PB_USER_PACKET_FIELDS &livekit_pb_user_packet_t_msg
 #define LIVEKIT_PB_SIP_DTMF_FIELDS &livekit_pb_sip_dtmf_t_msg
@@ -1571,10 +1695,13 @@ extern const pb_msgdesc_t livekit_pb_webhook_config_t_msg;
 #define LIVEKIT_PB_DATA_STREAM_HEADER_FIELDS &livekit_pb_data_stream_header_t_msg
 #define LIVEKIT_PB_DATA_STREAM_CHUNK_FIELDS &livekit_pb_data_stream_chunk_t_msg
 #define LIVEKIT_PB_DATA_STREAM_TRAILER_FIELDS &livekit_pb_data_stream_trailer_t_msg
+#define LIVEKIT_PB_FILTER_PARAMS_FIELDS &livekit_pb_filter_params_t_msg
 #define LIVEKIT_PB_WEBHOOK_CONFIG_FIELDS &livekit_pb_webhook_config_t_msg
+#define LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_FIELDS &livekit_pb_subscribed_audio_codec_t_msg
 
 /* Maximum encoded size of messages (where known) */
 /* livekit_pb_Pagination_size depends on runtime parameters */
+/* livekit_pb_TokenPagination_size depends on runtime parameters */
 /* livekit_pb_ListUpdate_size depends on runtime parameters */
 /* livekit_pb_Room_size depends on runtime parameters */
 /* livekit_pb_Codec_size depends on runtime parameters */
@@ -1582,7 +1709,8 @@ extern const pb_msgdesc_t livekit_pb_webhook_config_t_msg;
 /* livekit_pb_SimulcastCodecInfo_size depends on runtime parameters */
 /* livekit_pb_TrackInfo_size depends on runtime parameters */
 /* livekit_pb_DataPacket_size depends on runtime parameters */
-/* livekit_pb_ActiveSpeakerUpdate_size depends on runtime parameters */
+/* livekit_pb_EncryptedPacket_size depends on runtime parameters */
+/* livekit_pb_EncryptedPacketPayload_size depends on runtime parameters */
 /* livekit_pb_SpeakerInfo_size depends on runtime parameters */
 /* livekit_pb_UserPacket_size depends on runtime parameters */
 /* livekit_pb_Transcription_size depends on runtime parameters */
@@ -1593,7 +1721,6 @@ extern const pb_msgdesc_t livekit_pb_webhook_config_t_msg;
 /* livekit_pb_RpcError_size depends on runtime parameters */
 /* livekit_pb_ParticipantTracks_size depends on runtime parameters */
 /* livekit_pb_ServerInfo_size depends on runtime parameters */
-/* livekit_pb_ClientInfo_size depends on runtime parameters */
 /* livekit_pb_DisabledCodecs_size depends on runtime parameters */
 /* livekit_pb_RTPStats_size depends on runtime parameters */
 /* livekit_pb_RTPForwarderState_size depends on runtime parameters */
@@ -1601,9 +1728,12 @@ extern const pb_msgdesc_t livekit_pb_webhook_config_t_msg;
 /* livekit_pb_DataStream_ByteHeader_size depends on runtime parameters */
 /* livekit_pb_DataStream_Header_size depends on runtime parameters */
 /* livekit_pb_DataStream_Chunk_size depends on runtime parameters */
+/* livekit_pb_FilterParams_size depends on runtime parameters */
 /* livekit_pb_WebhookConfig_size depends on runtime parameters */
+/* livekit_pb_SubscribedAudioCodec_size depends on runtime parameters */
 #define LIVEKIT_LIVEKIT_MODELS_PB_H_MAX_SIZE     LIVEKIT_PB_RTP_DRIFT_SIZE
 #define LIVEKIT_PB_CLIENT_CONFIGURATION_SIZE     4
+#define LIVEKIT_PB_CLIENT_INFO_SIZE              57
 #define LIVEKIT_PB_DATA_STREAM_SIZE              0
 #define LIVEKIT_PB_DATA_STREAM_TRAILER_SIZE      55
 #define LIVEKIT_PB_ENCRYPTION_SIZE               0
@@ -1635,6 +1765,7 @@ extern const pb_msgdesc_t livekit_pb_webhook_config_t_msg;
 #define livekit_SubscriptionError livekit_pb_SubscriptionError
 #define livekit_AudioTrackFeature livekit_pb_AudioTrackFeature
 #define livekit_Pagination livekit_pb_Pagination
+#define livekit_TokenPagination livekit_pb_TokenPagination
 #define livekit_ListUpdate livekit_pb_ListUpdate
 #define livekit_Room livekit_pb_Room
 #define livekit_Codec livekit_pb_Codec
@@ -1650,8 +1781,11 @@ extern const pb_msgdesc_t livekit_pb_webhook_config_t_msg;
 #define livekit_SimulcastCodecInfo livekit_pb_SimulcastCodecInfo
 #define livekit_TrackInfo livekit_pb_TrackInfo
 #define livekit_VideoLayer livekit_pb_VideoLayer
+#define livekit_VideoLayer_Mode livekit_pb_VideoLayer_Mode
 #define livekit_DataPacket livekit_pb_DataPacket
 #define livekit_DataPacket_Kind livekit_pb_DataPacket_Kind
+#define livekit_EncryptedPacket livekit_pb_EncryptedPacket
+#define livekit_EncryptedPacketPayload livekit_pb_EncryptedPacketPayload
 #define livekit_ActiveSpeakerUpdate livekit_pb_ActiveSpeakerUpdate
 #define livekit_SpeakerInfo livekit_pb_SpeakerInfo
 #define livekit_UserPacket livekit_pb_UserPacket
@@ -1688,7 +1822,9 @@ extern const pb_msgdesc_t livekit_pb_webhook_config_t_msg;
 #define livekit_DataStream_Chunk livekit_pb_DataStream_Chunk
 #define livekit_DataStream_Trailer livekit_pb_DataStream_Trailer
 #define livekit_DataStream_Trailer_AttributesEntry livekit_pb_DataStream_Trailer_AttributesEntry
+#define livekit_FilterParams livekit_pb_FilterParams
 #define livekit_WebhookConfig livekit_pb_WebhookConfig
+#define livekit_SubscribedAudioCodec livekit_pb_SubscribedAudioCodec
 #define _LIVEKIT_AUDIO_CODEC_MIN _LIVEKIT_PB_AUDIO_CODEC_MIN
 #define _LIVEKIT_AUDIO_CODEC_MAX _LIVEKIT_PB_AUDIO_CODEC_MAX
 #define _LIVEKIT_AUDIO_CODEC_ARRAYSIZE _LIVEKIT_PB_AUDIO_CODEC_ARRAYSIZE
@@ -1740,6 +1876,9 @@ extern const pb_msgdesc_t livekit_pb_webhook_config_t_msg;
 #define _LIVEKIT_ENCRYPTION_TYPE_MIN _LIVEKIT_PB_ENCRYPTION_TYPE_MIN
 #define _LIVEKIT_ENCRYPTION_TYPE_MAX _LIVEKIT_PB_ENCRYPTION_TYPE_MAX
 #define _LIVEKIT_ENCRYPTION_TYPE_ARRAYSIZE _LIVEKIT_PB_ENCRYPTION_TYPE_ARRAYSIZE
+#define _LIVEKIT_VIDEO_LAYER_MODE_MIN _LIVEKIT_PB_VIDEO_LAYER_MODE_MIN
+#define _LIVEKIT_VIDEO_LAYER_MODE_MAX _LIVEKIT_PB_VIDEO_LAYER_MODE_MAX
+#define _LIVEKIT_VIDEO_LAYER_MODE_ARRAYSIZE _LIVEKIT_PB_VIDEO_LAYER_MODE_ARRAYSIZE
 #define _LIVEKIT_DATA_PACKET_KIND_MIN _LIVEKIT_PB_DATA_PACKET_KIND_MIN
 #define _LIVEKIT_DATA_PACKET_KIND_MAX _LIVEKIT_PB_DATA_PACKET_KIND_MAX
 #define _LIVEKIT_DATA_PACKET_KIND_ARRAYSIZE _LIVEKIT_PB_DATA_PACKET_KIND_ARRAYSIZE
@@ -1753,6 +1892,7 @@ extern const pb_msgdesc_t livekit_pb_webhook_config_t_msg;
 #define _LIVEKIT_DATA_STREAM_OPERATION_TYPE_MAX _LIVEKIT_PB_DATA_STREAM_OPERATION_TYPE_MAX
 #define _LIVEKIT_DATA_STREAM_OPERATION_TYPE_ARRAYSIZE _LIVEKIT_PB_DATA_STREAM_OPERATION_TYPE_ARRAYSIZE
 #define LIVEKIT_PAGINATION_INIT_DEFAULT LIVEKIT_PB_PAGINATION_INIT_DEFAULT
+#define LIVEKIT_TOKEN_PAGINATION_INIT_DEFAULT LIVEKIT_PB_TOKEN_PAGINATION_INIT_DEFAULT
 #define LIVEKIT_LIST_UPDATE_INIT_DEFAULT LIVEKIT_PB_LIST_UPDATE_INIT_DEFAULT
 #define LIVEKIT_ROOM_INIT_DEFAULT LIVEKIT_PB_ROOM_INIT_DEFAULT
 #define LIVEKIT_CODEC_INIT_DEFAULT LIVEKIT_PB_CODEC_INIT_DEFAULT
@@ -1764,7 +1904,8 @@ extern const pb_msgdesc_t livekit_pb_webhook_config_t_msg;
 #define LIVEKIT_TRACK_INFO_INIT_DEFAULT LIVEKIT_PB_TRACK_INFO_INIT_DEFAULT
 #define LIVEKIT_VIDEO_LAYER_INIT_DEFAULT LIVEKIT_PB_VIDEO_LAYER_INIT_DEFAULT
 #define LIVEKIT_DATA_PACKET_INIT_DEFAULT LIVEKIT_PB_DATA_PACKET_INIT_DEFAULT
-#define LIVEKIT_ACTIVE_SPEAKER_UPDATE_INIT_DEFAULT LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_INIT_DEFAULT
+#define LIVEKIT_ENCRYPTED_PACKET_INIT_DEFAULT LIVEKIT_PB_ENCRYPTED_PACKET_INIT_DEFAULT
+#define LIVEKIT_ENCRYPTED_PACKET_PAYLOAD_INIT_DEFAULT LIVEKIT_PB_ENCRYPTED_PACKET_PAYLOAD_INIT_DEFAULT
 #define LIVEKIT_SPEAKER_INFO_INIT_DEFAULT LIVEKIT_PB_SPEAKER_INFO_INIT_DEFAULT
 #define LIVEKIT_USER_PACKET_INIT_DEFAULT LIVEKIT_PB_USER_PACKET_INIT_DEFAULT
 #define LIVEKIT_SIP_DTMF_INIT_DEFAULT LIVEKIT_PB_SIP_DTMF_INIT_DEFAULT
@@ -1795,8 +1936,11 @@ extern const pb_msgdesc_t livekit_pb_webhook_config_t_msg;
 #define LIVEKIT_DATA_STREAM_HEADER_INIT_DEFAULT LIVEKIT_PB_DATA_STREAM_HEADER_INIT_DEFAULT
 #define LIVEKIT_DATA_STREAM_CHUNK_INIT_DEFAULT LIVEKIT_PB_DATA_STREAM_CHUNK_INIT_DEFAULT
 #define LIVEKIT_DATA_STREAM_TRAILER_INIT_DEFAULT LIVEKIT_PB_DATA_STREAM_TRAILER_INIT_DEFAULT
+#define LIVEKIT_FILTER_PARAMS_INIT_DEFAULT LIVEKIT_PB_FILTER_PARAMS_INIT_DEFAULT
 #define LIVEKIT_WEBHOOK_CONFIG_INIT_DEFAULT LIVEKIT_PB_WEBHOOK_CONFIG_INIT_DEFAULT
+#define LIVEKIT_SUBSCRIBED_AUDIO_CODEC_INIT_DEFAULT LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_INIT_DEFAULT
 #define LIVEKIT_PAGINATION_INIT_ZERO LIVEKIT_PB_PAGINATION_INIT_ZERO
+#define LIVEKIT_TOKEN_PAGINATION_INIT_ZERO LIVEKIT_PB_TOKEN_PAGINATION_INIT_ZERO
 #define LIVEKIT_LIST_UPDATE_INIT_ZERO LIVEKIT_PB_LIST_UPDATE_INIT_ZERO
 #define LIVEKIT_ROOM_INIT_ZERO LIVEKIT_PB_ROOM_INIT_ZERO
 #define LIVEKIT_CODEC_INIT_ZERO LIVEKIT_PB_CODEC_INIT_ZERO
@@ -1808,7 +1952,8 @@ extern const pb_msgdesc_t livekit_pb_webhook_config_t_msg;
 #define LIVEKIT_TRACK_INFO_INIT_ZERO LIVEKIT_PB_TRACK_INFO_INIT_ZERO
 #define LIVEKIT_VIDEO_LAYER_INIT_ZERO LIVEKIT_PB_VIDEO_LAYER_INIT_ZERO
 #define LIVEKIT_DATA_PACKET_INIT_ZERO LIVEKIT_PB_DATA_PACKET_INIT_ZERO
-#define LIVEKIT_ACTIVE_SPEAKER_UPDATE_INIT_ZERO LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE_INIT_ZERO
+#define LIVEKIT_ENCRYPTED_PACKET_INIT_ZERO LIVEKIT_PB_ENCRYPTED_PACKET_INIT_ZERO
+#define LIVEKIT_ENCRYPTED_PACKET_PAYLOAD_INIT_ZERO LIVEKIT_PB_ENCRYPTED_PACKET_PAYLOAD_INIT_ZERO
 #define LIVEKIT_SPEAKER_INFO_INIT_ZERO LIVEKIT_PB_SPEAKER_INFO_INIT_ZERO
 #define LIVEKIT_USER_PACKET_INIT_ZERO LIVEKIT_PB_USER_PACKET_INIT_ZERO
 #define LIVEKIT_SIP_DTMF_INIT_ZERO LIVEKIT_PB_SIP_DTMF_INIT_ZERO
@@ -1839,7 +1984,9 @@ extern const pb_msgdesc_t livekit_pb_webhook_config_t_msg;
 #define LIVEKIT_DATA_STREAM_HEADER_INIT_ZERO LIVEKIT_PB_DATA_STREAM_HEADER_INIT_ZERO
 #define LIVEKIT_DATA_STREAM_CHUNK_INIT_ZERO LIVEKIT_PB_DATA_STREAM_CHUNK_INIT_ZERO
 #define LIVEKIT_DATA_STREAM_TRAILER_INIT_ZERO LIVEKIT_PB_DATA_STREAM_TRAILER_INIT_ZERO
+#define LIVEKIT_FILTER_PARAMS_INIT_ZERO LIVEKIT_PB_FILTER_PARAMS_INIT_ZERO
 #define LIVEKIT_WEBHOOK_CONFIG_INIT_ZERO LIVEKIT_PB_WEBHOOK_CONFIG_INIT_ZERO
+#define LIVEKIT_SUBSCRIBED_AUDIO_CODEC_INIT_ZERO LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_INIT_ZERO
 
 #ifdef __cplusplus
 } /* extern "C" */

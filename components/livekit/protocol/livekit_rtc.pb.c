@@ -93,6 +93,9 @@ PB_BIND(LIVEKIT_PB_SUBSCRIBED_CODEC, livekit_pb_subscribed_codec_t, AUTO)
 PB_BIND(LIVEKIT_PB_SUBSCRIBED_QUALITY_UPDATE, livekit_pb_subscribed_quality_update_t, AUTO)
 
 
+PB_BIND(LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_UPDATE, livekit_pb_subscribed_audio_codec_update_t, AUTO)
+
+
 PB_BIND(LIVEKIT_PB_TRACK_PERMISSION, livekit_pb_track_permission_t, AUTO)
 
 
@@ -136,6 +139,20 @@ PB_BIND(LIVEKIT_PB_REQUEST_RESPONSE, livekit_pb_request_response_t, AUTO)
 
 
 PB_BIND(LIVEKIT_PB_TRACK_SUBSCRIBED, livekit_pb_track_subscribed_t, AUTO)
+
+
+PB_BIND(LIVEKIT_PB_CONNECTION_SETTINGS, livekit_pb_connection_settings_t, AUTO)
+
+
+PB_BIND(LIVEKIT_PB_JOIN_REQUEST, livekit_pb_join_request_t, AUTO)
+
+
+PB_BIND(LIVEKIT_PB_WRAPPED_JOIN_REQUEST, livekit_pb_wrapped_join_request_t, AUTO)
+
+
+PB_BIND(LIVEKIT_PB_MEDIA_SECTIONS_REQUIREMENT, livekit_pb_media_sections_requirement_t, AUTO)
+
+
 
 
 

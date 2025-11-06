@@ -53,7 +53,7 @@ message MetricsBatch {
   // This is useful for storing participant identities, track names, etc.
   // There is also a predefined list of labels that can be used to reference common metrics.
   // They have reserved indices from 0 to (METRIC_LABEL_PREDEFINED_MAX_VALUE - 1).
-  // Indexes pointing at str_data should start from METRIC_LABEL_PREDEFINED_MAX_VALUE, 
+  // Indexes pointing at str_data should start from METRIC_LABEL_PREDEFINED_MAX_VALUE,
   // such that str_data[0] == index of METRIC_LABEL_PREDEFINED_MAX_VALUE.
   repeated string str_data = 3;
   repeated TimeSeriesMetric time_series = 4;
@@ -86,4 +86,9 @@ message EventMetric {
   optional google.protobuf.Timestamp normalized_end_timestamp = 7;
   string metadata = 8;
   uint32 rid = 9; // index into 'str_data'
+}
+
+message MetricsRecordingHeader {
+  string room_id = 1;
+  optional bool enable_user_data_training = 2;
 }

@@ -38,13 +38,23 @@ typedef enum livekit_pb_request_response_reason {
     LIVEKIT_PB_REQUEST_RESPONSE_REASON_OK = 0,
     LIVEKIT_PB_REQUEST_RESPONSE_REASON_NOT_FOUND = 1,
     LIVEKIT_PB_REQUEST_RESPONSE_REASON_NOT_ALLOWED = 2,
-    LIVEKIT_PB_REQUEST_RESPONSE_REASON_LIMIT_EXCEEDED = 3
+    LIVEKIT_PB_REQUEST_RESPONSE_REASON_LIMIT_EXCEEDED = 3,
+    LIVEKIT_PB_REQUEST_RESPONSE_REASON_QUEUED = 4,
+    LIVEKIT_PB_REQUEST_RESPONSE_REASON_UNSUPPORTED_TYPE = 5,
+    LIVEKIT_PB_REQUEST_RESPONSE_REASON_UNCLASSIFIED_ERROR = 6
 } livekit_pb_request_response_reason_t;
+
+typedef enum livekit_pb_wrapped_join_request_compression {
+    LIVEKIT_PB_WRAPPED_JOIN_REQUEST_COMPRESSION_NONE = 0,
+    LIVEKIT_PB_WRAPPED_JOIN_REQUEST_COMPRESSION_GZIP = 1
+} livekit_pb_wrapped_join_request_compression_t;
 
 /* Struct definitions */
 typedef struct livekit_pb_simulcast_codec {
     pb_callback_t codec;
     pb_callback_t cid;
+    pb_callback_t layers;
+    livekit_pb_video_layer_mode_t video_layer_mode;
 } livekit_pb_simulcast_codec_t;
 
 typedef struct livekit_pb_add_track_request {
@@ -52,7 +62,6 @@ typedef struct livekit_pb_add_track_request {
     char cid[3];
     char name[16];
     livekit_pb_track_type_t type;
-    /* to be deprecated in favor of layers */
     uint32_t width;
     uint32_t height;
     /* true to add track and initialize to muted */
@@ -229,6 +238,11 @@ typedef struct livekit_pb_subscribed_quality_update {
     pb_callback_t subscribed_codecs;
 } livekit_pb_subscribed_quality_update_t;
 
+typedef struct livekit_pb_subscribed_audio_codec_update {
+    pb_callback_t track_sid;
+    pb_callback_t subscribed_audio_codecs;
+} livekit_pb_subscribed_audio_codec_update_t;
+
 typedef struct livekit_pb_track_permission {
     /* permission could be granted either by participant sid or identity */
     pb_callback_t participant_sid;
@@ -260,14 +274,18 @@ typedef struct livekit_pb_room_moved_response {
 } livekit_pb_room_moved_response_t;
 
 typedef struct livekit_pb_sync_state {
-    /* last subscribe answer before reconnecting */
+    /* last subscribe/publish answer before reconnecting
+ subscribe answer if using dual peer connection
+ publish answer if using single peer connection */
     bool has_answer;
     livekit_pb_session_description_t answer;
     bool has_subscription;
     livekit_pb_update_subscription_t subscription;
     pb_callback_t publish_tracks;
     pb_callback_t data_channels;
-    /* last received server side offer before reconnecting */
+    /* last received server side offer/sent client side offer before reconnecting
+ received server side offer if using dual peer connection
+ sent client side offer if using single peer connection */
     bool has_offer;
     livekit_pb_session_description_t offer;
     pb_callback_t track_sids_disabled;
@@ -319,9 +337,9 @@ typedef struct livekit_pb_ping {
 typedef struct livekit_pb_signal_request {
     pb_size_t which_message;
     union {
-        /* initial join exchange, for publisher */
+        /* participant offer for publisher */
         livekit_pb_session_description_t offer;
-        /* participant answering publisher offer */
+        /* participant answering subscriber offer */
         livekit_pb_session_description_t answer;
         livekit_pb_trickle_request_t trickle;
         livekit_pb_add_track_request_t add_track;
@@ -401,11 +419,48 @@ typedef struct livekit_pb_request_response {
     uint32_t request_id;
     livekit_pb_request_response_reason_t reason;
     pb_callback_t message;
+    pb_size_t which_request;
+    union {
+        livekit_pb_trickle_request_t trickle;
+        livekit_pb_add_track_request_t add_track;
+        livekit_pb_mute_track_request_t mute;
+        livekit_pb_update_participant_metadata_t update_metadata;
+        livekit_pb_update_local_audio_track_t update_audio_track;
+        livekit_pb_update_local_video_track_t update_video_track;
+    } request;
 } livekit_pb_request_response_t;
 
 typedef struct livekit_pb_track_subscribed {
     char dummy_field;
 } livekit_pb_track_subscribed_t;
+
+typedef struct livekit_pb_connection_settings {
+    bool auto_subscribe;
+    bool adaptive_stream;
+    bool has_subscriber_allow_pause;
+    bool subscriber_allow_pause;
+    bool disable_ice_lite;
+} livekit_pb_connection_settings_t;
+
+typedef struct livekit_pb_join_request {
+    bool has_client_info;
+    livekit_pb_client_info_t client_info;
+    bool has_connection_settings;
+    livekit_pb_connection_settings_t connection_settings;
+    pb_callback_t add_track_requests;
+    bool has_publisher_offer;
+    livekit_pb_session_description_t publisher_offer;
+} livekit_pb_join_request_t;
+
+typedef struct livekit_pb_wrapped_join_request {
+    livekit_pb_wrapped_join_request_compression_t compression;
+    pb_callback_t join_request; /* marshalled JoinRequest + potentially compressed */
+} livekit_pb_wrapped_join_request_t;
+
+typedef struct livekit_pb_media_sections_requirement {
+    uint32_t num_audios;
+    uint32_t num_videos;
+} livekit_pb_media_sections_requirement_t;
 
 
 #ifdef __cplusplus
@@ -430,11 +485,16 @@ extern "C" {
 #define _LIVEKIT_PB_LEAVE_REQUEST_ACTION_ARRAYSIZE ((livekit_pb_leave_request_action_t)(LIVEKIT_PB_LEAVE_REQUEST_ACTION_RECONNECT+1))
 
 #define _LIVEKIT_PB_REQUEST_RESPONSE_REASON_MIN LIVEKIT_PB_REQUEST_RESPONSE_REASON_OK
-#define _LIVEKIT_PB_REQUEST_RESPONSE_REASON_MAX LIVEKIT_PB_REQUEST_RESPONSE_REASON_LIMIT_EXCEEDED
-#define _LIVEKIT_PB_REQUEST_RESPONSE_REASON_ARRAYSIZE ((livekit_pb_request_response_reason_t)(LIVEKIT_PB_REQUEST_RESPONSE_REASON_LIMIT_EXCEEDED+1))
+#define _LIVEKIT_PB_REQUEST_RESPONSE_REASON_MAX LIVEKIT_PB_REQUEST_RESPONSE_REASON_UNCLASSIFIED_ERROR
+#define _LIVEKIT_PB_REQUEST_RESPONSE_REASON_ARRAYSIZE ((livekit_pb_request_response_reason_t)(LIVEKIT_PB_REQUEST_RESPONSE_REASON_UNCLASSIFIED_ERROR+1))
+
+#define _LIVEKIT_PB_WRAPPED_JOIN_REQUEST_COMPRESSION_MIN LIVEKIT_PB_WRAPPED_JOIN_REQUEST_COMPRESSION_NONE
+#define _LIVEKIT_PB_WRAPPED_JOIN_REQUEST_COMPRESSION_MAX LIVEKIT_PB_WRAPPED_JOIN_REQUEST_COMPRESSION_GZIP
+#define _LIVEKIT_PB_WRAPPED_JOIN_REQUEST_COMPRESSION_ARRAYSIZE ((livekit_pb_wrapped_join_request_compression_t)(LIVEKIT_PB_WRAPPED_JOIN_REQUEST_COMPRESSION_GZIP+1))
 
 
 
+#define livekit_pb_simulcast_codec_t_video_layer_mode_ENUMTYPE livekit_pb_video_layer_mode_t
 
 #define livekit_pb_add_track_request_t_type_ENUMTYPE livekit_pb_track_type_t
 #define livekit_pb_add_track_request_t_source_ENUMTYPE livekit_pb_track_source_t
@@ -480,6 +540,7 @@ extern "C" {
 
 
 
+
 #define livekit_pb_data_channel_info_t_target_ENUMTYPE livekit_pb_signal_target_t
 
 #define livekit_pb_simulate_scenario_t_scenario_switch_candidate_protocol_ENUMTYPE livekit_pb_candidate_protocol_t
@@ -494,10 +555,15 @@ extern "C" {
 
 
 
+
+#define livekit_pb_wrapped_join_request_t_compression_ENUMTYPE livekit_pb_wrapped_join_request_compression_t
+
+
+
 /* Initializer values for message structs */
 #define LIVEKIT_PB_SIGNAL_REQUEST_INIT_DEFAULT   {0, {LIVEKIT_PB_SESSION_DESCRIPTION_INIT_DEFAULT}}
 #define LIVEKIT_PB_SIGNAL_RESPONSE_INIT_DEFAULT  {0, {LIVEKIT_PB_JOIN_RESPONSE_INIT_DEFAULT}}
-#define LIVEKIT_PB_SIMULCAST_CODEC_INIT_DEFAULT  {{{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_SIMULCAST_CODEC_INIT_DEFAULT  {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, _LIVEKIT_PB_VIDEO_LAYER_MODE_MIN}
 #define LIVEKIT_PB_ADD_TRACK_REQUEST_INIT_DEFAULT {"", "", _LIVEKIT_PB_TRACK_TYPE_MIN, 0, 0, 0, _LIVEKIT_PB_TRACK_SOURCE_MIN, 0, {LIVEKIT_PB_VIDEO_LAYER_INIT_DEFAULT}, _LIVEKIT_PB_BACKUP_CODEC_POLICY_MIN, 0, {_LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN}}
 #define LIVEKIT_PB_TRICKLE_REQUEST_INIT_DEFAULT  {NULL, _LIVEKIT_PB_SIGNAL_TARGET_MIN, 0}
 #define LIVEKIT_PB_MUTE_TRACK_REQUEST_INIT_DEFAULT {{{NULL}, NULL}, 0}
@@ -524,6 +590,7 @@ extern "C" {
 #define LIVEKIT_PB_SUBSCRIBED_QUALITY_INIT_DEFAULT {_LIVEKIT_PB_VIDEO_QUALITY_MIN, 0}
 #define LIVEKIT_PB_SUBSCRIBED_CODEC_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_SUBSCRIBED_QUALITY_UPDATE_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_UPDATE_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_TRACK_PERMISSION_INIT_DEFAULT {{{NULL}, NULL}, 0, {{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_SUBSCRIPTION_PERMISSION_INIT_DEFAULT {0, {{NULL}, NULL}}
 #define LIVEKIT_PB_SUBSCRIPTION_PERMISSION_UPDATE_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}, 0}
@@ -537,11 +604,15 @@ extern "C" {
 #define LIVEKIT_PB_REGION_SETTINGS_INIT_DEFAULT  {{{NULL}, NULL}}
 #define LIVEKIT_PB_REGION_INFO_INIT_DEFAULT      {{{NULL}, NULL}, {{NULL}, NULL}, 0}
 #define LIVEKIT_PB_SUBSCRIPTION_RESPONSE_INIT_DEFAULT {{{NULL}, NULL}, _LIVEKIT_PB_SUBSCRIPTION_ERROR_MIN}
-#define LIVEKIT_PB_REQUEST_RESPONSE_INIT_DEFAULT {0, _LIVEKIT_PB_REQUEST_RESPONSE_REASON_MIN, {{NULL}, NULL}}
+#define LIVEKIT_PB_REQUEST_RESPONSE_INIT_DEFAULT {0, _LIVEKIT_PB_REQUEST_RESPONSE_REASON_MIN, {{NULL}, NULL}, 0, {LIVEKIT_PB_TRICKLE_REQUEST_INIT_DEFAULT}}
 #define LIVEKIT_PB_TRACK_SUBSCRIBED_INIT_DEFAULT {0}
+#define LIVEKIT_PB_CONNECTION_SETTINGS_INIT_DEFAULT {0, 0, false, 0, 0}
+#define LIVEKIT_PB_JOIN_REQUEST_INIT_DEFAULT     {false, LIVEKIT_PB_CLIENT_INFO_INIT_DEFAULT, false, LIVEKIT_PB_CONNECTION_SETTINGS_INIT_DEFAULT, {{NULL}, NULL}, false, LIVEKIT_PB_SESSION_DESCRIPTION_INIT_DEFAULT}
+#define LIVEKIT_PB_WRAPPED_JOIN_REQUEST_INIT_DEFAULT {_LIVEKIT_PB_WRAPPED_JOIN_REQUEST_COMPRESSION_MIN, {{NULL}, NULL}}
+#define LIVEKIT_PB_MEDIA_SECTIONS_REQUIREMENT_INIT_DEFAULT {0, 0}
 #define LIVEKIT_PB_SIGNAL_REQUEST_INIT_ZERO      {0, {LIVEKIT_PB_SESSION_DESCRIPTION_INIT_ZERO}}
 #define LIVEKIT_PB_SIGNAL_RESPONSE_INIT_ZERO     {0, {LIVEKIT_PB_JOIN_RESPONSE_INIT_ZERO}}
-#define LIVEKIT_PB_SIMULCAST_CODEC_INIT_ZERO     {{{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_SIMULCAST_CODEC_INIT_ZERO     {{{NULL}, NULL}, {{NULL}, NULL}, {{NULL}, NULL}, _LIVEKIT_PB_VIDEO_LAYER_MODE_MIN}
 #define LIVEKIT_PB_ADD_TRACK_REQUEST_INIT_ZERO   {"", "", _LIVEKIT_PB_TRACK_TYPE_MIN, 0, 0, 0, _LIVEKIT_PB_TRACK_SOURCE_MIN, 0, {LIVEKIT_PB_VIDEO_LAYER_INIT_ZERO}, _LIVEKIT_PB_BACKUP_CODEC_POLICY_MIN, 0, {_LIVEKIT_PB_AUDIO_TRACK_FEATURE_MIN}}
 #define LIVEKIT_PB_TRICKLE_REQUEST_INIT_ZERO     {NULL, _LIVEKIT_PB_SIGNAL_TARGET_MIN, 0}
 #define LIVEKIT_PB_MUTE_TRACK_REQUEST_INIT_ZERO  {{{NULL}, NULL}, 0}
@@ -568,6 +639,7 @@ extern "C" {
 #define LIVEKIT_PB_SUBSCRIBED_QUALITY_INIT_ZERO  {_LIVEKIT_PB_VIDEO_QUALITY_MIN, 0}
 #define LIVEKIT_PB_SUBSCRIBED_CODEC_INIT_ZERO    {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_SUBSCRIBED_QUALITY_UPDATE_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}}
+#define LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_UPDATE_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_TRACK_PERMISSION_INIT_ZERO    {{{NULL}, NULL}, 0, {{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_SUBSCRIPTION_PERMISSION_INIT_ZERO {0, {{NULL}, NULL}}
 #define LIVEKIT_PB_SUBSCRIPTION_PERMISSION_UPDATE_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}, 0}
@@ -581,12 +653,18 @@ extern "C" {
 #define LIVEKIT_PB_REGION_SETTINGS_INIT_ZERO     {{{NULL}, NULL}}
 #define LIVEKIT_PB_REGION_INFO_INIT_ZERO         {{{NULL}, NULL}, {{NULL}, NULL}, 0}
 #define LIVEKIT_PB_SUBSCRIPTION_RESPONSE_INIT_ZERO {{{NULL}, NULL}, _LIVEKIT_PB_SUBSCRIPTION_ERROR_MIN}
-#define LIVEKIT_PB_REQUEST_RESPONSE_INIT_ZERO    {0, _LIVEKIT_PB_REQUEST_RESPONSE_REASON_MIN, {{NULL}, NULL}}
+#define LIVEKIT_PB_REQUEST_RESPONSE_INIT_ZERO    {0, _LIVEKIT_PB_REQUEST_RESPONSE_REASON_MIN, {{NULL}, NULL}, 0, {LIVEKIT_PB_TRICKLE_REQUEST_INIT_ZERO}}
 #define LIVEKIT_PB_TRACK_SUBSCRIBED_INIT_ZERO    {0}
+#define LIVEKIT_PB_CONNECTION_SETTINGS_INIT_ZERO {0, 0, false, 0, 0}
+#define LIVEKIT_PB_JOIN_REQUEST_INIT_ZERO        {false, LIVEKIT_PB_CLIENT_INFO_INIT_ZERO, false, LIVEKIT_PB_CONNECTION_SETTINGS_INIT_ZERO, {{NULL}, NULL}, false, LIVEKIT_PB_SESSION_DESCRIPTION_INIT_ZERO}
+#define LIVEKIT_PB_WRAPPED_JOIN_REQUEST_INIT_ZERO {_LIVEKIT_PB_WRAPPED_JOIN_REQUEST_COMPRESSION_MIN, {{NULL}, NULL}}
+#define LIVEKIT_PB_MEDIA_SECTIONS_REQUIREMENT_INIT_ZERO {0, 0}
 
 /* Field tags (for use in manual encoding/decoding) */
 #define LIVEKIT_PB_SIMULCAST_CODEC_CODEC_TAG     1
 #define LIVEKIT_PB_SIMULCAST_CODEC_CID_TAG       2
+#define LIVEKIT_PB_SIMULCAST_CODEC_LAYERS_TAG    4
+#define LIVEKIT_PB_SIMULCAST_CODEC_VIDEO_LAYER_MODE_TAG 5
 #define LIVEKIT_PB_ADD_TRACK_REQUEST_CID_TAG     1
 #define LIVEKIT_PB_ADD_TRACK_REQUEST_NAME_TAG    2
 #define LIVEKIT_PB_ADD_TRACK_REQUEST_TYPE_TAG    3
@@ -660,6 +738,8 @@ extern "C" {
 #define LIVEKIT_PB_SUBSCRIBED_CODEC_QUALITIES_TAG 2
 #define LIVEKIT_PB_SUBSCRIBED_QUALITY_UPDATE_TRACK_SID_TAG 1
 #define LIVEKIT_PB_SUBSCRIBED_QUALITY_UPDATE_SUBSCRIBED_CODECS_TAG 3
+#define LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_UPDATE_TRACK_SID_TAG 1
+#define LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_UPDATE_SUBSCRIBED_AUDIO_CODECS_TAG 2
 #define LIVEKIT_PB_TRACK_PERMISSION_PARTICIPANT_SID_TAG 1
 #define LIVEKIT_PB_TRACK_PERMISSION_ALL_TRACKS_TAG 2
 #define LIVEKIT_PB_TRACK_PERMISSION_TRACK_SIDS_TAG 3
@@ -732,6 +812,24 @@ extern "C" {
 #define LIVEKIT_PB_REQUEST_RESPONSE_REQUEST_ID_TAG 1
 #define LIVEKIT_PB_REQUEST_RESPONSE_REASON_TAG   2
 #define LIVEKIT_PB_REQUEST_RESPONSE_MESSAGE_TAG  3
+#define LIVEKIT_PB_REQUEST_RESPONSE_TRICKLE_TAG  4
+#define LIVEKIT_PB_REQUEST_RESPONSE_ADD_TRACK_TAG 5
+#define LIVEKIT_PB_REQUEST_RESPONSE_MUTE_TAG     6
+#define LIVEKIT_PB_REQUEST_RESPONSE_UPDATE_METADATA_TAG 7
+#define LIVEKIT_PB_REQUEST_RESPONSE_UPDATE_AUDIO_TRACK_TAG 8
+#define LIVEKIT_PB_REQUEST_RESPONSE_UPDATE_VIDEO_TRACK_TAG 9
+#define LIVEKIT_PB_CONNECTION_SETTINGS_AUTO_SUBSCRIBE_TAG 1
+#define LIVEKIT_PB_CONNECTION_SETTINGS_ADAPTIVE_STREAM_TAG 2
+#define LIVEKIT_PB_CONNECTION_SETTINGS_SUBSCRIBER_ALLOW_PAUSE_TAG 3
+#define LIVEKIT_PB_CONNECTION_SETTINGS_DISABLE_ICE_LITE_TAG 4
+#define LIVEKIT_PB_JOIN_REQUEST_CLIENT_INFO_TAG  1
+#define LIVEKIT_PB_JOIN_REQUEST_CONNECTION_SETTINGS_TAG 2
+#define LIVEKIT_PB_JOIN_REQUEST_ADD_TRACK_REQUESTS_TAG 5
+#define LIVEKIT_PB_JOIN_REQUEST_PUBLISHER_OFFER_TAG 6
+#define LIVEKIT_PB_WRAPPED_JOIN_REQUEST_COMPRESSION_TAG 1
+#define LIVEKIT_PB_WRAPPED_JOIN_REQUEST_JOIN_REQUEST_TAG 2
+#define LIVEKIT_PB_MEDIA_SECTIONS_REQUIREMENT_NUM_AUDIOS_TAG 1
+#define LIVEKIT_PB_MEDIA_SECTIONS_REQUIREMENT_NUM_VIDEOS_TAG 2
 
 /* Struct field encoding specification for nanopb */
 #define LIVEKIT_PB_SIGNAL_REQUEST_FIELDLIST(X, a) \
@@ -792,9 +890,12 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (message,pong_resp,message.pong_resp),  20)
 
 #define LIVEKIT_PB_SIMULCAST_CODEC_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   codec,             1) \
-X(a, CALLBACK, SINGULAR, STRING,   cid,               2)
+X(a, CALLBACK, SINGULAR, STRING,   cid,               2) \
+X(a, CALLBACK, REPEATED, MESSAGE,  layers,            4) \
+X(a, STATIC,   SINGULAR, UENUM,    video_layer_mode,   5)
 #define LIVEKIT_PB_SIMULCAST_CODEC_CALLBACK pb_default_field_callback
 #define LIVEKIT_PB_SIMULCAST_CODEC_DEFAULT NULL
+#define livekit_pb_simulcast_codec_t_layers_MSGTYPE livekit_pb_video_layer_t
 
 #define LIVEKIT_PB_ADD_TRACK_REQUEST_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, STRING,   cid,               1) \
@@ -991,6 +1092,13 @@ X(a, CALLBACK, REPEATED, MESSAGE,  subscribed_codecs,   3)
 #define LIVEKIT_PB_SUBSCRIBED_QUALITY_UPDATE_DEFAULT NULL
 #define livekit_pb_subscribed_quality_update_t_subscribed_codecs_MSGTYPE livekit_pb_subscribed_codec_t
 
+#define LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_UPDATE_FIELDLIST(X, a) \
+X(a, CALLBACK, SINGULAR, STRING,   track_sid,         1) \
+X(a, CALLBACK, REPEATED, MESSAGE,  subscribed_audio_codecs,   2)
+#define LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_UPDATE_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_UPDATE_DEFAULT NULL
+#define livekit_pb_subscribed_audio_codec_update_t_subscribed_audio_codecs_MSGTYPE livekit_pb_subscribed_audio_codec_t
+
 #define LIVEKIT_PB_TRACK_PERMISSION_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, STRING,   participant_sid,   1) \
 X(a, STATIC,   SINGULAR, BOOL,     all_tracks,        2) \
@@ -1101,14 +1209,58 @@ X(a, STATIC,   SINGULAR, UENUM,    err,               2)
 #define LIVEKIT_PB_REQUEST_RESPONSE_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UINT32,   request_id,        1) \
 X(a, STATIC,   SINGULAR, UENUM,    reason,            2) \
-X(a, CALLBACK, SINGULAR, STRING,   message,           3)
+X(a, CALLBACK, SINGULAR, STRING,   message,           3) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (request,trickle,request.trickle),   4) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (request,add_track,request.add_track),   5) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (request,mute,request.mute),   6) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (request,update_metadata,request.update_metadata),   7) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (request,update_audio_track,request.update_audio_track),   8) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (request,update_video_track,request.update_video_track),   9)
 #define LIVEKIT_PB_REQUEST_RESPONSE_CALLBACK pb_default_field_callback
 #define LIVEKIT_PB_REQUEST_RESPONSE_DEFAULT NULL
+#define livekit_pb_request_response_t_request_trickle_MSGTYPE livekit_pb_trickle_request_t
+#define livekit_pb_request_response_t_request_add_track_MSGTYPE livekit_pb_add_track_request_t
+#define livekit_pb_request_response_t_request_mute_MSGTYPE livekit_pb_mute_track_request_t
+#define livekit_pb_request_response_t_request_update_metadata_MSGTYPE livekit_pb_update_participant_metadata_t
+#define livekit_pb_request_response_t_request_update_audio_track_MSGTYPE livekit_pb_update_local_audio_track_t
+#define livekit_pb_request_response_t_request_update_video_track_MSGTYPE livekit_pb_update_local_video_track_t
 
 #define LIVEKIT_PB_TRACK_SUBSCRIBED_FIELDLIST(X, a) \
 
 #define LIVEKIT_PB_TRACK_SUBSCRIBED_CALLBACK NULL
 #define LIVEKIT_PB_TRACK_SUBSCRIBED_DEFAULT NULL
+
+#define LIVEKIT_PB_CONNECTION_SETTINGS_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, BOOL,     auto_subscribe,    1) \
+X(a, STATIC,   SINGULAR, BOOL,     adaptive_stream,   2) \
+X(a, STATIC,   OPTIONAL, BOOL,     subscriber_allow_pause,   3) \
+X(a, STATIC,   SINGULAR, BOOL,     disable_ice_lite,   4)
+#define LIVEKIT_PB_CONNECTION_SETTINGS_CALLBACK NULL
+#define LIVEKIT_PB_CONNECTION_SETTINGS_DEFAULT NULL
+
+#define LIVEKIT_PB_JOIN_REQUEST_FIELDLIST(X, a) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  client_info,       1) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  connection_settings,   2) \
+X(a, CALLBACK, REPEATED, MESSAGE,  add_track_requests,   5) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  publisher_offer,   6)
+#define LIVEKIT_PB_JOIN_REQUEST_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_JOIN_REQUEST_DEFAULT NULL
+#define livekit_pb_join_request_t_client_info_MSGTYPE livekit_pb_client_info_t
+#define livekit_pb_join_request_t_connection_settings_MSGTYPE livekit_pb_connection_settings_t
+#define livekit_pb_join_request_t_add_track_requests_MSGTYPE livekit_pb_add_track_request_t
+#define livekit_pb_join_request_t_publisher_offer_MSGTYPE livekit_pb_session_description_t
+
+#define LIVEKIT_PB_WRAPPED_JOIN_REQUEST_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, UENUM,    compression,       1) \
+X(a, CALLBACK, SINGULAR, BYTES,    join_request,      2)
+#define LIVEKIT_PB_WRAPPED_JOIN_REQUEST_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_WRAPPED_JOIN_REQUEST_DEFAULT NULL
+
+#define LIVEKIT_PB_MEDIA_SECTIONS_REQUIREMENT_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, UINT32,   num_audios,        1) \
+X(a, STATIC,   SINGULAR, UINT32,   num_videos,        2)
+#define LIVEKIT_PB_MEDIA_SECTIONS_REQUIREMENT_CALLBACK NULL
+#define LIVEKIT_PB_MEDIA_SECTIONS_REQUIREMENT_DEFAULT NULL
 
 extern const pb_msgdesc_t livekit_pb_signal_request_t_msg;
 extern const pb_msgdesc_t livekit_pb_signal_response_t_msg;
@@ -1139,6 +1291,7 @@ extern const pb_msgdesc_t livekit_pb_stream_state_update_t_msg;
 extern const pb_msgdesc_t livekit_pb_subscribed_quality_t_msg;
 extern const pb_msgdesc_t livekit_pb_subscribed_codec_t_msg;
 extern const pb_msgdesc_t livekit_pb_subscribed_quality_update_t_msg;
+extern const pb_msgdesc_t livekit_pb_subscribed_audio_codec_update_t_msg;
 extern const pb_msgdesc_t livekit_pb_track_permission_t_msg;
 extern const pb_msgdesc_t livekit_pb_subscription_permission_t_msg;
 extern const pb_msgdesc_t livekit_pb_subscription_permission_update_t_msg;
@@ -1154,6 +1307,10 @@ extern const pb_msgdesc_t livekit_pb_region_info_t_msg;
 extern const pb_msgdesc_t livekit_pb_subscription_response_t_msg;
 extern const pb_msgdesc_t livekit_pb_request_response_t_msg;
 extern const pb_msgdesc_t livekit_pb_track_subscribed_t_msg;
+extern const pb_msgdesc_t livekit_pb_connection_settings_t_msg;
+extern const pb_msgdesc_t livekit_pb_join_request_t_msg;
+extern const pb_msgdesc_t livekit_pb_wrapped_join_request_t_msg;
+extern const pb_msgdesc_t livekit_pb_media_sections_requirement_t_msg;
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
 #define LIVEKIT_PB_SIGNAL_REQUEST_FIELDS &livekit_pb_signal_request_t_msg
@@ -1185,6 +1342,7 @@ extern const pb_msgdesc_t livekit_pb_track_subscribed_t_msg;
 #define LIVEKIT_PB_SUBSCRIBED_QUALITY_FIELDS &livekit_pb_subscribed_quality_t_msg
 #define LIVEKIT_PB_SUBSCRIBED_CODEC_FIELDS &livekit_pb_subscribed_codec_t_msg
 #define LIVEKIT_PB_SUBSCRIBED_QUALITY_UPDATE_FIELDS &livekit_pb_subscribed_quality_update_t_msg
+#define LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_UPDATE_FIELDS &livekit_pb_subscribed_audio_codec_update_t_msg
 #define LIVEKIT_PB_TRACK_PERMISSION_FIELDS &livekit_pb_track_permission_t_msg
 #define LIVEKIT_PB_SUBSCRIPTION_PERMISSION_FIELDS &livekit_pb_subscription_permission_t_msg
 #define LIVEKIT_PB_SUBSCRIPTION_PERMISSION_UPDATE_FIELDS &livekit_pb_subscription_permission_update_t_msg
@@ -1200,6 +1358,10 @@ extern const pb_msgdesc_t livekit_pb_track_subscribed_t_msg;
 #define LIVEKIT_PB_SUBSCRIPTION_RESPONSE_FIELDS &livekit_pb_subscription_response_t_msg
 #define LIVEKIT_PB_REQUEST_RESPONSE_FIELDS &livekit_pb_request_response_t_msg
 #define LIVEKIT_PB_TRACK_SUBSCRIBED_FIELDS &livekit_pb_track_subscribed_t_msg
+#define LIVEKIT_PB_CONNECTION_SETTINGS_FIELDS &livekit_pb_connection_settings_t_msg
+#define LIVEKIT_PB_JOIN_REQUEST_FIELDS &livekit_pb_join_request_t_msg
+#define LIVEKIT_PB_WRAPPED_JOIN_REQUEST_FIELDS &livekit_pb_wrapped_join_request_t_msg
+#define LIVEKIT_PB_MEDIA_SECTIONS_REQUIREMENT_FIELDS &livekit_pb_media_sections_requirement_t_msg
 
 /* Maximum encoded size of messages (where known) */
 /* livekit_pb_SignalRequest_size depends on runtime parameters */
@@ -1226,6 +1388,7 @@ extern const pb_msgdesc_t livekit_pb_track_subscribed_t_msg;
 /* livekit_pb_StreamStateUpdate_size depends on runtime parameters */
 /* livekit_pb_SubscribedCodec_size depends on runtime parameters */
 /* livekit_pb_SubscribedQualityUpdate_size depends on runtime parameters */
+/* livekit_pb_SubscribedAudioCodecUpdate_size depends on runtime parameters */
 /* livekit_pb_TrackPermission_size depends on runtime parameters */
 /* livekit_pb_SubscriptionPermission_size depends on runtime parameters */
 /* livekit_pb_SubscriptionPermissionUpdate_size depends on runtime parameters */
@@ -1237,9 +1400,13 @@ extern const pb_msgdesc_t livekit_pb_track_subscribed_t_msg;
 /* livekit_pb_RegionInfo_size depends on runtime parameters */
 /* livekit_pb_SubscriptionResponse_size depends on runtime parameters */
 /* livekit_pb_RequestResponse_size depends on runtime parameters */
+/* livekit_pb_JoinRequest_size depends on runtime parameters */
+/* livekit_pb_WrappedJoinRequest_size depends on runtime parameters */
 #define LIVEKIT_LIVEKIT_RTC_PB_H_MAX_SIZE        LIVEKIT_PB_ADD_TRACK_REQUEST_SIZE
 #define LIVEKIT_PB_ADD_TRACK_REQUEST_SIZE        69
+#define LIVEKIT_PB_CONNECTION_SETTINGS_SIZE      8
 #define LIVEKIT_PB_LEAVE_REQUEST_SIZE            4
+#define LIVEKIT_PB_MEDIA_SECTIONS_REQUIREMENT_SIZE 12
 #define LIVEKIT_PB_PING_SIZE                     22
 #define LIVEKIT_PB_PONG_SIZE                     22
 #define LIVEKIT_PB_SIMULATE_SCENARIO_SIZE        11
@@ -1265,6 +1432,7 @@ extern const pb_msgdesc_t livekit_pb_track_subscribed_t_msg;
 #define livekit_TrackPublishedResponse livekit_pb_TrackPublishedResponse
 #define livekit_TrackUnpublishedResponse livekit_pb_TrackUnpublishedResponse
 #define livekit_SessionDescription livekit_pb_SessionDescription
+#define livekit_SessionDescription_MidToTrackIdEntry livekit_pb_SessionDescription_MidToTrackIdEntry
 #define livekit_ParticipantUpdate livekit_pb_ParticipantUpdate
 #define livekit_UpdateSubscription livekit_pb_UpdateSubscription
 #define livekit_UpdateTrackSettings livekit_pb_UpdateTrackSettings
@@ -1285,6 +1453,7 @@ extern const pb_msgdesc_t livekit_pb_track_subscribed_t_msg;
 #define livekit_SubscribedQuality livekit_pb_SubscribedQuality
 #define livekit_SubscribedCodec livekit_pb_SubscribedCodec
 #define livekit_SubscribedQualityUpdate livekit_pb_SubscribedQualityUpdate
+#define livekit_SubscribedAudioCodecUpdate livekit_pb_SubscribedAudioCodecUpdate
 #define livekit_TrackPermission livekit_pb_TrackPermission
 #define livekit_SubscriptionPermission livekit_pb_SubscriptionPermission
 #define livekit_SubscriptionPermissionUpdate livekit_pb_SubscriptionPermissionUpdate
@@ -1301,6 +1470,12 @@ extern const pb_msgdesc_t livekit_pb_track_subscribed_t_msg;
 #define livekit_RequestResponse livekit_pb_RequestResponse
 #define livekit_RequestResponse_Reason livekit_pb_RequestResponse_Reason
 #define livekit_TrackSubscribed livekit_pb_TrackSubscribed
+#define livekit_ConnectionSettings livekit_pb_ConnectionSettings
+#define livekit_JoinRequest livekit_pb_JoinRequest
+#define livekit_JoinRequest_ParticipantAttributesEntry livekit_pb_JoinRequest_ParticipantAttributesEntry
+#define livekit_WrappedJoinRequest livekit_pb_WrappedJoinRequest
+#define livekit_WrappedJoinRequest_Compression livekit_pb_WrappedJoinRequest_Compression
+#define livekit_MediaSectionsRequirement livekit_pb_MediaSectionsRequirement
 #define _LIVEKIT_SIGNAL_TARGET_MIN _LIVEKIT_PB_SIGNAL_TARGET_MIN
 #define _LIVEKIT_SIGNAL_TARGET_MAX _LIVEKIT_PB_SIGNAL_TARGET_MAX
 #define _LIVEKIT_SIGNAL_TARGET_ARRAYSIZE _LIVEKIT_PB_SIGNAL_TARGET_ARRAYSIZE
@@ -1316,6 +1491,9 @@ extern const pb_msgdesc_t livekit_pb_track_subscribed_t_msg;
 #define _LIVEKIT_REQUEST_RESPONSE_REASON_MIN _LIVEKIT_PB_REQUEST_RESPONSE_REASON_MIN
 #define _LIVEKIT_REQUEST_RESPONSE_REASON_MAX _LIVEKIT_PB_REQUEST_RESPONSE_REASON_MAX
 #define _LIVEKIT_REQUEST_RESPONSE_REASON_ARRAYSIZE _LIVEKIT_PB_REQUEST_RESPONSE_REASON_ARRAYSIZE
+#define _LIVEKIT_WRAPPED_JOIN_REQUEST_COMPRESSION_MIN _LIVEKIT_PB_WRAPPED_JOIN_REQUEST_COMPRESSION_MIN
+#define _LIVEKIT_WRAPPED_JOIN_REQUEST_COMPRESSION_MAX _LIVEKIT_PB_WRAPPED_JOIN_REQUEST_COMPRESSION_MAX
+#define _LIVEKIT_WRAPPED_JOIN_REQUEST_COMPRESSION_ARRAYSIZE _LIVEKIT_PB_WRAPPED_JOIN_REQUEST_COMPRESSION_ARRAYSIZE
 #define LIVEKIT_SIGNAL_REQUEST_INIT_DEFAULT LIVEKIT_PB_SIGNAL_REQUEST_INIT_DEFAULT
 #define LIVEKIT_SIGNAL_RESPONSE_INIT_DEFAULT LIVEKIT_PB_SIGNAL_RESPONSE_INIT_DEFAULT
 #define LIVEKIT_SIMULCAST_CODEC_INIT_DEFAULT LIVEKIT_PB_SIMULCAST_CODEC_INIT_DEFAULT
@@ -1345,6 +1523,7 @@ extern const pb_msgdesc_t livekit_pb_track_subscribed_t_msg;
 #define LIVEKIT_SUBSCRIBED_QUALITY_INIT_DEFAULT LIVEKIT_PB_SUBSCRIBED_QUALITY_INIT_DEFAULT
 #define LIVEKIT_SUBSCRIBED_CODEC_INIT_DEFAULT LIVEKIT_PB_SUBSCRIBED_CODEC_INIT_DEFAULT
 #define LIVEKIT_SUBSCRIBED_QUALITY_UPDATE_INIT_DEFAULT LIVEKIT_PB_SUBSCRIBED_QUALITY_UPDATE_INIT_DEFAULT
+#define LIVEKIT_SUBSCRIBED_AUDIO_CODEC_UPDATE_INIT_DEFAULT LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_UPDATE_INIT_DEFAULT
 #define LIVEKIT_TRACK_PERMISSION_INIT_DEFAULT LIVEKIT_PB_TRACK_PERMISSION_INIT_DEFAULT
 #define LIVEKIT_SUBSCRIPTION_PERMISSION_INIT_DEFAULT LIVEKIT_PB_SUBSCRIPTION_PERMISSION_INIT_DEFAULT
 #define LIVEKIT_SUBSCRIPTION_PERMISSION_UPDATE_INIT_DEFAULT LIVEKIT_PB_SUBSCRIPTION_PERMISSION_UPDATE_INIT_DEFAULT
@@ -1360,6 +1539,10 @@ extern const pb_msgdesc_t livekit_pb_track_subscribed_t_msg;
 #define LIVEKIT_SUBSCRIPTION_RESPONSE_INIT_DEFAULT LIVEKIT_PB_SUBSCRIPTION_RESPONSE_INIT_DEFAULT
 #define LIVEKIT_REQUEST_RESPONSE_INIT_DEFAULT LIVEKIT_PB_REQUEST_RESPONSE_INIT_DEFAULT
 #define LIVEKIT_TRACK_SUBSCRIBED_INIT_DEFAULT LIVEKIT_PB_TRACK_SUBSCRIBED_INIT_DEFAULT
+#define LIVEKIT_CONNECTION_SETTINGS_INIT_DEFAULT LIVEKIT_PB_CONNECTION_SETTINGS_INIT_DEFAULT
+#define LIVEKIT_JOIN_REQUEST_INIT_DEFAULT LIVEKIT_PB_JOIN_REQUEST_INIT_DEFAULT
+#define LIVEKIT_WRAPPED_JOIN_REQUEST_INIT_DEFAULT LIVEKIT_PB_WRAPPED_JOIN_REQUEST_INIT_DEFAULT
+#define LIVEKIT_MEDIA_SECTIONS_REQUIREMENT_INIT_DEFAULT LIVEKIT_PB_MEDIA_SECTIONS_REQUIREMENT_INIT_DEFAULT
 #define LIVEKIT_SIGNAL_REQUEST_INIT_ZERO LIVEKIT_PB_SIGNAL_REQUEST_INIT_ZERO
 #define LIVEKIT_SIGNAL_RESPONSE_INIT_ZERO LIVEKIT_PB_SIGNAL_RESPONSE_INIT_ZERO
 #define LIVEKIT_SIMULCAST_CODEC_INIT_ZERO LIVEKIT_PB_SIMULCAST_CODEC_INIT_ZERO
@@ -1389,6 +1572,7 @@ extern const pb_msgdesc_t livekit_pb_track_subscribed_t_msg;
 #define LIVEKIT_SUBSCRIBED_QUALITY_INIT_ZERO LIVEKIT_PB_SUBSCRIBED_QUALITY_INIT_ZERO
 #define LIVEKIT_SUBSCRIBED_CODEC_INIT_ZERO LIVEKIT_PB_SUBSCRIBED_CODEC_INIT_ZERO
 #define LIVEKIT_SUBSCRIBED_QUALITY_UPDATE_INIT_ZERO LIVEKIT_PB_SUBSCRIBED_QUALITY_UPDATE_INIT_ZERO
+#define LIVEKIT_SUBSCRIBED_AUDIO_CODEC_UPDATE_INIT_ZERO LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_UPDATE_INIT_ZERO
 #define LIVEKIT_TRACK_PERMISSION_INIT_ZERO LIVEKIT_PB_TRACK_PERMISSION_INIT_ZERO
 #define LIVEKIT_SUBSCRIPTION_PERMISSION_INIT_ZERO LIVEKIT_PB_SUBSCRIPTION_PERMISSION_INIT_ZERO
 #define LIVEKIT_SUBSCRIPTION_PERMISSION_UPDATE_INIT_ZERO LIVEKIT_PB_SUBSCRIPTION_PERMISSION_UPDATE_INIT_ZERO
@@ -1404,6 +1588,10 @@ extern const pb_msgdesc_t livekit_pb_track_subscribed_t_msg;
 #define LIVEKIT_SUBSCRIPTION_RESPONSE_INIT_ZERO LIVEKIT_PB_SUBSCRIPTION_RESPONSE_INIT_ZERO
 #define LIVEKIT_REQUEST_RESPONSE_INIT_ZERO LIVEKIT_PB_REQUEST_RESPONSE_INIT_ZERO
 #define LIVEKIT_TRACK_SUBSCRIBED_INIT_ZERO LIVEKIT_PB_TRACK_SUBSCRIBED_INIT_ZERO
+#define LIVEKIT_CONNECTION_SETTINGS_INIT_ZERO LIVEKIT_PB_CONNECTION_SETTINGS_INIT_ZERO
+#define LIVEKIT_JOIN_REQUEST_INIT_ZERO LIVEKIT_PB_JOIN_REQUEST_INIT_ZERO
+#define LIVEKIT_WRAPPED_JOIN_REQUEST_INIT_ZERO LIVEKIT_PB_WRAPPED_JOIN_REQUEST_INIT_ZERO
+#define LIVEKIT_MEDIA_SECTIONS_REQUIREMENT_INIT_ZERO LIVEKIT_PB_MEDIA_SECTIONS_REQUIREMENT_INIT_ZERO
 
 #ifdef __cplusplus
 } /* extern "C" */

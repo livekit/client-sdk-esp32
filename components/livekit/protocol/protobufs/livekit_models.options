@@ -24,7 +24,8 @@ livekit_pb.ParticipantPermission.can_update_metadata type:FT_IGNORE
 livekit_pb.ParticipantPermission.can_subscribe_metrics type:FT_IGNORE
 
 livekit_pb.VideoLayer.bitrate type:FT_IGNORE
-# livekit_pb.VideoLayer.ssrc type:FT_IGNORE
+livekit_pb.VideoLayer.spatial_layer type:FT_IGNORE
+livekit_pb.VideoLayer.rid type:FT_IGNORE
 
 livekit_pb.DataPacket.metrics type:FT_IGNORE
 livekit_pb.DataPacket.transcription type:FT_IGNORE
@@ -33,6 +34,7 @@ livekit_pb.DataPacket.chat_message type:FT_IGNORE
 livekit_pb.DataPacket.stream_header type:FT_IGNORE
 livekit_pb.DataPacket.stream_chunk type:FT_IGNORE
 livekit_pb.DataPacket.stream_trailer type:FT_IGNORE
+livekit_pb.DataPacket.encrypted_packet type:FT_IGNORE
 livekit_pb.DataPacket.participant_identity type:FT_POINTER
 livekit_pb.DataPacket.destination_identities type:FT_POINTER
 livekit_pb.DataPacket.participant_sid max_length:15
@@ -102,3 +104,13 @@ livekit_pb.Room.turn_password type:FT_IGNORE
 livekit_pb.Room.enabled_codecs type:FT_IGNORE
 livekit_pb.Room.metadata type:FT_POINTER
 livekit_pb.Room.version type:FT_IGNORE
+
+livekit_pb.ClientInfo.version max_length:15
+livekit_pb.ClientInfo.os max_length:3
+livekit_pb.ClientInfo.os_version max_length:15
+livekit_pb.ClientInfo.device_model max_length:3
+livekit_pb.ClientInfo.browser type:FT_IGNORE
+livekit_pb.ClientInfo.browser_version type:FT_IGNORE
+livekit_pb.ClientInfo.address type:FT_IGNORE
+livekit_pb.ClientInfo.network type:FT_IGNORE
+livekit_pb.ClientInfo.other_sdks type:FT_IGNORE

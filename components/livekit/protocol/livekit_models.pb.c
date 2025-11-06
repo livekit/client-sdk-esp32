@@ -9,6 +9,9 @@
 PB_BIND(LIVEKIT_PB_PAGINATION, livekit_pb_pagination_t, AUTO)
 
 
+PB_BIND(LIVEKIT_PB_TOKEN_PAGINATION, livekit_pb_token_pagination_t, AUTO)
+
+
 PB_BIND(LIVEKIT_PB_LIST_UPDATE, livekit_pb_list_update_t, AUTO)
 
 
@@ -42,7 +45,10 @@ PB_BIND(LIVEKIT_PB_VIDEO_LAYER, livekit_pb_video_layer_t, AUTO)
 PB_BIND(LIVEKIT_PB_DATA_PACKET, livekit_pb_data_packet_t, AUTO)
 
 
-PB_BIND(LIVEKIT_PB_ACTIVE_SPEAKER_UPDATE, livekit_pb_active_speaker_update_t, AUTO)
+PB_BIND(LIVEKIT_PB_ENCRYPTED_PACKET, livekit_pb_encrypted_packet_t, AUTO)
+
+
+PB_BIND(LIVEKIT_PB_ENCRYPTED_PACKET_PAYLOAD, livekit_pb_encrypted_packet_payload_t, AUTO)
 
 
 PB_BIND(LIVEKIT_PB_SPEAKER_INFO, livekit_pb_speaker_info_t, AUTO)
@@ -135,7 +141,15 @@ PB_BIND(LIVEKIT_PB_DATA_STREAM_CHUNK, livekit_pb_data_stream_chunk_t, AUTO)
 PB_BIND(LIVEKIT_PB_DATA_STREAM_TRAILER, livekit_pb_data_stream_trailer_t, AUTO)
 
 
+PB_BIND(LIVEKIT_PB_FILTER_PARAMS, livekit_pb_filter_params_t, AUTO)
+
+
 PB_BIND(LIVEKIT_PB_WEBHOOK_CONFIG, livekit_pb_webhook_config_t, AUTO)
+
+
+PB_BIND(LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC, livekit_pb_subscribed_audio_codec_t, AUTO)
+
+
 
 
 
