@@ -40,15 +40,19 @@ static network_connect_t state = {};
 
 // MARK: - Event handler
 
-static void event_handler(void* arg,
-                          esp_event_base_t event_base,
-                          int32_t event_id,
-                          void* event_data)
-{
-    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
+static void wifi_event_handler(
+    void* arg,
+    esp_event_base_t event_base,
+    int32_t event_id,
+    void* event_data
+) {
+    switch (event_id) {
+    case WIFI_EVENT_STA_START:
         esp_wifi_connect();
-    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        if (CONFIG_LK_EXAMPLE_NETWORK_MAX_RETRIES < 0 || state.retry_attempt < CONFIG_LK_EXAMPLE_NETWORK_MAX_RETRIES) {
+        break;
+    case WIFI_EVENT_STA_DISCONNECTED:
+        if (CONFIG_LK_EXAMPLE_NETWORK_MAX_RETRIES < 0 ||
+            state.retry_attempt < CONFIG_LK_EXAMPLE_NETWORK_MAX_RETRIES) {
             ESP_LOGI(TAG, "Retry: attempt=%d", state.retry_attempt + 1);
             esp_wifi_connect();
             state.retry_attempt++;
@@ -56,16 +60,27 @@ static void event_handler(void* arg,
         }
         ESP_LOGE(TAG, "Unable to establish connection");
         xEventGroupSetBits(state.event_group, NETWORK_EVENT_FAILED);
-    } else if (event_base == IP_EVENT &&
-                 event_id == IP_EVENT_STA_GOT_IP) {
-
-        ip_event_got_ip_t* event = (ip_event_got_ip_t *)event_data;
-        ESP_LOGI(TAG, "Connected: ip=" IPSTR ", gateway=" IPSTR,
-            IP2STR(&event->ip_info.ip), IP2STR(&event->ip_info.gw));
-
-        state.retry_attempt = 0;
-        xEventGroupSetBits(state.event_group, NETWORK_EVENT_CONNECTED);
+        break;
+    default:
+        break;
     }
+}
+
+static void ip_event_handler(
+    void* arg,
+    esp_event_base_t event_base,
+    int32_t event_id,
+    void* event_data
+) {
+    if (event_id != IP_EVENT_STA_GOT_IP) return;
+    ip_event_got_ip_t* event = (ip_event_got_ip_t *)event_data;
+    ESP_LOGI(TAG, "Connected: ip=" IPSTR ", gateway=" IPSTR,
+        IP2STR(&event->ip_info.ip), IP2STR(&event->ip_info.gw));
+
+#if LK_EXAMPLE_USE_WIFI
+    state.retry_attempt = 0;
+#endif
+    xEventGroupSetBits(state.event_group, NETWORK_EVENT_CONNECTED);
 }
 
 // MARK: - Initialization & connection
@@ -80,13 +95,17 @@ static inline void init_common(void)
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    esp_event_handler_instance_t instance_got_ip;
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(
+    ESP_ERROR_CHECK(esp_event_handler_register(
+        WIFI_EVENT,
+        ESP_EVENT_ANY_ID,
+        &wifi_event_handler,
+        NULL
+    ));
+    ESP_ERROR_CHECK(esp_event_handler_register(
         IP_EVENT,
         IP_EVENT_STA_GOT_IP,
-        &event_handler,
-        NULL,
-        &instance_got_ip
+        &ip_event_handler,
+        NULL
     ));
 }
 
@@ -106,15 +125,6 @@ static inline bool connect_wifi(void)
 
     wifi_init_config_t wifi_init_config = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&wifi_init_config));
-
-    esp_event_handler_instance_t instance_any_id;
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(
-        WIFI_EVENT,
-        ESP_EVENT_ANY_ID,
-        &event_handler,
-        NULL,
-        &instance_any_id
-    ));
 
     wifi_config_t wifi_config = {};
     strlcpy((char *)wifi_config.sta.ssid, CONFIG_LK_EXAMPLE_WIFI_SSID, sizeof(wifi_config.sta.ssid));
