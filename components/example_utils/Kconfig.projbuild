@@ -11,6 +11,10 @@ menu "LiveKit Example Utilities"
             bool "WiFi"
             help
                 Connect to the internet using WiFi.
+        config LK_EXAMPLE_USE_ETHERNET
+            bool "Ethernet"
+            help
+                Connect to the internet using Ethernet (supported boards only).
     endchoice
     config LK_EXAMPLE_WIFI_SSID
         depends on LK_EXAMPLE_USE_WIFI

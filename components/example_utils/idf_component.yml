@@ -8,5 +8,10 @@ discussion: https://livekit.io/join-slack/
 license: Apache-2.0
 dependencies:
   idf: ">=5.4"
+  espressif/ethernet_init:
+    version: "1.2.0"
+    rules:
+    - if: "idf_version >=5.4.3,!=5.5.0,!=5.5.1 && target in [esp32p4]"
+    # IDF version restriction comes from the ethernet_init component
 files:
   use_gitignore: true
