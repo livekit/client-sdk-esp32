@@ -1128,7 +1128,7 @@ engine_handle_t engine_init(const engine_options_t *options)
     if (xTaskCreate(
         engine_task,
         "engine_task",
-        4096,
+        CONFIG_LK_ENGINE_TASK_STACK_SIZE,
         (void *)eng,
         5,
         &eng->task_handle
