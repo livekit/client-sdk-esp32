@@ -34,6 +34,12 @@ CONFIG_LK_EXAMPLE_WIFI_SSID="<your SSID>"
 CONFIG_LK_EXAMPLE_WIFI_PASSWORD="<your password>"
 ```
 
+Or using Ethernet (ESP32-P4 only):
+
+```ini
+CONFIG_LK_EXAMPLE_USE_ETHERNET=y
+```
+
 ### Development Board
 
 This example uses the Espressif [*codec_board*](https://components.espressif.com/components/tempotian/codec_board/) component to access board-specific peripherals for media capture and rendering. Supported boards are [defined here](https://github.com/espressif/esp-webrtc-solution/blob/65d13427dd83c37264b6cff966d60af0f84f649c/components/codec_board/board_cfg.txt). Locate the name of your board, and set it as follows:

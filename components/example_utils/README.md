@@ -11,7 +11,7 @@ Establish a network connection with a single function call, configured via _Kcon
 ### Supported Interfaces
 
 - [x] WiFi
-- [ ] Ethernet (*TODO*)
+- [x] Ethernet (ESP32-P4 only)
 
 ### Usage
 

@@ -48,6 +48,12 @@ CONFIG_LK_EXAMPLE_WIFI_SSID="<your SSID>"
 CONFIG_LK_EXAMPLE_WIFI_PASSWORD="<your password>"
 ```
 
+Or using Ethernet (ESP32-P4 only):
+
+```ini
+CONFIG_LK_EXAMPLE_USE_ETHERNET=y
+```
+
 ### Development Board
 
 By default, this example targets the [ESP32-S3-Korvo-2](https://docs.espressif.com/projects/esp-adf/en/latest/design-guide/dev-boards/user-guide-esp32-s3-korvo-2.html) development board, using its corresponding [board support package](https://components.espressif.com/components/espressif/esp32_s3_korvo_2/) (BSP) to access the LED peripherals for the agent to control. If you wish to target a different board, this dependency can be easily removed or replaced.
