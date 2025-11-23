@@ -12,6 +12,9 @@ menu "LiveKit"
     config LK_ENGINE_QUEUE_SIZE
         int "Number of engine events to queue"
         default 32
+    config LK_ENGINE_TASK_STACK_SIZE
+        int "Stack size for LiveKit engine task"
+        default 4096
     config LK_PUB_INTERVAL_MS
         int "How often to capture and send AV frames"
         default 20
