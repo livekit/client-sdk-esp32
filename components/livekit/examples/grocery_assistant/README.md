@@ -1,4 +1,4 @@
 # Grocery Assistant
 
-> ![WARNING]
-> This example is still a work in progress and is unstable.
+Assistant for checking prices and answering product questions powered by Gemini Live. For products sold by weight, the
+agent can read the weight on the scale attached to the client (ESP32) via RPC.
