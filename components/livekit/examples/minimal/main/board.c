@@ -48,9 +48,15 @@ static void board_visualizer_timer_cb(lv_timer_t *t)
 
     const int32_t v = (int32_t)((uint32_t)cur * 100U / 32767U); // 0..100
 
-    // Silent state: show a simple circle (no purple-ish “tiny fill”).
-    // Active state: show the center-out gradient bar.
-    if (v == 0) {
+    // Switch to the silent dot as soon as the bar would be smaller than the dot.
+    // This avoids a visible “jump” between a tiny bar and the (20px) dot.
+    const int32_t bar_w = lv_obj_get_width(s_visualizer_bar);
+    const int32_t dot_d = s_visualizer_dot ? lv_obj_get_width(s_visualizer_dot) : 20;
+    // In RANGE mode with [-100..100] and start=-v/value=+v, the total filled width is v% of the bar.
+    const int32_t fill_px = (bar_w > 0) ? (int32_t)(((int64_t)bar_w * (int64_t)v) / 100) : 0;
+    const bool show_dot = (v == 0) || (fill_px < dot_d);
+
+    if (show_dot) {
         lv_bar_set_start_value(s_visualizer_bar, 0, LV_ANIM_OFF);
         lv_bar_set_value(s_visualizer_bar, 0, LV_ANIM_OFF);
         lv_obj_add_flag(s_visualizer_bar, LV_OBJ_FLAG_HIDDEN);
@@ -191,15 +197,16 @@ static void board_display_init_and_show_image(void)
     lv_bar_set_start_value(s_visualizer_bar, 0, LV_ANIM_OFF);
     lv_bar_set_value(s_visualizer_bar, 0, LV_ANIM_OFF);
 
-    // Silent-state ring.
+    // Silent-state dot: filled with the midpoint purple of the gradient so the
+    // transition to the bar looks seamless. Match diameter to bar height (20px).
     s_visualizer_dot = lv_obj_create(viz);
     lv_obj_remove_style_all(s_visualizer_dot);
-    lv_obj_set_size(s_visualizer_dot, 12, 12);
+    lv_obj_set_size(s_visualizer_dot, 20, 20);
     lv_obj_set_style_radius(s_visualizer_dot, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_bg_opa(s_visualizer_dot, LV_OPA_TRANSP, 0);
-    lv_obj_set_style_border_width(s_visualizer_dot, 2, 0);
-    lv_obj_set_style_border_color(s_visualizer_dot, lv_color_hex(0x9A9A9A), 0);
-    lv_obj_set_style_border_opa(s_visualizer_dot, LV_OPA_COVER, 0);
+    // Midpoint between 0xD86AAE and 0x7B86FF (approx).
+    lv_obj_set_style_bg_color(s_visualizer_dot, lv_color_hex(0xA978D6), 0);
+    lv_obj_set_style_bg_opa(s_visualizer_dot, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(s_visualizer_dot, 0, 0);
     lv_obj_align(s_visualizer_dot, LV_ALIGN_CENTER, 0, 0);
 
     // Start silent (ring visible).
@@ -292,7 +299,7 @@ void board_init(void)
     //
     // If you hear clipping/distortion, reduce this value (e.g., 18.0-24.0).
     // If it's still too quiet, increase gradually (e.g., up to ~30.0).
-    esp_codec_dev_set_in_gain(s_mic_handle, 27.0f);
+    esp_codec_dev_set_in_gain(s_mic_handle, 29.0f);
 
     // Initialize display + touch and show a static image on boot.
     board_display_init_and_show_image();
