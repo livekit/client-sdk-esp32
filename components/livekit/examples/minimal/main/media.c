@@ -1,12 +1,12 @@
 #include "esp_check.h"
 #include "esp_log.h"
-#include "codec_init.h"
 #include "av_render_default.h"
 #include "esp_audio_dec_default.h"
 #include "esp_audio_enc_default.h"
 #include "esp_capture_defaults.h"
 #include "esp_capture_sink.h"
 
+#include "board.h"
 #include "media.h"
 
 static const char *TAG = "media";
@@ -29,15 +29,16 @@ static renderer_system_t renderer_system;
 
 static int build_capturer_system(void)
 {
-    esp_codec_dev_handle_t record_handle = get_record_handle();
+    esp_codec_dev_handle_t record_handle = (esp_codec_dev_handle_t)board_get_mic_handle();
     NULL_CHECK(record_handle, "Failed to get record handle");
 
-    esp_capture_audio_aec_src_cfg_t codec_cfg = {
+    // Prefer the device source for broad compatibility with BSP-provided codec devices.
+    // If your board/layout supports multichannel AEC input, you can switch this to
+    // esp_capture_new_audio_aec_src().
+    esp_capture_audio_dev_src_cfg_t codec_cfg = {
         .record_handle = record_handle,
-        .channel = 4,
-        .channel_mask = 1 | 2
     };
-    capturer_system.audio_source = esp_capture_new_audio_aec_src(&codec_cfg);
+    capturer_system.audio_source = esp_capture_new_audio_dev_src(&codec_cfg);
     NULL_CHECK(capturer_system.audio_source, "Failed to create audio source");
 
     esp_capture_cfg_t cfg = {
@@ -51,11 +52,12 @@ static int build_capturer_system(void)
 
 static int build_renderer_system(void)
 {
-    esp_codec_dev_handle_t render_device = get_playback_handle();
+    esp_codec_dev_handle_t render_device = (esp_codec_dev_handle_t)board_get_speaker_handle();
     NULL_CHECK(render_device, "Failed to get render device handle");
 
     i2s_render_cfg_t i2s_cfg = {
-        .play_handle = render_device
+        .play_handle = render_device,
+        .fixed_clock = true,
     };
     renderer_system.audio_renderer = av_render_alloc_i2s_render(&i2s_cfg);
     NULL_CHECK(renderer_system.audio_renderer, "Failed to create I2S renderer");
