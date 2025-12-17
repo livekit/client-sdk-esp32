@@ -290,9 +290,9 @@ void board_init(void)
     // ES7210 gain is fairly conservative by default; increasing it improves published mic level
     // without needing to add excessive post-AEC digital gain.
     //
-    // If you hear clipping/distortion, reduce this value (e.g., 18.0).
-    // If it's still too quiet, increase gradually (e.g., 30.0).
-    esp_codec_dev_set_in_gain(s_mic_handle, 15.0f);
+    // If you hear clipping/distortion, reduce this value (e.g., 18.0-24.0).
+    // If it's still too quiet, increase gradually (e.g., up to ~30.0).
+    esp_codec_dev_set_in_gain(s_mic_handle, 27.0f);
 
     // Initialize display + touch and show a static image on boot.
     board_display_init_and_show_image();
