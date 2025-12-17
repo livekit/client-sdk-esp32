@@ -24,6 +24,7 @@ static esp_codec_dev_handle_t s_spk_handle = NULL;
 
 // UI visualizer state.
 static lv_obj_t *s_visualizer_bar = NULL;
+static lv_obj_t *s_visualizer_dot = NULL;
 static lv_timer_t *s_visualizer_timer = NULL;
 static volatile uint16_t s_visualizer_level_q15 = 0; // updated from audio thread
 static uint16_t s_visualizer_display_q15 = 0;        // smoothed display value
@@ -46,6 +47,19 @@ static void board_visualizer_timer_cb(lv_timer_t *t)
     s_visualizer_display_q15 = cur;
 
     const int32_t v = (int32_t)((uint32_t)cur * 100U / 32767U); // 0..100
+
+    // Silent state: show a simple circle (no purple-ish “tiny fill”).
+    // Active state: show the center-out gradient bar.
+    if (v == 0) {
+        lv_bar_set_start_value(s_visualizer_bar, 0, LV_ANIM_OFF);
+        lv_bar_set_value(s_visualizer_bar, 0, LV_ANIM_OFF);
+        lv_obj_add_flag(s_visualizer_bar, LV_OBJ_FLAG_HIDDEN);
+        if (s_visualizer_dot) lv_obj_clear_flag(s_visualizer_dot, LV_OBJ_FLAG_HIDDEN);
+        return;
+    }
+
+    lv_obj_clear_flag(s_visualizer_bar, LV_OBJ_FLAG_HIDDEN);
+    if (s_visualizer_dot) lv_obj_add_flag(s_visualizer_dot, LV_OBJ_FLAG_HIDDEN);
 
     // Center-out meter: fill from -v..+v.
     // LVGL v9 bar supports RANGE mode (start_value..value).
@@ -153,16 +167,22 @@ static void board_display_init_and_show_image(void)
 
     // Visualizer: a center-out meter looks nicer than a left-to-right fill.
     // We render a RANGE-mode bar and drive it with (-v..+v).
+    // When silent, we hide the bar and show a small neutral ring instead.
     lv_obj_t *viz = lv_obj_create(cont);
     lv_obj_remove_style_all(viz);
-    lv_obj_set_size(viz, 220, 14);
+    lv_obj_set_size(viz, 220, 20);
 
     s_visualizer_bar = lv_bar_create(viz);
     lv_obj_set_size(s_visualizer_bar, LV_PCT(100), LV_PCT(100));
-    lv_obj_set_style_radius(s_visualizer_bar, 8, 0);
-    lv_obj_set_style_bg_color(s_visualizer_bar, lv_color_hex(0x222222), 0);
+    lv_obj_set_style_radius(s_visualizer_bar, 10, 0);
+    // Black track so it blends into the screen background.
+    lv_obj_set_style_bg_color(s_visualizer_bar, lv_color_hex(0x000000), 0);
     lv_obj_set_style_bg_opa(s_visualizer_bar, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(s_visualizer_bar, lv_color_hex(0x00D084), LV_PART_INDICATOR);
+
+    // Indicator gradient (left -> right), matching the reference image.
+    lv_obj_set_style_bg_color(s_visualizer_bar, lv_color_hex(0xD86AAE), LV_PART_INDICATOR);      // pink-ish
+    lv_obj_set_style_bg_grad_color(s_visualizer_bar, lv_color_hex(0x7B86FF), LV_PART_INDICATOR); // blue-ish
+    lv_obj_set_style_bg_grad_dir(s_visualizer_bar, LV_GRAD_DIR_HOR, LV_PART_INDICATOR);
     lv_obj_set_style_bg_opa(s_visualizer_bar, LV_OPA_COVER, LV_PART_INDICATOR);
 
     // Center at 0; fill between start_value..value.
@@ -171,13 +191,19 @@ static void board_display_init_and_show_image(void)
     lv_bar_set_start_value(s_visualizer_bar, 0, LV_ANIM_OFF);
     lv_bar_set_value(s_visualizer_bar, 0, LV_ANIM_OFF);
 
-    // Optional center marker so “zero” is visually obvious.
-    lv_obj_t *zero = lv_obj_create(viz);
-    lv_obj_remove_style_all(zero);
-    lv_obj_set_size(zero, 2, LV_PCT(100));
-    lv_obj_set_style_bg_color(zero, lv_color_hex(0x444444), 0);
-    lv_obj_set_style_bg_opa(zero, LV_OPA_COVER, 0);
-    lv_obj_align(zero, LV_ALIGN_CENTER, 0, 0);
+    // Silent-state ring.
+    s_visualizer_dot = lv_obj_create(viz);
+    lv_obj_remove_style_all(s_visualizer_dot);
+    lv_obj_set_size(s_visualizer_dot, 12, 12);
+    lv_obj_set_style_radius(s_visualizer_dot, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_opa(s_visualizer_dot, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(s_visualizer_dot, 2, 0);
+    lv_obj_set_style_border_color(s_visualizer_dot, lv_color_hex(0x9A9A9A), 0);
+    lv_obj_set_style_border_opa(s_visualizer_dot, LV_OPA_COVER, 0);
+    lv_obj_align(s_visualizer_dot, LV_ALIGN_CENTER, 0, 0);
+
+    // Start silent (ring visible).
+    lv_obj_add_flag(s_visualizer_bar, LV_OBJ_FLAG_HIDDEN);
 
 #if !LV_USE_LODEPNG
     ESP_LOGW(TAG, "PNG decoder disabled: enable CONFIG_LV_USE_LODEPNG");
