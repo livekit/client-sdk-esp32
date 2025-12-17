@@ -34,6 +34,27 @@ typedef struct {
 static capture_system_t  capturer_system;
 static renderer_system_t renderer_system;
 
+static int media_i2s_render_ref_cb(uint8_t *data, int size, void *ctx)
+{
+    (void)ctx;
+    if (data == NULL || size <= 0) return 0;
+
+    // `av_render` provides decoded PCM frames to the I2S renderer.
+    // Compute a simple peak level and push it to the UI visualizer.
+    const int16_t *samples = (const int16_t *)data;
+    const int sample_count = size / (int)sizeof(int16_t);
+
+    int32_t peak = 0;
+    for (int i = 0; i < sample_count; i++) {
+        int32_t v = samples[i];
+        if (v < 0) v = -v;
+        if (v > peak) peak = v;
+    }
+    float level = (float)peak / 32768.0f;
+    board_visualizer_set_level(level);
+    return 0;
+}
+
 static int build_capturer_system(void)
 {
     esp_codec_dev_handle_t record_handle = (esp_codec_dev_handle_t)board_get_mic_handle();
@@ -71,7 +92,9 @@ static int build_renderer_system(void)
 
     i2s_render_cfg_t i2s_cfg = {
         .play_handle = render_device,
+        .cb = media_i2s_render_ref_cb,
         .fixed_clock = true,
+        .ctx = NULL,
     };
     renderer_system.audio_renderer = av_render_alloc_i2s_render(&i2s_cfg);
     NULL_CHECK(renderer_system.audio_renderer, "Failed to create I2S renderer");

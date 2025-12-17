@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #include "bsp/esp32_s3_touch_amoled_2_06.h"
 #include "lvgl.h"
@@ -20,6 +21,33 @@ static const char *TAG = "board";
 // This example uses the Waveshare ESP32-S3-Touch-AMOLED-2.06 BSP to initialize audio I/O.
 static esp_codec_dev_handle_t s_mic_handle = NULL;
 static esp_codec_dev_handle_t s_spk_handle = NULL;
+
+// UI visualizer state.
+static lv_obj_t *s_visualizer_bar = NULL;
+static lv_timer_t *s_visualizer_timer = NULL;
+static volatile uint16_t s_visualizer_level_q15 = 0; // updated from audio thread
+static uint16_t s_visualizer_display_q15 = 0;        // smoothed display value
+
+static void board_visualizer_timer_cb(lv_timer_t *t)
+{
+    (void)t;
+    if (s_visualizer_bar == NULL) return;
+
+    const uint16_t target = s_visualizer_level_q15;
+    uint16_t cur = s_visualizer_display_q15;
+
+    // Simple peak-hold + exponential decay for a pleasant “meter” feel.
+    if (target > cur) {
+        cur = target;
+    } else {
+        // decay ~10% per tick (~33ms default) => fast falloff
+        cur = (uint16_t)((uint32_t)cur * 9U / 10U);
+    }
+    s_visualizer_display_q15 = cur;
+
+    const int32_t v = (int32_t)((uint32_t)cur * 100U / 32767U);
+    lv_bar_set_value(s_visualizer_bar, v, LV_ANIM_OFF);
+}
 
 // Embedded boot image.
 // Provided by `EMBED_FILES "boot.png"` in `main/CMakeLists.txt`.
@@ -108,9 +136,27 @@ static void board_display_init_and_show_image(void)
                  (unsigned)png_w, (unsigned)png_h, (unsigned)png_len, (unsigned)(decoded_bytes / 1024ULL));
     }
 
-    lv_obj_t *img = lv_image_create(scr);
+    // Centered column layout: logo + visualizer bar underneath.
+    lv_obj_t *cont = lv_obj_create(scr);
+    lv_obj_remove_style_all(cont);
+    lv_obj_set_size(cont, LV_PCT(100), LV_PCT(100));
+    lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_row(cont, 12, 0);
+
+    lv_obj_t *img = lv_image_create(cont);
     lv_image_set_src(img, board_boot_png_dsc());
-    lv_obj_center(img);
+
+    s_visualizer_bar = lv_bar_create(cont);
+    lv_obj_set_width(s_visualizer_bar, 220);
+    lv_obj_set_height(s_visualizer_bar, 14);
+    lv_obj_set_style_radius(s_visualizer_bar, 8, 0);
+    lv_obj_set_style_bg_color(s_visualizer_bar, lv_color_hex(0x222222), 0);
+    lv_obj_set_style_bg_opa(s_visualizer_bar, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(s_visualizer_bar, lv_color_hex(0x00D084), LV_PART_INDICATOR);
+    lv_obj_set_style_bg_opa(s_visualizer_bar, LV_OPA_COVER, LV_PART_INDICATOR);
+    lv_bar_set_range(s_visualizer_bar, 0, 100);
+    lv_bar_set_value(s_visualizer_bar, 0, LV_ANIM_OFF);
 
 #if !LV_USE_LODEPNG
     ESP_LOGW(TAG, "PNG decoder disabled: enable CONFIG_LV_USE_LODEPNG");
@@ -119,6 +165,11 @@ static void board_display_init_and_show_image(void)
 #else
     (void)wh_ok;
 #endif
+
+    // Timer-driven animation (runs in LVGL task context).
+    if (s_visualizer_timer == NULL) {
+        s_visualizer_timer = lv_timer_create(board_visualizer_timer_cb, 33, NULL);
+    }
 
     bsp_display_unlock();
 }
@@ -198,4 +249,13 @@ void board_init(void)
 
     // Initialize display + touch and show a static image on boot.
     board_display_init_and_show_image();
+}
+
+void board_visualizer_set_level(float level)
+{
+    // Called from audio render context; must not touch LVGL.
+    if (level < 0.0f) level = 0.0f;
+    if (level > 1.0f) level = 1.0f;
+    const uint32_t q15 = (uint32_t)(level * 32767.0f);
+    s_visualizer_level_q15 = (uint16_t)(q15 > 32767U ? 32767U : q15);
 }
