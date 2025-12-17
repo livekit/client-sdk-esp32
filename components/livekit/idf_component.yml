@@ -12,8 +12,8 @@ dependencies:
   espressif/esp_capture: { version: ~0.7, public: true }
   tempotian/av_render: { version: ~0.9.1, public: true }
   tempotian/media_lib_sal: ~0.9.0
-  espressif/esp_peer: ~1.2.3
-  espressif/esp_websocket_client: ~1.5.0
+  espressif/esp_peer: ~1.2.7
+  espressif/esp_websocket_client: ~1.6.0
   livekit/khash: ~0.2.8
   livekit/nanopb: ~0.4.9
 files:
