@@ -45,7 +45,11 @@ static void board_visualizer_timer_cb(lv_timer_t *t)
     }
     s_visualizer_display_q15 = cur;
 
-    const int32_t v = (int32_t)((uint32_t)cur * 100U / 32767U);
+    const int32_t v = (int32_t)((uint32_t)cur * 100U / 32767U); // 0..100
+
+    // Center-out meter: fill from -v..+v.
+    // LVGL v9 bar supports RANGE mode (start_value..value).
+    lv_bar_set_start_value(s_visualizer_bar, -v, LV_ANIM_OFF);
     lv_bar_set_value(s_visualizer_bar, v, LV_ANIM_OFF);
 }
 
@@ -147,16 +151,33 @@ static void board_display_init_and_show_image(void)
     lv_obj_t *img = lv_image_create(cont);
     lv_image_set_src(img, board_boot_png_dsc());
 
-    s_visualizer_bar = lv_bar_create(cont);
-    lv_obj_set_width(s_visualizer_bar, 220);
-    lv_obj_set_height(s_visualizer_bar, 14);
+    // Visualizer: a center-out meter looks nicer than a left-to-right fill.
+    // We render a RANGE-mode bar and drive it with (-v..+v).
+    lv_obj_t *viz = lv_obj_create(cont);
+    lv_obj_remove_style_all(viz);
+    lv_obj_set_size(viz, 220, 14);
+
+    s_visualizer_bar = lv_bar_create(viz);
+    lv_obj_set_size(s_visualizer_bar, LV_PCT(100), LV_PCT(100));
     lv_obj_set_style_radius(s_visualizer_bar, 8, 0);
     lv_obj_set_style_bg_color(s_visualizer_bar, lv_color_hex(0x222222), 0);
     lv_obj_set_style_bg_opa(s_visualizer_bar, LV_OPA_COVER, 0);
     lv_obj_set_style_bg_color(s_visualizer_bar, lv_color_hex(0x00D084), LV_PART_INDICATOR);
     lv_obj_set_style_bg_opa(s_visualizer_bar, LV_OPA_COVER, LV_PART_INDICATOR);
-    lv_bar_set_range(s_visualizer_bar, 0, 100);
+
+    // Center at 0; fill between start_value..value.
+    lv_bar_set_mode(s_visualizer_bar, LV_BAR_MODE_RANGE);
+    lv_bar_set_range(s_visualizer_bar, -100, 100);
+    lv_bar_set_start_value(s_visualizer_bar, 0, LV_ANIM_OFF);
     lv_bar_set_value(s_visualizer_bar, 0, LV_ANIM_OFF);
+
+    // Optional center marker so “zero” is visually obvious.
+    lv_obj_t *zero = lv_obj_create(viz);
+    lv_obj_remove_style_all(zero);
+    lv_obj_set_size(zero, 2, LV_PCT(100));
+    lv_obj_set_style_bg_color(zero, lv_color_hex(0x444444), 0);
+    lv_obj_set_style_bg_opa(zero, LV_OPA_COVER, 0);
+    lv_obj_align(zero, LV_ALIGN_CENTER, 0, 0);
 
 #if !LV_USE_LODEPNG
     ESP_LOGW(TAG, "PNG decoder disabled: enable CONFIG_LV_USE_LODEPNG");
