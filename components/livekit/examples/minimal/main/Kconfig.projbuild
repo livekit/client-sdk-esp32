@@ -57,4 +57,14 @@ menu "LiveKit Example"
         range 0 100
         help
             Default playback volume for speaker output.
+
+    config LK_EXAMPLE_AEC_MIC_LAYOUT
+        string "AEC mic layout (esp-sr AFE)"
+        default "MMRN"
+        help
+            Channel layout string used by the ESP-SR AFE when AEC is enabled.
+            For ES7210 TDM with Mic1/Mic2 + Ref Mic3:
+              - "MMRN": ch0=Mic1, ch1=Mic2, ch2=Reference(Mic3), ch3=Unused
+            If AEC is ineffective, your slot ordering may differ; try swapping the position of 'R'
+            accordingly (e.g. "MRMN", "RMMN").
 endmenu

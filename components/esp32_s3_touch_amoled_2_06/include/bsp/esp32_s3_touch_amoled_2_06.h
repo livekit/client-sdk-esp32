@@ -5,6 +5,7 @@
 #include "driver/i2c_master.h"
 #include "driver/sdmmc_host.h"
 #include "driver/i2s_std.h"
+#include "driver/i2s_tdm.h"
 #include "bsp/config.h"
 #include "bsp/display.h"
 #include "esp_codec_dev.h"
@@ -141,6 +142,17 @@ i2c_master_bus_handle_t bsp_i2c_get_handle(void);
  *      - ESP_ERR_INVALID_STATE This channel has not initialized or already started
  */
 esp_err_t bsp_audio_init(const i2s_std_config_t *i2s_config);
+
+/**
+ * @brief Init audio with TX in standard I2S mode and RX in TDM mode
+ *
+ * @note This is useful when playback codec expects standard I2S framing (e.g., ES8311),
+ *       but microphone ADC provides multiple mic + AEC reference channels via TDM (e.g., ES7210).
+ *
+ * @param[in]  tx_config Standard I2S config for TX (playback). Pass NULL to use defaults (16kHz stereo).
+ * @param[in]  rx_config TDM config for RX (capture). Pass NULL to use defaults (16kHz, 4 slots).
+ */
+esp_err_t bsp_audio_init_tx_std_rx_tdm(const i2s_std_config_t *tx_config, const i2s_tdm_config_t *rx_config);
 
 /**
  * @brief Initialize speaker codec device

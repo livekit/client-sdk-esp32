@@ -1,3 +1,4 @@
+#include "sdkconfig.h"
 #include "esp_check.h"
 #include "esp_log.h"
 #include "av_render_default.h"
@@ -10,6 +11,12 @@
 #include "media.h"
 
 static const char *TAG = "media";
+
+// Some IDE/lint setups (or stale build dirs) don't automatically include regenerated sdkconfig entries.
+// Keep a safe default so builds remain reproducible without a full reconfigure.
+#ifndef CONFIG_LK_EXAMPLE_AEC_MIC_LAYOUT
+#define CONFIG_LK_EXAMPLE_AEC_MIC_LAYOUT "MMRN"
+#endif
 
 #define NULL_CHECK(pointer, message) \
     ESP_RETURN_ON_FALSE(pointer != NULL, -1, TAG, message)
@@ -32,13 +39,20 @@ static int build_capturer_system(void)
     esp_codec_dev_handle_t record_handle = (esp_codec_dev_handle_t)board_get_mic_handle();
     NULL_CHECK(record_handle, "Failed to get record handle");
 
-    // Prefer the device source for broad compatibility with BSP-provided codec devices.
-    // If your board/layout supports multichannel AEC input, you can switch this to
-    // esp_capture_new_audio_aec_src().
-    esp_capture_audio_dev_src_cfg_t codec_cfg = {
+    // Enable AEC on the capture input (Option A / ES7210 TDM):
+    // - ch0: Mic1 (near-end mic)
+    // - ch1: Mic2 (near-end mic)
+    // - ch2: Mic3 (AEC reference input)
+    // - ch3: unused
+    //
+    // IMPORTANT: do NOT set channel_mask here. We need to feed mic+ref into the AFE.
+    // The output published to LiveKit remains mono (AEC-processed).
+    esp_capture_audio_aec_src_cfg_t codec_cfg = {
         .record_handle = record_handle,
+        .channel = 4,
+        .channel_mask = 1 | 2
     };
-    capturer_system.audio_source = esp_capture_new_audio_dev_src(&codec_cfg);
+    capturer_system.audio_source = esp_capture_new_audio_aec_src(&codec_cfg);
     NULL_CHECK(capturer_system.audio_source, "Failed to create audio source");
 
     esp_capture_cfg_t cfg = {

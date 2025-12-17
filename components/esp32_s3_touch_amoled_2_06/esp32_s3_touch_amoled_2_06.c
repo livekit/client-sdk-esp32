@@ -9,6 +9,7 @@
 #include "esp_spiffs.h"
 #include "driver/gpio.h"
 #include "driver/ledc.h"
+#include "driver/i2s_tdm.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -243,6 +244,73 @@ err:
     return ret;
 }
 
+esp_err_t bsp_audio_init_tx_std_rx_tdm(const i2s_std_config_t *tx_config, const i2s_tdm_config_t *rx_config)
+{
+    esp_err_t ret = ESP_FAIL;
+    if (i2s_tx_chan && i2s_rx_chan)
+    {
+        /* Audio was initialized before */
+        return ESP_OK;
+    }
+
+    /* Setup I2S peripheral */
+    i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(CONFIG_BSP_I2S_NUM, I2S_ROLE_MASTER);
+    chan_cfg.auto_clear = true; // Auto clear the legacy data in the DMA buffer
+    BSP_ERROR_CHECK_RETURN_ERR(i2s_new_channel(&chan_cfg, &i2s_tx_chan, &i2s_rx_chan));
+
+    /* Default TX: standard I2S stereo @ 16 kHz */
+    const i2s_std_config_t tx_cfg_default = {
+        .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(16000),
+        .slot_cfg = I2S_STD_PHILIP_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO),
+        .gpio_cfg = BSP_I2S_GPIO_CFG,
+    };
+    const i2s_std_config_t *p_tx_cfg = tx_config ? tx_config : &tx_cfg_default;
+
+    /* Default RX: TDM 4 slots @ 16 kHz (slot3 unused) */
+    const i2s_tdm_config_t rx_cfg_default = {
+        .clk_cfg = I2S_TDM_CLK_DEFAULT_CONFIG(16000),
+        .slot_cfg = I2S_TDM_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT,
+                                                        I2S_SLOT_MODE_STEREO,
+                                                        (I2S_TDM_SLOT0 | I2S_TDM_SLOT1 | I2S_TDM_SLOT2 | I2S_TDM_SLOT3)),
+        .gpio_cfg = BSP_I2S_GPIO_CFG,
+    };
+    const i2s_tdm_config_t *p_rx_cfg = rx_config ? rx_config : &rx_cfg_default;
+
+    if (i2s_tx_chan != NULL)
+    {
+        ESP_GOTO_ON_ERROR(i2s_channel_init_std_mode(i2s_tx_chan, p_tx_cfg), err, TAG, "I2S(TX) std init failed");
+        ESP_GOTO_ON_ERROR(i2s_channel_enable(i2s_tx_chan), err, TAG, "I2S TX enabling failed");
+    }
+    if (i2s_rx_chan != NULL)
+    {
+        ESP_GOTO_ON_ERROR(i2s_channel_init_tdm_mode(i2s_rx_chan, p_rx_cfg), err, TAG, "I2S(RX) TDM init failed");
+        ESP_GOTO_ON_ERROR(i2s_channel_enable(i2s_rx_chan), err, TAG, "I2S RX enabling failed");
+    }
+
+    audio_codec_i2s_cfg_t i2s_cfg = {
+        .port = CONFIG_BSP_I2S_NUM,
+        .rx_handle = i2s_rx_chan,
+        .tx_handle = i2s_tx_chan,
+    };
+    i2s_data_if = audio_codec_new_i2s_data(&i2s_cfg);
+    BSP_NULL_CHECK_GOTO(i2s_data_if, err);
+
+    return ESP_OK;
+
+err:
+    if (i2s_tx_chan)
+    {
+        i2s_del_channel(i2s_tx_chan);
+        i2s_tx_chan = NULL;
+    }
+    if (i2s_rx_chan)
+    {
+        i2s_del_channel(i2s_rx_chan);
+        i2s_rx_chan = NULL;
+    }
+    return ret;
+}
+
 esp_codec_dev_handle_t bsp_audio_codec_speaker_init(void)
 {
     if (i2s_data_if == NULL)
@@ -314,6 +382,10 @@ esp_codec_dev_handle_t bsp_audio_codec_microphone_init(void)
 
     es7210_codec_cfg_t es7210_cfg = {
         .ctrl_if = i2c_ctrl_if,
+        // Enable 3 mics so ES7210 switches into TDM mode:
+        // - Mic1 + Mic2: near-end microphones
+        // - Mic3: AEC reference input
+        .mic_selected = ES7210_SEL_MIC1 | ES7210_SEL_MIC2 | ES7210_SEL_MIC3,
     };
     const audio_codec_if_t *es7210_dev = es7210_codec_new(&es7210_cfg);
     BSP_NULL_CHECK(es7210_dev, NULL);

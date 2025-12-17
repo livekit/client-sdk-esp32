@@ -157,8 +157,13 @@ void board_init(void)
     // Initialize I2C (needed for codec + touch, etc.)
     ESP_ERROR_CHECK(bsp_i2c_init());
 
-    // Initialize audio (I2S + codec devices) via BSP
-    const i2s_std_config_t i2s_cfg = {
+    // Initialize audio (I2S + codec devices) via BSP.
+    //
+    // Option A: true AEC reference on Mic3 requires ES7210 TDM output (>= 3 mics enabled).
+    // ES8311 playback expects standard I2S framing, so we run:
+    // - TX: standard I2S (playback)
+    // - RX: TDM (capture Mic1/Mic2 + Ref Mic3)
+    const i2s_std_config_t tx_cfg = {
         .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(16000),
         .slot_cfg = I2S_STD_PHILIP_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO),
         .gpio_cfg = {
@@ -174,13 +179,39 @@ void board_init(void)
             },
         },
     };
-    ESP_ERROR_CHECK(bsp_audio_init(&i2s_cfg));
+    const i2s_tdm_config_t rx_cfg = {
+        .clk_cfg = I2S_TDM_CLK_DEFAULT_CONFIG(16000),
+        .slot_cfg = I2S_TDM_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT,
+                                                        I2S_SLOT_MODE_STEREO,
+                                                        (I2S_TDM_SLOT0 | I2S_TDM_SLOT1 | I2S_TDM_SLOT2 | I2S_TDM_SLOT3)),
+        .gpio_cfg = {
+            .mclk = BSP_I2S_MCLK,
+            .bclk = BSP_I2S_SCLK,
+            .ws = BSP_I2S_LCLK,
+            .dout = BSP_I2S_DOUT,
+            .din = BSP_I2S_DSIN,
+            .invert_flags = {
+                .mclk_inv = false,
+                .bclk_inv = false,
+                .ws_inv = false,
+            },
+        },
+    };
+    ESP_ERROR_CHECK(bsp_audio_init_tx_std_rx_tdm(&tx_cfg, &rx_cfg));
 
     s_spk_handle = bsp_audio_codec_speaker_init();
     ESP_RETURN_VOID_ON_FALSE(s_spk_handle != NULL, TAG, "Failed to init speaker codec device");
 
     s_mic_handle = bsp_audio_codec_microphone_init();
     ESP_RETURN_VOID_ON_FALSE(s_mic_handle != NULL, TAG, "Failed to init microphone codec device");
+
+    // Boost microphone input gain (in dB).
+    // ES7210 gain is fairly conservative by default; increasing it improves published mic level
+    // without needing to add excessive post-AEC digital gain.
+    //
+    // If you hear clipping/distortion, reduce this value (e.g., 18.0).
+    // If it's still too quiet, increase gradually (e.g., 30.0).
+    esp_codec_dev_set_in_gain(s_mic_handle, 15.0f);
 
     // Initialize display + touch and show a static image on boot.
     board_display_init_and_show_image();

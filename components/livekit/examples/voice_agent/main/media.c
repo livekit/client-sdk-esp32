@@ -35,7 +35,7 @@ static int build_capturer_system(void)
     esp_capture_audio_aec_src_cfg_t codec_cfg = {
         .record_handle = record_handle,
         .channel = 4,
-        .channel_mask = 1 | 2
+        .channel_mask = 1 | 4
     };
     capturer_system.audio_source = esp_capture_new_audio_aec_src(&codec_cfg);
     NULL_CHECK(capturer_system.audio_source, "Failed to create audio source");
