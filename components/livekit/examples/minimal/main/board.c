@@ -299,7 +299,7 @@ void board_init(void)
     //
     // If you hear clipping/distortion, reduce this value (e.g., 18.0-24.0).
     // If it's still too quiet, increase gradually (e.g., up to ~30.0).
-    esp_codec_dev_set_in_gain(s_mic_handle, 29.0f);
+    esp_codec_dev_set_in_gain(s_mic_handle, 30.0f);
 
     // Initialize display + touch and show a static image on boot.
     board_display_init_and_show_image();
