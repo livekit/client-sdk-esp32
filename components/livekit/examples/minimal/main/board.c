@@ -112,29 +112,12 @@ static void board_display_init_and_show_image(void)
     lv_image_set_src(img, board_boot_png_dsc());
     lv_obj_center(img);
 
-    lv_obj_t *label = lv_label_create(scr);
 #if !LV_USE_LODEPNG
-    lv_label_set_text(label, "PNG decoder disabled: enable CONFIG_LV_USE_LODEPNG");
-    lv_obj_center(label);
+    ESP_LOGW(TAG, "PNG decoder disabled: enable CONFIG_LV_USE_LODEPNG");
     bsp_display_unlock();
     return;
 #else
-    if (wh_ok) {
-        char msg[96];
-        const uint64_t decoded_bytes = (uint64_t)png_w * (uint64_t)png_h * 4ULL;
-        const unsigned decoded_kb = (unsigned)(decoded_bytes / 1024ULL);
-
-        // Ask LVGL what size it resolved for the image source (0x0 usually means decode failed).
-        const int32_t lv_w = lv_image_get_src_width(img);
-        const int32_t lv_h = lv_image_get_src_height(img);
-
-        snprintf(msg, sizeof(msg), "boot.png %ux%u (~%u KB) lv:%ldx%ld",
-                 (unsigned)png_w, (unsigned)png_h, decoded_kb, (long)lv_w, (long)lv_h);
-        lv_label_set_text(label, msg);
-    } else {
-        lv_label_set_text(label, "boot.png (embedded)");
-    }
-    lv_obj_align_to(label, img, LV_ALIGN_OUT_BOTTOM_MID, 0, 12);
+    (void)wh_ok;
 #endif
 
     bsp_display_unlock();
