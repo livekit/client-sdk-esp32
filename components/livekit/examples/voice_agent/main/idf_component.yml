@@ -7,7 +7,7 @@ dependencies:
     version: ~0.1.0
     override_path: ../../../../sandbox_token
   livekit/example_utils:
-    version: ~0.1.0
+    version: ~0.2.0
     override_path: ../../../../example_utils
   tempotian/codec_board: ~1.0.0
   espressif/esp32_s3_korvo_2: "4.1.0"
