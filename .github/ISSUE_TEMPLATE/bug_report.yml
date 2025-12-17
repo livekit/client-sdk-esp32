@@ -9,7 +9,7 @@ body:
     attributes:
       label: LiveKit SDK Version
       description: What version of LiveKit SDK are you using?
-      placeholder: "v0.3.3"
+      placeholder: "v0.3.4"
   - type: input
     id: idf-version
     validations: { required: true }
