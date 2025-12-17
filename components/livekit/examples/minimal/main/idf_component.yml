@@ -9,4 +9,6 @@ dependencies:
   livekit/example_utils:
     version: ~0.1.0
     override_path: ../../../../example_utils
-  tempotian/codec_board: ~1.0.0
+  waveshare/esp32_s3_touch_amoled_2_06: 
+    version: "*"
+    override_path: ../../../../esp32_s3_touch_amoled_2_06
