@@ -160,7 +160,7 @@ static void board_display_init_and_show_image(void)
     }
 
     // Optional: set brightness (0-100). bsp_display_start() already initializes brightness.
-    bsp_display_brightness_set(80);
+    bsp_display_brightness_set(5);
 
     // LVGL is not thread-safe: always take the BSP LVGL lock before calling LVGL APIs.
     bsp_display_lock(0);
