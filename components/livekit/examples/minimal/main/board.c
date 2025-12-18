@@ -48,8 +48,15 @@ static TaskHandle_t s_button_task = NULL;
 static void board_mic_mute_dot_apply(bool muted)
 {
     if (s_mic_mute_dot == NULL) return;
-    const lv_color_t c = muted ? lv_color_hex(0xFF0000) : lv_color_hex(0x0000FF);
-    lv_obj_set_style_bg_color(s_mic_mute_dot, c, 0);
+    // Per UX:
+    // - Show a red dot ONLY when unmuted
+    // - Hide the dot entirely when muted
+    if (muted) {
+        lv_obj_add_flag(s_mic_mute_dot, LV_OBJ_FLAG_HIDDEN);
+        return;
+    }
+    lv_obj_clear_flag(s_mic_mute_dot, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_style_bg_color(s_mic_mute_dot, lv_color_hex(0xFF0000), 0);
 }
 
 static void board_visualizer_timer_cb(lv_timer_t *t)
@@ -235,17 +242,19 @@ static void board_display_init_and_show_image(void)
     // Start silent (ring visible).
     lv_obj_add_flag(s_visualizer_bar, LV_OBJ_FLAG_HIDDEN);
 
-    // Mic mute indicator: always visible, top-right.
-    // Create after the rest of the UI and force it to the foreground so it can't be obscured.
-    // - Blue: unmuted
-    // - Red: muted
+    // Mic status dot (top-center).
+    // Match the "silent visualizer" dot style:
+    // - filled circle
+    // - same size (20px)
+    // - no outline
+    //
+    // Per UX: show ONLY when unmuted (red). When muted, hide it.
     s_mic_mute_dot = lv_obj_create(scr);
     lv_obj_remove_style_all(s_mic_mute_dot);
-    lv_obj_set_size(s_mic_mute_dot, 16, 16);
+    lv_obj_set_size(s_mic_mute_dot, 20, 20);
     lv_obj_set_style_radius(s_mic_mute_dot, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_bg_opa(s_mic_mute_dot, LV_OPA_COVER, 0);
-    lv_obj_set_style_border_width(s_mic_mute_dot, 2, 0);
-    lv_obj_set_style_border_color(s_mic_mute_dot, lv_color_hex(0xFFFFFF), 0);
+    lv_obj_set_style_border_width(s_mic_mute_dot, 0, 0);
     lv_obj_set_style_shadow_width(s_mic_mute_dot, 0, 0);
     lv_obj_clear_flag(s_mic_mute_dot, LV_OBJ_FLAG_CLICKABLE);
     // Top-center (rounded corners can clip top-right).
