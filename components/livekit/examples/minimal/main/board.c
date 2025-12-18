@@ -1,5 +1,6 @@
 #include "esp_log.h"
 #include "esp_check.h"
+#include "esp_timer.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -35,8 +36,27 @@ static lv_timer_t *s_visualizer_timer = NULL;
 static volatile uint16_t s_visualizer_level_q15 = 0; // updated from audio thread
 static uint16_t s_visualizer_display_q15 = 0;        // smoothed display value
 
-// Mic mute UI indicator (top-right).
-static lv_obj_t *s_mic_mute_dot = NULL;
+// Mic input visualizer + mute indicator (top-center).
+static lv_obj_t *s_mic_level_cont = NULL;
+static lv_obj_t *s_mic_level_bar = NULL;
+static lv_obj_t *s_mic_level_dot = NULL;
+static volatile uint16_t s_mic_level_q15 = 0; // updated from capture/audio thread
+static uint16_t s_mic_level_display_q15 = 0;  // smoothed display value
+
+// Rate-limited console logging for levels (avoid spamming UART).
+static int64_t s_level_log_last_us = 0;
+static void board_level_log_maybe(void)
+{
+    const int64_t now = esp_timer_get_time();
+    // Log at most once per second.
+    if (now - s_level_log_last_us < 1000000) return;
+    s_level_log_last_us = now;
+
+    const float spk = (float)s_visualizer_level_q15 / 32767.0f;
+    const float mic = (float)s_mic_level_q15 / 32767.0f;
+    ESP_LOGI(TAG, "levels: spk=%.3f mic=%.3f%s", (double)spk, (double)mic,
+             media_get_mic_muted() ? " (mic muted)" : "");
+}
 
 // Upper button → mute toggle task plumbing.
 typedef struct {
@@ -45,18 +65,22 @@ typedef struct {
 static QueueHandle_t s_button_queue = NULL;
 static TaskHandle_t s_button_task = NULL;
 
-static void board_mic_mute_dot_apply(bool muted)
+static void board_mic_indicator_apply(bool muted)
 {
-    if (s_mic_mute_dot == NULL) return;
+    if (s_mic_level_cont == NULL) return;
+
     // Per UX:
-    // - Show a red dot ONLY when unmuted
-    // - Hide the dot entirely when muted
-    if (muted) {
-        lv_obj_add_flag(s_mic_mute_dot, LV_OBJ_FLAG_HIDDEN);
-        return;
+    // - When muted: show a red dot (no bars)
+    // - When unmuted: show a blue dot when silent/low, or blue gradient bars when speaking
+    lv_obj_clear_flag(s_mic_level_cont, LV_OBJ_FLAG_HIDDEN);
+
+    if (s_mic_level_dot) {
+        lv_obj_set_style_bg_color(s_mic_level_dot, muted ? lv_color_hex(0xFF0000) : lv_color_hex(0x3B82F6), 0);
     }
-    lv_obj_clear_flag(s_mic_mute_dot, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_set_style_bg_color(s_mic_mute_dot, lv_color_hex(0xFF0000), 0);
+    if (muted) {
+        if (s_mic_level_bar) lv_obj_add_flag(s_mic_level_bar, LV_OBJ_FLAG_HIDDEN);
+        if (s_mic_level_dot) lv_obj_clear_flag(s_mic_level_dot, LV_OBJ_FLAG_HIDDEN);
+    }
 }
 
 static void board_visualizer_timer_cb(lv_timer_t *t)
@@ -91,7 +115,7 @@ static void board_visualizer_timer_cb(lv_timer_t *t)
         lv_bar_set_value(s_visualizer_bar, 0, LV_ANIM_OFF);
         lv_obj_add_flag(s_visualizer_bar, LV_OBJ_FLAG_HIDDEN);
         if (s_visualizer_dot) lv_obj_clear_flag(s_visualizer_dot, LV_OBJ_FLAG_HIDDEN);
-        return;
+        goto mic_update;
     }
 
     lv_obj_clear_flag(s_visualizer_bar, LV_OBJ_FLAG_HIDDEN);
@@ -101,6 +125,60 @@ static void board_visualizer_timer_cb(lv_timer_t *t)
     // LVGL v9 bar supports RANGE mode (start_value..value).
     lv_bar_set_start_value(s_visualizer_bar, -v, LV_ANIM_OFF);
     lv_bar_set_value(s_visualizer_bar, v, LV_ANIM_OFF);
+
+    // ---- Mic input indicator (top) ----
+mic_update:
+    if (s_mic_level_cont == NULL) return;
+
+    // If muted: force red dot visible and keep bars hidden.
+    if (media_get_mic_muted()) {
+        if (s_mic_level_dot) {
+            lv_obj_set_style_bg_color(s_mic_level_dot, lv_color_hex(0xFF0000), 0);
+            lv_obj_clear_flag(s_mic_level_dot, LV_OBJ_FLAG_HIDDEN);
+        }
+        if (s_mic_level_bar) lv_obj_add_flag(s_mic_level_bar, LV_OBJ_FLAG_HIDDEN);
+        return;
+    }
+    // Unmuted: blue styling (dot vs bars decided below).
+    if (s_mic_level_dot) {
+        lv_obj_set_style_bg_color(s_mic_level_dot, lv_color_hex(0x3B82F6), 0);
+    }
+
+    const uint16_t mic_target = s_mic_level_q15;
+    uint16_t mic_cur = s_mic_level_display_q15;
+    if (mic_target > mic_cur) {
+        mic_cur = mic_target;
+    } else {
+        mic_cur = (uint16_t)((uint32_t)mic_cur * 9U / 10U);
+    }
+    s_mic_level_display_q15 = mic_cur;
+
+    int32_t mic_v = (int32_t)((uint32_t)mic_cur * 100U / 32767U); // 0..100
+    // Small noise floor to prevent flicker from codec/AEC background noise.
+    if (mic_v < 2) mic_v = 0;
+
+    // Only switch to bar view when the filled width exceeds the 20px dot.
+    const int32_t mic_bar_w = s_mic_level_bar ? lv_obj_get_width(s_mic_level_bar) : 0;
+    const int32_t mic_dot_d = s_mic_level_dot ? lv_obj_get_width(s_mic_level_dot) : 20;
+    const int32_t mic_fill_px = (mic_bar_w > 0) ? (int32_t)(((int64_t)mic_bar_w * (int64_t)mic_v) / 100) : 0;
+    const bool mic_show_dot = (mic_v == 0) || (mic_fill_px <= mic_dot_d);
+
+    if (mic_show_dot) {
+        if (s_mic_level_bar) {
+            lv_bar_set_start_value(s_mic_level_bar, 0, LV_ANIM_OFF);
+            lv_bar_set_value(s_mic_level_bar, 0, LV_ANIM_OFF);
+            lv_obj_add_flag(s_mic_level_bar, LV_OBJ_FLAG_HIDDEN);
+        }
+        if (s_mic_level_dot) lv_obj_clear_flag(s_mic_level_dot, LV_OBJ_FLAG_HIDDEN);
+        return;
+    }
+
+    if (s_mic_level_bar) lv_obj_clear_flag(s_mic_level_bar, LV_OBJ_FLAG_HIDDEN);
+    if (s_mic_level_dot) lv_obj_add_flag(s_mic_level_dot, LV_OBJ_FLAG_HIDDEN);
+    if (s_mic_level_bar) {
+        lv_bar_set_start_value(s_mic_level_bar, -mic_v, LV_ANIM_OFF);
+        lv_bar_set_value(s_mic_level_bar, mic_v, LV_ANIM_OFF);
+    }
 }
 
 // Embedded boot image.
@@ -160,7 +238,7 @@ static void board_display_init_and_show_image(void)
     }
 
     // Optional: set brightness (0-100). bsp_display_start() already initializes brightness.
-    bsp_display_brightness_set(5);
+    bsp_display_brightness_set(80);
 
     // LVGL is not thread-safe: always take the BSP LVGL lock before calling LVGL APIs.
     bsp_display_lock(0);
@@ -242,30 +320,51 @@ static void board_display_init_and_show_image(void)
     // Start silent (ring visible).
     lv_obj_add_flag(s_visualizer_bar, LV_OBJ_FLAG_HIDDEN);
 
-    // Mic status dot (top-center).
-    // Match the "silent visualizer" dot style:
-    // - filled circle
-    // - same size (20px)
-    // - no outline
-    //
-    // Per UX: show ONLY when unmuted (red). When muted, hide it.
-    s_mic_mute_dot = lv_obj_create(scr);
-    lv_obj_remove_style_all(s_mic_mute_dot);
-    lv_obj_set_size(s_mic_mute_dot, 20, 20);
-    lv_obj_set_style_radius(s_mic_mute_dot, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_bg_opa(s_mic_mute_dot, LV_OPA_COVER, 0);
-    lv_obj_set_style_border_width(s_mic_mute_dot, 0, 0);
-    lv_obj_set_style_shadow_width(s_mic_mute_dot, 0, 0);
-    lv_obj_clear_flag(s_mic_mute_dot, LV_OBJ_FLAG_CLICKABLE);
-    // Top-center (rounded corners can clip top-right).
-    lv_obj_align(s_mic_mute_dot, LV_ALIGN_TOP_MID, 0, 10);
-    board_mic_mute_dot_apply(media_get_mic_muted());
-    lv_obj_move_foreground(s_mic_mute_dot);
+    // Mic input indicator (top-center): blue dot when silent, blue center-out bars when speaking.
+    // Per UX: show only when unmuted; hide entirely when muted.
+    s_mic_level_cont = lv_obj_create(scr);
+    lv_obj_remove_style_all(s_mic_level_cont);
+    lv_obj_set_size(s_mic_level_cont, 220, 20);
+    lv_obj_clear_flag(s_mic_level_cont, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_align(s_mic_level_cont, LV_ALIGN_TOP_MID, 0, 10);
+    lv_obj_move_foreground(s_mic_level_cont);
+
+    s_mic_level_bar = lv_bar_create(s_mic_level_cont);
+    lv_obj_set_size(s_mic_level_bar, LV_PCT(100), LV_PCT(100));
+    lv_obj_set_style_radius(s_mic_level_bar, 10, 0);
+    // Black track to blend into the screen background.
+    lv_obj_set_style_bg_color(s_mic_level_bar, lv_color_hex(0x000000), 0);
+    lv_obj_set_style_bg_opa(s_mic_level_bar, LV_OPA_COVER, 0);
+
+    // Blue gradient indicator.
+    lv_obj_set_style_bg_color(s_mic_level_bar, lv_color_hex(0x2563EB), LV_PART_INDICATOR);      // deep blue
+    lv_obj_set_style_bg_grad_color(s_mic_level_bar, lv_color_hex(0x60A5FA), LV_PART_INDICATOR); // light blue
+    lv_obj_set_style_bg_grad_dir(s_mic_level_bar, LV_GRAD_DIR_HOR, LV_PART_INDICATOR);
+    lv_obj_set_style_bg_opa(s_mic_level_bar, LV_OPA_COVER, LV_PART_INDICATOR);
+
+    lv_bar_set_mode(s_mic_level_bar, LV_BAR_MODE_RANGE);
+    lv_bar_set_range(s_mic_level_bar, -100, 100);
+    lv_bar_set_start_value(s_mic_level_bar, 0, LV_ANIM_OFF);
+    lv_bar_set_value(s_mic_level_bar, 0, LV_ANIM_OFF);
+
+    // Silent-state dot (blue).
+    s_mic_level_dot = lv_obj_create(s_mic_level_cont);
+    lv_obj_remove_style_all(s_mic_level_dot);
+    lv_obj_set_size(s_mic_level_dot, 20, 20);
+    lv_obj_set_style_radius(s_mic_level_dot, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(s_mic_level_dot, lv_color_hex(0x3B82F6), 0);
+    lv_obj_set_style_bg_opa(s_mic_level_dot, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(s_mic_level_dot, 0, 0);
+    lv_obj_align(s_mic_level_dot, LV_ALIGN_CENTER, 0, 0);
+
+    // Start with bar hidden (dot visible).
+    lv_obj_add_flag(s_mic_level_bar, LV_OBJ_FLAG_HIDDEN);
+    board_mic_indicator_apply(media_get_mic_muted());
 
 #if !LV_USE_LODEPNG
-    ESP_LOGW(TAG, "PNG decoder disabled: enable CONFIG_LV_USE_LODEPNG");
-    bsp_display_unlock();
-    return;
+    // Don't bail out: UI meters (and button handling) should still run even if the
+    // boot PNG can't be decoded in this build.
+    ESP_LOGW(TAG, "PNG decoder disabled: enable CONFIG_LV_USE_LODEPNG (boot image may not render)");
 #else
     (void)wh_ok;
 #endif
@@ -284,7 +383,7 @@ void board_set_mic_muted(bool muted)
     if (!bsp_display_lock(0)) {
         return;
     }
-    board_mic_mute_dot_apply(muted);
+    board_mic_indicator_apply(muted);
     bsp_display_unlock();
 }
 
@@ -425,4 +524,15 @@ void board_visualizer_set_level(float level)
     if (level > 1.0f) level = 1.0f;
     const uint32_t q15 = (uint32_t)(level * 32767.0f);
     s_visualizer_level_q15 = (uint16_t)(q15 > 32767U ? 32767U : q15);
+    board_level_log_maybe();
+}
+
+void board_mic_visualizer_set_level(float level)
+{
+    // Called from capture/audio context; must not touch LVGL.
+    if (level < 0.0f) level = 0.0f;
+    if (level > 1.0f) level = 1.0f;
+    const uint32_t q15 = (uint32_t)(level * 32767.0f);
+    s_mic_level_q15 = (uint16_t)(q15 > 32767U ? 32767U : q15);
+    board_level_log_maybe();
 }

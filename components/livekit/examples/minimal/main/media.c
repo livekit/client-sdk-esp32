@@ -35,8 +35,8 @@ static volatile bool s_mic_muted = false;
 //  - 5/2 = +7.96 dB
 //  - 2/1 = +6.02 dB
 //  - 3/1 = +9.54 dB (more clipping risk)
-#define LK_POST_AEC_GAIN_NUM 5
-#define LK_POST_AEC_GAIN_DEN 2
+#define LK_POST_AEC_GAIN_NUM 2
+#define LK_POST_AEC_GAIN_DEN 1
 
 typedef struct {
     esp_capture_audio_src_if_t  iface;  // must be first
@@ -104,6 +104,16 @@ static esp_capture_err_t lk_pg_read_frame(esp_capture_audio_src_if_t *src, esp_c
     if (s_mic_muted) {
         memset(frame->data, 0, (size_t)frame->size);
     }
+
+    // Mic input level visualizer (post-gain, post-mute).
+    int32_t peak = 0;
+    for (int i = 0; i < n; i++) {
+        int32_t v = pcm[i];
+        if (v < 0) v = -v;
+        if (v > peak) peak = v;
+    }
+    const float level = (float)peak / 32768.0f;
+    board_mic_visualizer_set_level(level);
     return err;
 }
 
@@ -186,12 +196,12 @@ static int build_capturer_system(void)
     // - ch2: Mic3 (AEC reference input)
     // - ch3: unused
     //
-    // IMPORTANT: do NOT set channel_mask here. We need to feed mic+ref into the AFE.
     // The output published to LiveKit remains mono (AEC-processed).
     esp_capture_audio_aec_src_cfg_t codec_cfg = {
+        // .mic_layout = "MMRN",
         .record_handle = record_handle,
         .channel = 4,
-        .channel_mask = 1 | 4
+        .channel_mask = 1 | 2
     };
     capturer_system.audio_source = esp_capture_new_audio_aec_src(&codec_cfg);
     capturer_system.audio_source = lk_wrap_post_aec_gain(capturer_system.audio_source);
