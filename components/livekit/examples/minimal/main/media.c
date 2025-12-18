@@ -7,6 +7,8 @@
 #include "esp_capture_defaults.h"
 #include "esp_capture_sink.h"
 
+#include <stdlib.h>
+
 #include "board.h"
 #include "media.h"
 
@@ -20,6 +22,116 @@ static const char *TAG = "media";
 
 #define NULL_CHECK(pointer, message) \
     ESP_RETURN_ON_FALSE(pointer != NULL, -1, TAG, message)
+
+// Post-AEC digital gain (hard-coded).
+//
+// The ESP-SR AEC/AFE can reduce perceived level; this stage boosts the AEC output
+// *before* it is encoded and published.
+//
+// NOTE: This is intentionally hard-coded (no sdkconfig knobs). Tweak if needed.
+//  - 5/2 = +7.96 dB
+//  - 2/1 = +6.02 dB
+//  - 3/1 = +9.54 dB (more clipping risk)
+#define LK_POST_AEC_GAIN_NUM 5
+#define LK_POST_AEC_GAIN_DEN 2
+
+typedef struct {
+    esp_capture_audio_src_if_t  iface;  // must be first
+    esp_capture_audio_src_if_t *inner;
+} lk_post_gain_audio_src_t;
+
+static inline int16_t lk_clip_i16(int32_t v)
+{
+    if (v > 32767) return 32767;
+    if (v < -32768) return -32768;
+    return (int16_t)v;
+}
+
+static esp_capture_err_t lk_pg_open(esp_capture_audio_src_if_t *src)
+{
+    lk_post_gain_audio_src_t *s = (lk_post_gain_audio_src_t *)src;
+    return s->inner->open(s->inner);
+}
+
+static esp_capture_err_t lk_pg_get_support_codecs(esp_capture_audio_src_if_t *src, const esp_capture_format_id_t **codecs, uint8_t *num)
+{
+    lk_post_gain_audio_src_t *s = (lk_post_gain_audio_src_t *)src;
+    return s->inner->get_support_codecs(s->inner, codecs, num);
+}
+
+static esp_capture_err_t lk_pg_set_fixed_caps(esp_capture_audio_src_if_t *src, const esp_capture_audio_info_t *fixed_caps)
+{
+    lk_post_gain_audio_src_t *s = (lk_post_gain_audio_src_t *)src;
+    return s->inner->set_fixed_caps(s->inner, fixed_caps);
+}
+
+static esp_capture_err_t lk_pg_negotiate_caps(esp_capture_audio_src_if_t *src, esp_capture_audio_info_t *in_caps, esp_capture_audio_info_t *out_caps)
+{
+    lk_post_gain_audio_src_t *s = (lk_post_gain_audio_src_t *)src;
+    return s->inner->negotiate_caps(s->inner, in_caps, out_caps);
+}
+
+static esp_capture_err_t lk_pg_start(esp_capture_audio_src_if_t *src)
+{
+    lk_post_gain_audio_src_t *s = (lk_post_gain_audio_src_t *)src;
+    return s->inner->start(s->inner);
+}
+
+static esp_capture_err_t lk_pg_read_frame(esp_capture_audio_src_if_t *src, esp_capture_stream_frame_t *frame)
+{
+    lk_post_gain_audio_src_t *s = (lk_post_gain_audio_src_t *)src;
+    esp_capture_err_t err = s->inner->read_frame(s->inner, frame);
+    if (err != ESP_CAPTURE_ERR_OK || frame == NULL || frame->data == NULL || frame->size <= 0) {
+        return err;
+    }
+
+    // AEC source outputs PCM16; apply gain in-place with saturation.
+    if ((frame->size % (int)sizeof(int16_t)) != 0) {
+        return err;
+    }
+
+    int16_t *pcm = (int16_t *)frame->data;
+    const int n = frame->size / (int)sizeof(int16_t);
+    for (int i = 0; i < n; i++) {
+        const int32_t v = ((int32_t)pcm[i] * (int32_t)LK_POST_AEC_GAIN_NUM) / (int32_t)LK_POST_AEC_GAIN_DEN;
+        pcm[i] = lk_clip_i16(v);
+    }
+    return err;
+}
+
+static esp_capture_err_t lk_pg_stop(esp_capture_audio_src_if_t *src)
+{
+    lk_post_gain_audio_src_t *s = (lk_post_gain_audio_src_t *)src;
+    return s->inner->stop(s->inner);
+}
+
+static esp_capture_err_t lk_pg_close(esp_capture_audio_src_if_t *src)
+{
+    lk_post_gain_audio_src_t *s = (lk_post_gain_audio_src_t *)src;
+    esp_capture_err_t err = s->inner->close(s->inner);
+    free(s);
+    return err;
+}
+
+static esp_capture_audio_src_if_t *lk_wrap_post_aec_gain(esp_capture_audio_src_if_t *inner)
+{
+    if (inner == NULL) return NULL;
+
+    lk_post_gain_audio_src_t *s = (lk_post_gain_audio_src_t *)calloc(1, sizeof(lk_post_gain_audio_src_t));
+    if (s == NULL) {
+        return inner; // best-effort fallback: no post gain
+    }
+    s->inner = inner;
+    s->iface.open = lk_pg_open;
+    s->iface.get_support_codecs = lk_pg_get_support_codecs;
+    s->iface.set_fixed_caps = lk_pg_set_fixed_caps;
+    s->iface.negotiate_caps = lk_pg_negotiate_caps;
+    s->iface.start = lk_pg_start;
+    s->iface.read_frame = lk_pg_read_frame;
+    s->iface.stop = lk_pg_stop;
+    s->iface.close = lk_pg_close;
+    return &s->iface;
+}
 
 typedef struct {
     esp_capture_sink_handle_t capturer_handle;
@@ -74,6 +186,7 @@ static int build_capturer_system(void)
         .channel_mask = 1 | 2
     };
     capturer_system.audio_source = esp_capture_new_audio_aec_src(&codec_cfg);
+    capturer_system.audio_source = lk_wrap_post_aec_gain(capturer_system.audio_source);
     NULL_CHECK(capturer_system.audio_source, "Failed to create audio source");
 
     esp_capture_cfg_t cfg = {
