@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -23,6 +25,11 @@ void *board_get_speaker_handle(void);
 ///
 /// @note This is safe to call from non-LVGL threads/contexts; it does not call LVGL APIs.
 void board_visualizer_set_level(float level);
+
+/// Update the mic mute indicator UI (top-right dot).
+///
+/// @note Safe to call from non-LVGL threads; this function takes the LVGL lock.
+void board_set_mic_muted(bool muted);
 
 #ifdef __cplusplus
 }

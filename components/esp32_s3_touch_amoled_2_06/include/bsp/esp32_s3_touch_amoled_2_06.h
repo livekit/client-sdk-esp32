@@ -21,7 +21,7 @@
 
 #define BSP_CAPS_DISPLAY        1
 #define BSP_CAPS_TOUCH          1
-#define BSP_CAPS_BUTTONS        0
+#define BSP_CAPS_BUTTONS        1
 #define BSP_CAPS_AUDIO          1
 #define BSP_CAPS_AUDIO_SPEAKER  1
 #define BSP_CAPS_AUDIO_MIC      1
@@ -60,6 +60,14 @@
 #define BSP_SD_D0            (GPIO_NUM_3)
 #define BSP_SD_CMD           (GPIO_NUM_1)
 #define BSP_SD_CLK           (GPIO_NUM_2)
+
+#ifndef BSP_BUTTON_UPPER_IO
+// "Upper button" on the watch enclosure.
+//
+// NOTE: The vendor example projects for this board commonly use GPIO0 as the user/calibration button.
+// If your hardware revision differs, override at build time with `-DBSP_BUTTON_UPPER_IO=GPIO_NUM_x`.
+#define BSP_BUTTON_UPPER_IO  (GPIO_NUM_0)
+#endif
 
 #define LVGL_BUFFER_HEIGHT          (CONFIG_BSP_DISPLAY_LVGL_BUF_HEIGHT)
 
@@ -326,6 +334,35 @@ void bsp_display_unlock(void);
  */
 void bsp_display_rotate(lv_display_t *disp, lv_disp_rotation_t rotation);
 #endif // BSP_CONFIG_NO_GRAPHIC_LIB == 0
+
+/**************************************************************************************************
+ *
+ * Buttons
+ *
+ * This BSP exposes a minimal callback-based API intended for simple GPIO buttons.
+ *
+ * The callback runs in ISR context: keep it short and ISR-safe (e.g., use queues/notifications).
+ **************************************************************************************************/
+
+typedef enum {
+    BSP_BUTTON_UPPER = 0,
+} bsp_button_t;
+
+typedef void (*bsp_button_isr_cb_t)(bsp_button_t button, void *ctx);
+
+/**
+ * @brief Initialize BSP buttons (GPIO + ISR).
+ *
+ * @return ESP_OK on success.
+ */
+esp_err_t bsp_button_init(void);
+
+/**
+ * @brief Register ISR callback for a BSP button.
+ *
+ * @note Callback is invoked from ISR context; must be ISR-safe.
+ */
+esp_err_t bsp_button_register_callback(bsp_button_t button, bsp_button_isr_cb_t cb, void *ctx);
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include <stdbool.h>
 #include "esp_capture.h"
 #include "av_render.h"
 
@@ -32,6 +33,11 @@ esp_capture_handle_t media_get_capturer(void);
 /// your application and the hardware you are using.
 ///
 av_render_handle_t media_get_renderer(void);
+
+/// Mic mute control (software mute: publishes silence while keeping the track alive).
+void media_set_mic_muted(bool muted);
+bool media_get_mic_muted(void);
+bool media_toggle_mic_muted(void);
 
 #ifdef __cplusplus
 }

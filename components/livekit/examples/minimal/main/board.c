@@ -4,11 +4,17 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "bsp/esp32_s3_touch_amoled_2_06.h"
 #include "lvgl.h"
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
+
 #include "board.h"
+#include "media.h"
 
 static const char *TAG = "board";
 
@@ -28,6 +34,23 @@ static lv_obj_t *s_visualizer_dot = NULL;
 static lv_timer_t *s_visualizer_timer = NULL;
 static volatile uint16_t s_visualizer_level_q15 = 0; // updated from audio thread
 static uint16_t s_visualizer_display_q15 = 0;        // smoothed display value
+
+// Mic mute UI indicator (top-right).
+static lv_obj_t *s_mic_mute_dot = NULL;
+
+// Upper button → mute toggle task plumbing.
+typedef struct {
+    bsp_button_t button;
+} board_button_evt_t;
+static QueueHandle_t s_button_queue = NULL;
+static TaskHandle_t s_button_task = NULL;
+
+static void board_mic_mute_dot_apply(bool muted)
+{
+    if (s_mic_mute_dot == NULL) return;
+    const lv_color_t c = muted ? lv_color_hex(0xFF0000) : lv_color_hex(0x0000FF);
+    lv_obj_set_style_bg_color(s_mic_mute_dot, c, 0);
+}
 
 static void board_visualizer_timer_cb(lv_timer_t *t)
 {
@@ -212,6 +235,24 @@ static void board_display_init_and_show_image(void)
     // Start silent (ring visible).
     lv_obj_add_flag(s_visualizer_bar, LV_OBJ_FLAG_HIDDEN);
 
+    // Mic mute indicator: always visible, top-right.
+    // Create after the rest of the UI and force it to the foreground so it can't be obscured.
+    // - Blue: unmuted
+    // - Red: muted
+    s_mic_mute_dot = lv_obj_create(scr);
+    lv_obj_remove_style_all(s_mic_mute_dot);
+    lv_obj_set_size(s_mic_mute_dot, 16, 16);
+    lv_obj_set_style_radius(s_mic_mute_dot, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_opa(s_mic_mute_dot, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(s_mic_mute_dot, 2, 0);
+    lv_obj_set_style_border_color(s_mic_mute_dot, lv_color_hex(0xFFFFFF), 0);
+    lv_obj_set_style_shadow_width(s_mic_mute_dot, 0, 0);
+    lv_obj_clear_flag(s_mic_mute_dot, LV_OBJ_FLAG_CLICKABLE);
+    // Top-center (rounded corners can clip top-right).
+    lv_obj_align(s_mic_mute_dot, LV_ALIGN_TOP_MID, 0, 10);
+    board_mic_mute_dot_apply(media_get_mic_muted());
+    lv_obj_move_foreground(s_mic_mute_dot);
+
 #if !LV_USE_LODEPNG
     ESP_LOGW(TAG, "PNG decoder disabled: enable CONFIG_LV_USE_LODEPNG");
     bsp_display_unlock();
@@ -228,6 +269,16 @@ static void board_display_init_and_show_image(void)
     bsp_display_unlock();
 }
 
+void board_set_mic_muted(bool muted)
+{
+    // Safe to call from non-LVGL contexts.
+    if (!bsp_display_lock(0)) {
+        return;
+    }
+    board_mic_mute_dot_apply(muted);
+    bsp_display_unlock();
+}
+
 void *board_get_mic_handle(void)
 {
     return s_mic_handle;
@@ -236,6 +287,48 @@ void *board_get_mic_handle(void)
 void *board_get_speaker_handle(void)
 {
     return s_spk_handle;
+}
+
+static void IRAM_ATTR board_button_isr_cb(bsp_button_t button, void *ctx)
+{
+    (void)ctx;
+    if (s_button_queue == NULL) return;
+    const board_button_evt_t evt = {.button = button};
+    BaseType_t hp_task_woken = pdFALSE;
+    (void)xQueueSendFromISR(s_button_queue, &evt, &hp_task_woken);
+    if (hp_task_woken == pdTRUE) {
+        portYIELD_FROM_ISR();
+    }
+}
+
+static void board_button_task_fn(void *arg)
+{
+    (void)arg;
+    board_button_evt_t evt;
+    bool upper_down = false;
+    while (true) {
+        if (xQueueReceive(s_button_queue, &evt, portMAX_DELAY) != pdTRUE) {
+            continue;
+        }
+        if (evt.button != BSP_BUTTON_UPPER) {
+            continue;
+        }
+        // Debounce + toggle-on-press:
+        // - Wait a moment for bounce to settle
+        // - Toggle only when we observe a stable transition to "pressed"
+        vTaskDelay(pdMS_TO_TICKS(30));
+        const int lvl = gpio_get_level(BSP_BUTTON_UPPER_IO); // 0 = pressed (pull-up)
+        if (lvl == 0) {
+            if (!upper_down) {
+                upper_down = true;
+                const bool muted = media_toggle_mic_muted();
+                board_set_mic_muted(muted);
+                ESP_LOGI(TAG, "Mic %s", muted ? "MUTED" : "UNMUTED");
+            }
+        } else {
+            upper_down = false;
+        }
+    }
 }
 
 void board_init(void)
@@ -303,6 +396,17 @@ void board_init(void)
 
     // Initialize display + touch and show a static image on boot.
     board_display_init_and_show_image();
+
+    // Upper button toggles mic mute.
+    // Use BSP minimal button API (GPIO0 by default).
+    s_button_queue = xQueueCreate(4, sizeof(board_button_evt_t));
+    if (s_button_queue != NULL) {
+        ESP_ERROR_CHECK(bsp_button_init());
+        ESP_ERROR_CHECK(bsp_button_register_callback(BSP_BUTTON_UPPER, board_button_isr_cb, NULL));
+        (void)xTaskCreate(board_button_task_fn, "lk_btn_mute", 4096, NULL, 6, &s_button_task);
+    } else {
+        ESP_LOGW(TAG, "Failed to create button queue; mic mute toggle disabled");
+    }
 }
 
 void board_visualizer_set_level(float level)

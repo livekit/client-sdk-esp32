@@ -7,12 +7,15 @@
 #include "esp_capture_defaults.h"
 #include "esp_capture_sink.h"
 
+#include <string.h>
 #include <stdlib.h>
 
 #include "board.h"
 #include "media.h"
 
 static const char *TAG = "media";
+
+static volatile bool s_mic_muted = false;
 
 // Some IDE/lint setups (or stale build dirs) don't automatically include regenerated sdkconfig entries.
 // Keep a safe default so builds remain reproducible without a full reconfigure.
@@ -95,6 +98,11 @@ static esp_capture_err_t lk_pg_read_frame(esp_capture_audio_src_if_t *src, esp_c
     for (int i = 0; i < n; i++) {
         const int32_t v = ((int32_t)pcm[i] * (int32_t)LK_POST_AEC_GAIN_NUM) / (int32_t)LK_POST_AEC_GAIN_DEN;
         pcm[i] = lk_clip_i16(v);
+    }
+
+    // Software mic mute: publish silence while keeping timing/track alive.
+    if (s_mic_muted) {
+        memset(frame->data, 0, (size_t)frame->size);
     }
     return err;
 }
@@ -254,4 +262,20 @@ esp_capture_handle_t media_get_capturer(void)
 av_render_handle_t media_get_renderer(void)
 {
     return renderer_system.av_renderer_handle;
+}
+
+void media_set_mic_muted(bool muted)
+{
+    s_mic_muted = muted;
+}
+
+bool media_get_mic_muted(void)
+{
+    return s_mic_muted;
+}
+
+bool media_toggle_mic_muted(void)
+{
+    s_mic_muted = !s_mic_muted;
+    return s_mic_muted;
 }

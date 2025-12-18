@@ -36,6 +36,62 @@ static i2s_chan_handle_t i2s_tx_chan = NULL;
 static i2s_chan_handle_t i2s_rx_chan = NULL;
 static const audio_codec_data_if_t *i2s_data_if = NULL; /* Codec data interface */
 
+#if BSP_CAPS_BUTTONS
+static bsp_button_isr_cb_t s_button_cb = NULL;
+static void *s_button_cb_ctx = NULL;
+static bool s_button_isr_service_installed = false;
+
+static void IRAM_ATTR bsp_button_gpio_isr(void *arg)
+{
+    (void)arg;
+    if (s_button_cb) {
+        s_button_cb(BSP_BUTTON_UPPER, s_button_cb_ctx);
+    }
+}
+
+esp_err_t bsp_button_init(void)
+{
+    gpio_config_t io_conf = {
+        // Use ANYEDGE so apps can implement robust "toggle-on-press" logic
+        // (and ignore the release edge + bounce).
+        .intr_type = GPIO_INTR_ANYEDGE,
+        // active-low button with pull-up
+        .mode = GPIO_MODE_INPUT,
+        .pin_bit_mask = (1ULL << BSP_BUTTON_UPPER_IO),
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+    };
+    ESP_RETURN_ON_ERROR(gpio_config(&io_conf), TAG, "gpio_config failed");
+
+    if (!s_button_isr_service_installed) {
+        // ESP-IDF: safe to call once; if already installed we ignore ESP_ERR_INVALID_STATE.
+        esp_err_t err = gpio_install_isr_service(0);
+        if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+            return err;
+        }
+        s_button_isr_service_installed = true;
+    }
+
+    // Replace any previous handler for this pin.
+    esp_err_t rm_err = gpio_isr_handler_remove(BSP_BUTTON_UPPER_IO);
+    if (rm_err != ESP_OK && rm_err != ESP_ERR_INVALID_STATE) {
+        ESP_LOGW(TAG, "gpio_isr_handler_remove(%d) failed: %s", (int)BSP_BUTTON_UPPER_IO, esp_err_to_name(rm_err));
+    }
+    ESP_RETURN_ON_ERROR(gpio_isr_handler_add(BSP_BUTTON_UPPER_IO, bsp_button_gpio_isr, NULL), TAG, "gpio_isr_handler_add failed");
+    return ESP_OK;
+}
+
+esp_err_t bsp_button_register_callback(bsp_button_t button, bsp_button_isr_cb_t cb, void *ctx)
+{
+    if (button != BSP_BUTTON_UPPER) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    s_button_cb = cb;
+    s_button_cb_ctx = ctx;
+    return ESP_OK;
+}
+#endif
+
 #define BSP_ES7210_CODEC_ADDR ES7210_CODEC_DEFAULT_ADDR
 #define BSP_I2S_GPIO_CFG       \
     {                          \
