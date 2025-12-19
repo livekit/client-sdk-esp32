@@ -2,6 +2,7 @@
 #include "esp_check.h"
 #include "esp_timer.h"
 
+#include <math.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -42,6 +43,14 @@ static lv_obj_t *s_mic_level_bar = NULL;
 static lv_obj_t *s_mic_level_dot = NULL;
 static volatile uint16_t s_mic_level_q15 = 0; // updated from capture/audio thread
 static uint16_t s_mic_level_display_q15 = 0;  // smoothed display value
+
+// Mic meter UI curve:
+// Map linear amplitude [0..1] to a "more sensitive" UI level [0..1] so
+// quiet speech is visible while loud speech doesn't instantly peg.
+//
+// y = log1p(k*x) / log1p(k)
+// - k larger => more boost in the low range, more compression in the high range.
+#define LK_MIC_UI_CURVE_K 20.0f
 
 // Rate-limited console logging for levels (avoid spamming UART).
 static int64_t s_level_log_last_us = 0;
@@ -532,7 +541,15 @@ void board_mic_visualizer_set_level(float level)
     // Called from capture/audio context; must not touch LVGL.
     if (level < 0.0f) level = 0.0f;
     if (level > 1.0f) level = 1.0f;
-    const uint32_t q15 = (uint32_t)(level * 32767.0f);
+
+    // Apply UI curve (purely visual).
+    float ui = level;
+    const float k = LK_MIC_UI_CURVE_K;
+    if (k > 0.0f) {
+        ui = log1pf(k * ui) / log1pf(k);
+    }
+
+    const uint32_t q15 = (uint32_t)(ui * 32767.0f);
     s_mic_level_q15 = (uint16_t)(q15 > 32767U ? 32767U : q15);
     board_level_log_maybe();
 }
