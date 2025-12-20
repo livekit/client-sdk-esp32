@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include "livekit_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,6 +45,16 @@ void board_mic_visualizer_set_level(float level);
 ///
 /// @note Safe to call from non-LVGL threads; this function takes the LVGL lock.
 void board_set_mic_muted(bool muted);
+
+/// Update the UI based on LiveKit room connection state.
+///
+/// UX requirements:
+/// - DISCONNECTED/FAILED: hide remote volume indicator; show a 20px gray dot
+/// - CONNECTING/RECONNECTING: animate the gray dot left/right (~40px @ 0.5Hz)
+/// - CONNECTED: hide the connection dot; show the regular remote volume indicator
+///
+/// @note Safe to call from non-LVGL threads; this function takes the LVGL lock.
+void board_set_connection_state(livekit_connection_state_t state);
 
 #ifdef __cplusplus
 }

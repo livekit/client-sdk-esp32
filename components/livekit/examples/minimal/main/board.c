@@ -37,6 +37,11 @@ static lv_timer_t *s_visualizer_timer = NULL;
 static volatile uint16_t s_visualizer_level_q15 = 0; // updated from audio thread
 static uint16_t s_visualizer_display_q15 = 0;        // smoothed display value
 
+// LiveKit connection indicator (replaces remote volume meter while disconnected/connecting).
+static lv_obj_t *s_conn_dot = NULL;
+static livekit_connection_state_t s_conn_state = LIVEKIT_CONNECTION_STATE_DISCONNECTED;
+static bool s_room_connected = false;
+
 // Mic input visualizer + mute indicator (top-center).
 static lv_obj_t *s_mic_level_cont = NULL;
 static lv_obj_t *s_mic_level_bar = NULL;
@@ -96,6 +101,13 @@ static void board_visualizer_timer_cb(lv_timer_t *t)
 {
     (void)t;
     if (s_visualizer_bar == NULL) return;
+
+    // While not connected, suppress remote volume indicator entirely.
+    if (!s_room_connected) {
+        lv_obj_add_flag(s_visualizer_bar, LV_OBJ_FLAG_HIDDEN);
+        if (s_visualizer_dot) lv_obj_add_flag(s_visualizer_dot, LV_OBJ_FLAG_HIDDEN);
+        goto mic_update;
+    }
 
     const uint16_t target = s_visualizer_level_q15;
     uint16_t cur = s_visualizer_display_q15;
@@ -187,6 +199,65 @@ mic_update:
     if (s_mic_level_bar) {
         lv_bar_set_start_value(s_mic_level_bar, -mic_v, LV_ANIM_OFF);
         lv_bar_set_value(s_mic_level_bar, mic_v, LV_ANIM_OFF);
+    }
+}
+
+static void board_conn_dot_anim_exec_cb(void *obj, int32_t v)
+{
+    // Translate relative to center to keep alignment stable.
+    lv_obj_set_style_translate_x((lv_obj_t *)obj, (lv_coord_t)v, 0);
+}
+
+static void board_conn_ui_apply_locked(livekit_connection_state_t state)
+{
+    if (s_conn_dot == NULL || s_visualizer_bar == NULL) return;
+
+    s_conn_state = state;
+    const bool connecting = (state == LIVEKIT_CONNECTION_STATE_CONNECTING) ||
+                            (state == LIVEKIT_CONNECTION_STATE_RECONNECTING);
+    const bool connected = (state == LIVEKIT_CONNECTION_STATE_CONNECTED);
+    const bool disconnected = (state == LIVEKIT_CONNECTION_STATE_DISCONNECTED) ||
+                              (state == LIVEKIT_CONNECTION_STATE_FAILED);
+
+    s_room_connected = connected;
+
+    if (connected) {
+        // Hide the connection dot and show the regular remote meter.
+        lv_anim_del(s_conn_dot, board_conn_dot_anim_exec_cb);
+        lv_obj_set_style_translate_x(s_conn_dot, 0, 0);
+        lv_obj_add_flag(s_conn_dot, LV_OBJ_FLAG_HIDDEN);
+
+        // Ensure the meter has a sane initial appearance; timer will take over.
+        lv_obj_add_flag(s_visualizer_bar, LV_OBJ_FLAG_HIDDEN);
+        if (s_visualizer_dot) lv_obj_clear_flag(s_visualizer_dot, LV_OBJ_FLAG_HIDDEN);
+        s_visualizer_display_q15 = 0;
+        return;
+    }
+
+    // Disconnected / connecting: hide remote meter and show connection dot.
+    lv_obj_add_flag(s_visualizer_bar, LV_OBJ_FLAG_HIDDEN);
+    if (s_visualizer_dot) lv_obj_add_flag(s_visualizer_dot, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(s_conn_dot, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_align(s_conn_dot, LV_ALIGN_CENTER, 0, 0);
+
+    // Stop any prior anim and reset translation.
+    lv_anim_del(s_conn_dot, board_conn_dot_anim_exec_cb);
+    lv_obj_set_style_translate_x(s_conn_dot, 0, 0);
+
+    if (connecting) {
+        // Animate left/right by ~40px total (±20px), 0.5Hz (2s full cycle).
+        lv_anim_t a;
+        lv_anim_init(&a);
+        lv_anim_set_var(&a, s_conn_dot);
+        lv_anim_set_exec_cb(&a, board_conn_dot_anim_exec_cb);
+        lv_anim_set_values(&a, -20, 20);
+        lv_anim_set_time(&a, 1000);
+        lv_anim_set_playback_time(&a, 1000);
+        lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
+        lv_anim_start(&a);
+    } else if (disconnected) {
+        // Static dot centered.
+        (void)disconnected;
     }
 }
 
@@ -326,8 +397,15 @@ static void board_display_init_and_show_image(void)
     lv_obj_set_style_border_width(s_visualizer_dot, 0, 0);
     lv_obj_align(s_visualizer_dot, LV_ALIGN_CENTER, 0, 0);
 
-    // Start silent (ring visible).
-    lv_obj_add_flag(s_visualizer_bar, LV_OBJ_FLAG_HIDDEN);
+    // Connection-state dot (20px gray). This replaces the remote volume meter while disconnected/connecting.
+    s_conn_dot = lv_obj_create(viz);
+    lv_obj_remove_style_all(s_conn_dot);
+    lv_obj_set_size(s_conn_dot, 20, 20);
+    lv_obj_set_style_radius(s_conn_dot, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(s_conn_dot, lv_color_hex(0x808080), 0);
+    lv_obj_set_style_bg_opa(s_conn_dot, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(s_conn_dot, 0, 0);
+    lv_obj_align(s_conn_dot, LV_ALIGN_CENTER, 0, 0);
 
     // Mic input indicator (top-center): blue dot when silent, blue center-out bars when speaking.
     // Per UX: show only when unmuted; hide entirely when muted.
@@ -383,6 +461,9 @@ static void board_display_init_and_show_image(void)
         s_visualizer_timer = lv_timer_create(board_visualizer_timer_cb, 33, NULL);
     }
 
+    // Start disconnected on boot per UX: show connection dot, hide remote meter.
+    board_conn_ui_apply_locked(LIVEKIT_CONNECTION_STATE_DISCONNECTED);
+
     bsp_display_unlock();
 }
 
@@ -393,6 +474,16 @@ void board_set_mic_muted(bool muted)
         return;
     }
     board_mic_indicator_apply(muted);
+    bsp_display_unlock();
+}
+
+void board_set_connection_state(livekit_connection_state_t state)
+{
+    // Safe to call from non-LVGL contexts.
+    if (!bsp_display_lock(0)) {
+        return;
+    }
+    board_conn_ui_apply_locked(state);
     bsp_display_unlock();
 }
 

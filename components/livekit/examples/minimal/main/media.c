@@ -88,7 +88,10 @@ static esp_capture_err_t lk_pg_read_frame(esp_capture_audio_src_if_t *src, esp_c
         return err;
     }
 
-    // AEC source outputs PCM16; apply gain in-place with saturation.
+    // IMPORTANT: `s->inner` is the ESP Capture AEC source, so `frame->data` here is the
+    // post-AEC (AFE output) mono PCM16 that we publish to LiveKit.
+    //
+    // Apply post-AEC gain in-place with saturation.
     if ((frame->size % (int)sizeof(int16_t)) != 0) {
         return err;
     }
@@ -105,7 +108,9 @@ static esp_capture_err_t lk_pg_read_frame(esp_capture_audio_src_if_t *src, esp_c
         memset(frame->data, 0, (size_t)frame->size);
     }
 
-    // Mic input level visualizer (post-gain, post-mute).
+    // Mic input level visualizer:
+    // compute from the exact buffer we publish (post-AEC, post-gain, post-mute),
+    // not from raw codec mic samples.
     int32_t peak = 0;
     for (int i = 0; i < n; i++) {
         int32_t v = pcm[i];
@@ -198,7 +203,6 @@ static int build_capturer_system(void)
     //
     // The output published to LiveKit remains mono (AEC-processed).
     esp_capture_audio_aec_src_cfg_t codec_cfg = {
-        // .mic_layout = "MMRN",
         .record_handle = record_handle,
         .channel = 4,
         .channel_mask = 1 | 2

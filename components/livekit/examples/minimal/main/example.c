@@ -13,6 +13,7 @@ static livekit_room_handle_t room_handle;
 static void on_state_changed(livekit_connection_state_t state, void* ctx)
 {
     ESP_LOGI(TAG, "Room state changed: %s", livekit_connection_state_str(state));
+    board_set_connection_state(state);
 
     livekit_failure_reason_t reason = livekit_room_get_failure_reason(room_handle);
     if (reason != LIVEKIT_FAILURE_REASON_NONE) {
@@ -26,6 +27,9 @@ void join_room()
         ESP_LOGE(TAG, "Room already created");
         return;
     }
+
+    // Immediately reflect "attempting to connect" in the UI.
+    board_set_connection_state(LIVEKIT_CONNECTION_STATE_CONNECTING);
 
     livekit_room_options_t room_options = {
         .publish = {
@@ -73,6 +77,7 @@ void join_room()
 
     if (connect_res != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to connect to room");
+        board_set_connection_state(LIVEKIT_CONNECTION_STATE_DISCONNECTED);
     }
 }
 
@@ -90,4 +95,5 @@ void leave_room()
         return;
     }
     room_handle = NULL;
+    board_set_connection_state(LIVEKIT_CONNECTION_STATE_DISCONNECTED);
 }
