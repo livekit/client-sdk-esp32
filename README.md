@@ -167,7 +167,7 @@ livekit_room_rpc_register(room_handle, "get_cpu_temp", get_cpu_temp);
 ```
 
 > [!TIP]
-> In the [*voice_agent*](./examples/voice_agent/) example, RPC is used to allow an AI agent to interact
+> In the [*voice_agent*](./components/livekit/examples/voice_agent/) example, RPC is used to allow an AI agent to interact
 > with hardware by defining a series of methods for the agent to invoke.
 
 #### User packets
