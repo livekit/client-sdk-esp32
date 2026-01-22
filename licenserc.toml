@@ -1,4 +1,4 @@
-# Copyright 2025 LiveKit, Inc.
+# Copyright 2026 LiveKit, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,6 +27,6 @@ excludes = [
 ]
 
 [properties]
-inceptionYear = 2025
+inceptionYear = 2026
 copyrightOwner = "LiveKit, Inc."
 projectName = "LiveKit ESP32 SDK"
