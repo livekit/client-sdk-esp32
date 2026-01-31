@@ -37,9 +37,9 @@ void join_room()
             },
             .video_encode = {
                 .codec = LIVEKIT_VIDEO_CODEC_H264,
-                .width = 1920,
-                .height = 1080,
-                .fps = 25
+                .width = 1280,
+                .height = 720,
+                .fps = 30
             },
             .capturer = media_get_capturer()
         },
