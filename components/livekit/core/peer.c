@@ -38,17 +38,55 @@ static const char *PUB_TAG = "livekit_peer.pub";
 #define PC_SEND_QUIT_BIT (1 << 3)
 
 // RFC 6464 audio level RTP header extension constants
-#define AUDIO_LEVEL_EXTMAP_LINE "a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level\r\n"
-#define AUDIO_LEVEL_EXT_ID      1
-#define AUDIO_LEVEL_DEFAULT     30  // -30 dBov, moderate speech level
+#define AUDIO_LEVEL_URI         "urn:ietf:params:rtp-hdrext:ssrc-audio-level"
+#define AUDIO_LEVEL_DEFAULT     30  // Placeholder: -30 dBov (fixed level, not measured from actual audio)
 #define RTP_EXT_BLOCK_SIZE      8   // 4-byte profile+length header + 1-byte element ID + 1-byte audio level + 2-byte padding
 
 // MARK: - Audio level RTP header extension (RFC 6464)
 
+/// Finds the smallest unused extmap ID (1-14) within an SDP media section.
+static uint8_t sdp_find_unused_extmap_id(const char *section_start, const char *section_end)
+{
+    uint16_t used_ids = 0;
+    const char *p = section_start;
+    while ((p = strstr(p, "\na=extmap:")) != NULL && p < section_end) {
+        p += 10; // skip "\na=extmap:"
+        int id = atoi(p);
+        if (id >= 1 && id <= 14) {
+            used_ids |= (1u << id);
+        }
+    }
+    for (uint8_t id = 1; id <= 14; id++) {
+        if (!(used_ids & (1u << id))) {
+            return id;
+        }
+    }
+    return 0;
+}
+
+/// Parses the Opus payload type from an SDP string.
+static uint8_t sdp_parse_opus_payload_type(const char *sdp)
+{
+    const char *p = sdp;
+    while ((p = strstr(p, "a=rtpmap:")) != NULL) {
+        p += 9;
+        int pt = atoi(p);
+        const char *eol = strpbrk(p, "\r\n");
+        if (eol == NULL) eol = p + strlen(p);
+        const char *opus = strstr(p, " opus/");
+        if (opus != NULL && opus < eol && pt >= 0 && pt <= 127) {
+            return (uint8_t)pt;
+        }
+    }
+    return 0;
+}
+
 /// Injects the ssrc-audio-level extmap attribute into the audio section of an SDP string.
+/// Dynamically selects an unused extmap ID (1-14) to avoid conflicts.
+/// Sets *out_extmap_id to the chosen ID on success.
 /// Returns a newly allocated SDP string with the extmap line inserted, or NULL on failure.
 /// The caller must free the returned string.
-static char *sdp_inject_audio_level_extmap(const char *sdp)
+static char *sdp_inject_audio_level_extmap(const char *sdp, uint8_t *out_extmap_id)
 {
     // Find "m=audio" section
     const char *m_audio = strstr(sdp, "m=audio");
@@ -62,32 +100,42 @@ static char *sdp_inject_audio_level_extmap(const char *sdp)
         audio_section_end = sdp + strlen(sdp);
     }
 
-    // Find "a=sendrecv" or "a=sendonly" within the audio section only
+    // Find an unused extmap ID
+    uint8_t extmap_id = sdp_find_unused_extmap_id(m_audio, audio_section_end);
+    if (extmap_id == 0) {
+        return NULL;
+    }
+
+    // Find direction attribute as insertion point
     const char *insert_before = NULL;
     const char *p;
-    p = strstr(m_audio, "a=sendrecv");
+    p = strstr(m_audio, "\na=sendrecv");
     if (p != NULL && p < audio_section_end) {
-        insert_before = p;
+        insert_before = p + 1; // skip the leading \n
     }
     if (insert_before == NULL) {
-        p = strstr(m_audio, "a=sendonly");
+        p = strstr(m_audio, "\na=sendonly");
         if (p != NULL && p < audio_section_end) {
-            insert_before = p;
+            insert_before = p + 1;
         }
     }
     if (insert_before == NULL) {
-        p = strstr(m_audio, "a=recvonly");
+        p = strstr(m_audio, "\na=recvonly");
         if (p != NULL && p < audio_section_end) {
-            insert_before = p;
+            insert_before = p + 1;
         }
     }
     if (insert_before == NULL) {
         return NULL;
     }
 
-    size_t extmap_len = strlen(AUDIO_LEVEL_EXTMAP_LINE);
+    // Build the extmap line
+    char extmap_line[80];
+    int extmap_len = snprintf(extmap_line, sizeof(extmap_line),
+        "a=extmap:%u %s\r\n", extmap_id, AUDIO_LEVEL_URI);
+
     size_t orig_len = strlen(sdp);
-    char *new_sdp = (char *)malloc(orig_len + extmap_len + 1);
+    char *new_sdp = (char *)malloc(orig_len + (size_t)extmap_len + 1);
     if (new_sdp == NULL) {
         return NULL;
     }
@@ -96,18 +144,43 @@ static char *sdp_inject_audio_level_extmap(const char *sdp)
     size_t prefix_len = (size_t)(insert_before - sdp);
     memcpy(new_sdp, sdp, prefix_len);
     // Insert the extmap line
-    memcpy(new_sdp + prefix_len, AUDIO_LEVEL_EXTMAP_LINE, extmap_len);
+    memcpy(new_sdp + prefix_len, extmap_line, (size_t)extmap_len);
     // Copy the rest (including null terminator)
-    memcpy(new_sdp + prefix_len + extmap_len, insert_before, orig_len - prefix_len + 1);
+    memcpy(new_sdp + prefix_len + (size_t)extmap_len, insert_before, orig_len - prefix_len + 1);
 
+    *out_extmap_id = extmap_id;
     return new_sdp;
 }
+
+typedef struct {
+    peer_options_t options;
+    esp_peer_role_t ice_role;
+    esp_peer_handle_t connection;
+
+    connection_state_t state;
+
+    bool running;
+    bool pause;
+    media_lib_event_grp_handle_t wait_event;
+
+    uint16_t reliable_stream_id;
+    uint16_t lossy_stream_id;
+
+    uint8_t audio_level_extmap_id;  // Negotiated extmap ID for audio level extension
+    uint8_t opus_payload_type;      // Negotiated Opus payload type from SDP
+
+#if CONFIG_LK_BENCHMARK
+    uint64_t start_time;
+#endif
+} peer_t;
 
 /// RTP transformer callback: compute encoded size (original + 8 bytes for extension block).
 static int audio_level_get_encoded_size(esp_peer_rtp_frame_t *frame, bool *in_place, void *ctx)
 {
-    // Only transform audio packets (PT 111 = Opus, as negotiated in ESP32 SDP)
-    if (frame->payload_type != 111) {
+    peer_t *peer = (peer_t *)ctx;
+    // Skip if Opus PT not yet parsed or doesn't match this packet
+    if (peer == NULL || peer->opus_payload_type == 0 ||
+        frame->payload_type != peer->opus_payload_type) {
         return ESP_PEER_ERR_NOT_SUPPORT;
     }
     // Validate minimum RTP packet size (12 bytes fixed header)
@@ -138,8 +211,14 @@ static int audio_level_get_encoded_size(esp_peer_rtp_frame_t *frame, bool *in_pl
 ///
 static int audio_level_transform(esp_peer_rtp_frame_t *frame, void *ctx)
 {
+    peer_t *peer = (peer_t *)ctx;
     uint8_t *orig = frame->orig_data;
     uint8_t *enc = frame->encoded_data;
+    if (orig == NULL || enc == NULL) {
+        return ESP_PEER_ERR_NOT_SUPPORT;
+    }
+
+    uint8_t extmap_id = (peer != NULL) ? peer->audio_level_extmap_id : 1;
 
     // Calculate RTP header length: 12 bytes fixed + 4 * CC (CSRC count)
     uint8_t cc = orig[0] & 0x0F;
@@ -157,8 +236,8 @@ static int audio_level_transform(esp_peer_rtp_frame_t *frame, void *ctx)
     ext[1] = 0xDE;
     ext[2] = 0x00;                             // Extension length: 1 word (32 bits)
     ext[3] = 0x01;
-    ext[4] = (AUDIO_LEVEL_EXT_ID << 4) | 0;   // ID=1, L=0 (1 byte of data follows)
-    ext[5] = 0x80 | AUDIO_LEVEL_DEFAULT;       // V=1 (voice active), level=-30 dBov
+    ext[4] = (extmap_id << 4) | 0;             // ID=negotiated, L=0 (1 byte of data follows)
+    ext[5] = 0x80 | AUDIO_LEVEL_DEFAULT;       // V=1 (voice active), placeholder level
     ext[6] = 0x00;                             // Padding
     ext[7] = 0x00;                             // Padding
 
@@ -174,25 +253,6 @@ static esp_peer_rtp_transform_cb_t audio_level_transform_cb = {
     .get_encoded_size = audio_level_get_encoded_size,
     .transform = audio_level_transform
 };
-
-typedef struct {
-    peer_options_t options;
-    esp_peer_role_t ice_role;
-    esp_peer_handle_t connection;
-
-    connection_state_t state;
-
-    bool running;
-    bool pause;
-    media_lib_event_grp_handle_t wait_event;
-
-    uint16_t reliable_stream_id;
-    uint16_t lossy_stream_id;
-
-#if CONFIG_LK_BENCHMARK
-    uint64_t start_time;
-#endif
-} peer_t;
 
 static esp_peer_media_dir_t get_media_direction(esp_peer_media_dir_t direction, peer_role_t role) {
     switch (role) {
@@ -292,18 +352,22 @@ static int on_msg(esp_peer_msg_t *info, void *ctx)
 
             // For publisher SDP, inject audio level extmap for Active Speaker detection
             if (peer->options.role == PEER_ROLE_PUBLISHER) {
-                char *patched_sdp = sdp_inject_audio_level_extmap(sdp);
+                uint8_t extmap_id = 0;
+                char *patched_sdp = sdp_inject_audio_level_extmap(sdp, &extmap_id);
                 if (patched_sdp != NULL) {
-                    ESP_LOGI(TAG(peer), "Generated offer (with audio-level extmap):\n%s", patched_sdp);
+                    peer->audio_level_extmap_id = extmap_id;
+                    peer->opus_payload_type = sdp_parse_opus_payload_type(patched_sdp);
+                    ESP_LOGD(TAG(peer), "Generated offer (with audio-level extmap id=%u):\n%s",
+                        extmap_id, patched_sdp);
                     peer->options.on_sdp(patched_sdp, peer->options.role, peer->options.ctx);
                     free(patched_sdp);
                 } else {
                     ESP_LOGW(TAG(peer), "Failed to inject extmap, sending original SDP");
-                    ESP_LOGI(TAG(peer), "Generated offer:\n%s", sdp);
+                    ESP_LOGD(TAG(peer), "Generated offer:\n%s", sdp);
                     peer->options.on_sdp(sdp, peer->options.role, peer->options.ctx);
                 }
             } else {
-                ESP_LOGI(TAG(peer), "Generated answer:\n%s", sdp);
+                ESP_LOGD(TAG(peer), "Generated answer:\n%s", sdp);
                 peer->options.on_sdp(sdp, peer->options.role, peer->options.ctx);
             }
             break;
@@ -491,7 +555,7 @@ peer_err_t peer_create(peer_handle_t *handle, peer_options_t *options)
             peer->connection,
             ESP_PEER_RTP_TRANSFORM_ROLE_SENDER,
             &audio_level_transform_cb,
-            NULL
+            peer
         );
         if (ret != ESP_PEER_ERR_NONE) {
             ESP_LOGW(TAG(peer), "Failed to set audio level RTP transformer: %d", ret);
