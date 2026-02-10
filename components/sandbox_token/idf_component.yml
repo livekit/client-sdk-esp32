@@ -3,7 +3,7 @@ description: LiveKit Sandbox Token Client
 url: https://livekit.io/
 repository: https://github.com/livekit/client-sdk-esp32/
 issues: https://github.com/livekit/client-sdk-esp32/issues/
-discussion: https://livekit.io/join-slack/
+discussion: https://community.livekit.io/c/robotics/
 license: Apache-2.0
 dependencies:
   idf: ">=5.4"
