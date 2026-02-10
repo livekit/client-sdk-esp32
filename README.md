@@ -201,7 +201,7 @@ Please refer to the [LiveKit Docs](https://docs.livekit.io/home/) for an introdu
 
 ## Getting Help & Contributing
 
-We invite you to join the [LiveKit Community Slack](https://livekit.io/join-slack) to get your questions answered, suggest improvements, or discuss how you can best contribute to this SDK.
+We invite you to join our [developer community](https://community.livekit.io/c/robotics) to ask questions, suggest improvements, or discuss how you can best contribute to this SDK.
 
 <!--BEGIN_REPO_NAV-->
 <br/><table>

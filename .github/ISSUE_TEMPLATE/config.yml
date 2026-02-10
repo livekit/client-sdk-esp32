@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
-  - name: LiveKit Community Slack
-    url: https://livekit.io/join-slack
-    about: Get your questions answered
+  - name: Developer Community
+    url: https://community.livekit.io/c/robotics
+    about: Ask questions, suggest improvements, and discuss contributions

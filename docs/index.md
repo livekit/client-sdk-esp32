@@ -11,4 +11,4 @@ This site contains API reference for the LiveKit ESP32 SDK.
 - [GitHub Repository](https://github.com/livekit/client-sdk-esp32)
 - [Examples](https://github.com/livekit/client-sdk-esp32?tab=readme-ov-file#examples)
 - [Introduction to LiveKit](https://docs.livekit.io/home/get-started/intro-to-livekit/)
-- [Community Slack](https://livekit.io/join-slack)
+- [Developer Community](https://community.livekit.io/c/robotics)
