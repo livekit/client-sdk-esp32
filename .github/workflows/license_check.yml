@@ -11,10 +11,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Install Hawkeye
-        run: |
-          export VERSION=v6.0.0
-          curl --proto '=https' --tlsv1.2 -LsSf \
-            https://github.com/korandoru/hawkeye/releases/download/$VERSION/hawkeye-installer.sh | sh
       - name: Check License Headers
-        run: hawkeye check
+        shell: bash
+        run: |
+          shopt -s globstar
+          docker run -v ${PWD}:/src ghcr.io/google/addlicense \
+            -check \
+            -l apache \
+            -c "LiveKit, Inc." \
+            -ignore "components/third_party/**/*" \
+            -ignore "components/**/examples/**/*" \
+            -ignore "components/livekit/protocol/**/*" \
+             components/**/*.{c,h}
