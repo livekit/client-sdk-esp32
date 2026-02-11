@@ -43,7 +43,7 @@ One of the best ways to get started with LiveKit is by reviewing the [examples](
 Once you have chosen an example to be your starting point, create a fresh project from it locally using the following command:
 
 ```sh
-idf.py create-project-from-example "livekit/livekit=0.3.4:<example>"
+idf.py create-project-from-example "livekit/livekit=0.3.5:<example>"
 ```
 
 Substitute *\<example\>* for the example's directory name.
@@ -53,7 +53,7 @@ Substitute *\<example\>* for the example's directory name.
 If you would like to add LiveKit to your existing application, add it as a dependency using IDF:
 
 ```sh
-idf.py add-dependency "livekit/livekit=0.3.4"
+idf.py add-dependency "livekit/livekit=0.3.5"
 ```
 
 > [!IMPORTANT]
