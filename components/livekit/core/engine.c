@@ -88,10 +88,13 @@ typedef struct {
     } detail;
 } engine_event_t;
 
+#define MAX_AUDIO_SUBSCRIPTIONS 4
+
 typedef struct {
     bool is_subscriber_primary;
     livekit_pb_sid_t local_participant_sid;
-    livekit_pb_sid_t sub_audio_track_sid;
+    livekit_pb_sid_t sub_audio_track_sids[MAX_AUDIO_SUBSCRIPTIONS];
+    uint8_t sub_audio_track_count;
 } session_state_t;
 
 typedef struct {
@@ -152,19 +155,32 @@ static engine_err_t subscribe_tracks(engine_t *eng, livekit_pb_track_info_t *tra
     if (tracks == NULL || count <= 0) {
         return ENGINE_ERR_INVALID_ARG;
     }
-    if (eng->session.sub_audio_track_sid[0] != '\0') {
-        return ENGINE_ERR_MAX_SUB;
-    }
     for (int i = 0; i < count; i++) {
         livekit_pb_track_info_t *track = &tracks[i];
         if (track->type != LIVEKIT_PB_TRACK_TYPE_AUDIO) {
             continue;
         }
-        // For now, subscribe to the first audio track.
+        // Check if already subscribed to this track
+        bool already_subscribed = false;
+        for (uint8_t j = 0; j < eng->session.sub_audio_track_count; j++) {
+            if (strncmp(eng->session.sub_audio_track_sids[j], track->sid,
+                        sizeof(livekit_pb_sid_t)) == 0) {
+                already_subscribed = true;
+                break;
+            }
+        }
+        if (already_subscribed) {
+            continue;
+        }
+        if (eng->session.sub_audio_track_count >= MAX_AUDIO_SUBSCRIPTIONS) {
+            ESP_LOGW(TAG, "Max audio subscriptions reached (%d)", MAX_AUDIO_SUBSCRIPTIONS);
+            return ENGINE_ERR_MAX_SUB;
+        }
         ESP_LOGI(TAG, "Subscribing to audio track: sid=%s", track->sid);
         signal_send_update_subscription(eng->signal_handle, track->sid, true);
-        strlcpy(eng->session.sub_audio_track_sid, track->sid, sizeof(eng->session.sub_audio_track_sid));
-        break;
+        strlcpy(eng->session.sub_audio_track_sids[eng->session.sub_audio_track_count],
+                track->sid, sizeof(livekit_pb_sid_t));
+        eng->session.sub_audio_track_count++;
     }
     return ENGINE_ERR_NONE;
 }
@@ -692,12 +708,11 @@ static bool handle_join(engine_t *eng, const livekit_pb_join_response_t *join)
 
     // 6. Subscribe to remote tracks that have already been published.
     for (pb_size_t i = 0; i < join->other_participants_count; i++) {
-        engine_err_t ret = subscribe_tracks(
+        subscribe_tracks(
             eng,
             join->other_participants[i].tracks,
             join->other_participants[i].tracks_count
         );
-        if (ret == ENGINE_ERR_MAX_SUB) break;
     }
     return true;
 }
