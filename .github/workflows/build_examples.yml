@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [esp32s3]
+        target: [esp32s3, esp32p4]
         idf_version: [release-v5.4, release-v5.5]
     permissions:
       contents: read
