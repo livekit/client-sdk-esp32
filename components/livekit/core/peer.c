@@ -118,7 +118,7 @@ static int on_state(esp_peer_state_t rtc_state, void *ctx)
         case ESP_PEER_STATE_PAIRING:
             new_state = CONNECTION_STATE_CONNECTING;
             break;
-        case ESP_PEER_STATE_CONNECTED:
+        case ESP_PEER_STATE_DATA_CHANNEL_CONNECTED:
             if (peer->options.role == PEER_ROLE_PUBLISHER) {
                 create_data_channels(peer);
             }
