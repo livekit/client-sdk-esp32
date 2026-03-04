@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "grocery-assistant-agent"
+version = "0.1.0"
+description = "Assistant for checking prices and answering product questions."
+requires-python = ">=3.9"
+
+dependencies = [
+    "livekit-agents[google,silero,images]~=1.3.5",
+    "livekit-plugins-noise-cancellation~=0.2",
+    "pydantic>=2.11.10",
+    "python-dotenv",
+]
+
+[dependency-groups]
+dev = ["ruff"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "B", "A", "C4", "UP", "SIM", "RUF"]
+ignore = ["E501"]                                                      # Line too long (handled by formatter)
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
