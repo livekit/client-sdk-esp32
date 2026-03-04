@@ -339,6 +339,9 @@ peer_err_t peer_destroy(peer_handle_t handle)
         return PEER_ERR_INVALID_ARG;
     }
     peer_t *peer = (peer_t *)handle;
+    if (peer && peer->wait_event) {
+        media_lib_event_group_destroy(peer->wait_event);
+    }
     free(peer);
     return PEER_ERR_NONE;
 }
