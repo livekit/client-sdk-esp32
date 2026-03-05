@@ -42,3 +42,8 @@ docs/output
 
 # Lychee
 .lycheecache
+
+# Testing
+.venv
+__pycache__
+.pytest_cache

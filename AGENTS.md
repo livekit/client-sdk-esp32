@@ -7,6 +7,7 @@ Overview of the LiveKit ESP32 SDK and the structure of this repository.
 - The sources for the LiveKit ESP32 SDK itself and supporting components live in the `components/` directory.
 - All components are published to the [IDF Component Registry](https://components.espressif.com) for easy installation in projects.
 - Components in `third_party/` are vendored third-party dependencies and are not relevant for using the SDK.
+- The test application located under `test_app/` is for automated on-device testing and is also not relevant for using the SDK.
 
 ## Examples
 
