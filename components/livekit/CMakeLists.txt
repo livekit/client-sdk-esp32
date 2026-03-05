@@ -5,6 +5,7 @@ idf_component_register(
     REQUIRES
         av_render
         esp_capture
+        media_lib_sal
     PRIV_REQUIRES
         esp_netif
         esp_peer
@@ -12,7 +13,6 @@ idf_component_register(
         json
         khash
         mbedtls
-        media_lib_sal
         nanopb
 )
 

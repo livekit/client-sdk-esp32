@@ -19,3 +19,9 @@ Overview of the LiveKit ESP32 SDK and the structure of this repository.
 
 - To build applications, [ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/index.html) must be installed on the user's system.
 - The recommended way to install IDF is by using [EIM](https://docs.espressif.com/projects/idf-im-ui/en/latest/), the ESP-IDF installation manager.
+
+## Troubleshooting
+
+### Can't resolve livekit component from the registry
+
+Ensure the target has been set for your board wit
