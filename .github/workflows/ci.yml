@@ -11,9 +11,9 @@ concurrency:
   group: "ci"
   cancel-in-progress: true
 jobs:
-  build-examples:
-    name: Build Examples
-    uses: ./.github/workflows/build_examples.yml
+  build:
+    name: Build
+    uses: ./.github/workflows/build.yml
   license-check:
     name: License Check
     uses: ./.github/workflows/license_check.yml
