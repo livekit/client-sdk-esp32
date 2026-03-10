@@ -23,4 +23,4 @@ jobs:
           esp_idf_version: ${{ matrix.idf_version }}
           command: |
             pip install idf-build-apps
-            idf-build-apps build -p ./examples --recursive --target ${{ matrix.target }}
+            idf-build-apps build --recursive --target ${{ matrix.target }}
