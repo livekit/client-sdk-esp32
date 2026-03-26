@@ -469,7 +469,7 @@ livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const ch
 /// Registers a handler for incoming data streams on a given topic.
 ///
 /// @param handle[in] Room handle.
-/// @param topic[in] Topic to handle, or NULL for a catch-all handler.
+/// @param topic[in] Topic to handle.
 /// @param handler[in] Handler callbacks. The `on_recv` field is required;
 ///                     `on_open` and `on_close` are optional and may be NULL.
 ///                     The struct is copied internally.
