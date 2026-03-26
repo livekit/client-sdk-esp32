@@ -396,6 +396,9 @@ typedef struct livekit_pb_data_packet {
         livekit_pb_rpc_request_t rpc_request;
         livekit_pb_rpc_ack_t rpc_ack;
         livekit_pb_rpc_response_t rpc_response;
+        struct livekit_pb_data_stream_header *stream_header;
+        struct livekit_pb_data_stream_chunk *stream_chunk;
+        struct livekit_pb_data_stream_trailer *stream_trailer;
     } value;
     /* participant identity of user that sent the message */
     char *participant_identity;
@@ -994,6 +997,9 @@ extern "C" {
 #define LIVEKIT_PB_DATA_PACKET_RPC_REQUEST_TAG   10
 #define LIVEKIT_PB_DATA_PACKET_RPC_ACK_TAG       11
 #define LIVEKIT_PB_DATA_PACKET_RPC_RESPONSE_TAG  12
+#define LIVEKIT_PB_DATA_PACKET_STREAM_HEADER_TAG 13
+#define LIVEKIT_PB_DATA_PACKET_STREAM_CHUNK_TAG  14
+#define LIVEKIT_PB_DATA_PACKET_STREAM_TRAILER_TAG 15
 #define LIVEKIT_PB_DATA_PACKET_PARTICIPANT_IDENTITY_TAG 4
 #define LIVEKIT_PB_DATA_PACKET_DESTINATION_IDENTITIES_TAG 5
 #define LIVEKIT_PB_DATA_PACKET_SEQUENCE_TAG      16
@@ -1242,6 +1248,9 @@ X(a, POINTER,  REPEATED, STRING,   destination_identities,   5) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (value,rpc_request,value.rpc_request),  10) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (value,rpc_ack,value.rpc_ack),  11) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (value,rpc_response,value.rpc_response),  12) \
+X(a, POINTER,  ONEOF,    MESSAGE,  (value,stream_header,value.stream_header),  13) \
+X(a, POINTER,  ONEOF,    MESSAGE,  (value,stream_chunk,value.stream_chunk),  14) \
+X(a, POINTER,  ONEOF,    MESSAGE,  (value,stream_trailer,value.stream_trailer),  15) \
 X(a, STATIC,   SINGULAR, UINT32,   sequence,         16) \
 X(a, STATIC,   SINGULAR, STRING,   participant_sid,  17)
 #define LIVEKIT_PB_DATA_PACKET_CALLBACK NULL
@@ -1250,6 +1259,9 @@ X(a, STATIC,   SINGULAR, STRING,   participant_sid,  17)
 #define livekit_pb_data_packet_t_value_rpc_request_MSGTYPE livekit_pb_rpc_request_t
 #define livekit_pb_data_packet_t_value_rpc_ack_MSGTYPE livekit_pb_rpc_ack_t
 #define livekit_pb_data_packet_t_value_rpc_response_MSGTYPE livekit_pb_rpc_response_t
+#define livekit_pb_data_packet_t_value_stream_header_MSGTYPE livekit_pb_data_stream_header_t
+#define livekit_pb_data_packet_t_value_stream_chunk_MSGTYPE livekit_pb_data_stream_chunk_t
+#define livekit_pb_data_packet_t_value_stream_trailer_MSGTYPE livekit_pb_data_stream_trailer_t
 
 #define LIVEKIT_PB_ENCRYPTED_PACKET_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, UENUM,    encryption_type,   1) \
