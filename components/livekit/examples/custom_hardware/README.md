@@ -4,7 +4,7 @@ Example of connecting to a LiveKit room with bidirectional audio on custom ESP32
 
 The [Waveshare ESP32-S3-Touch-LCD-1.83](https://www.waveshare.com/esp32-s3-touch-lcd-1.83.htm) is used as a concrete example, but the approach works for any ESP32-S3 board with I2S audio codecs — just update the pin definitions and codec configuration in `board.c`.
 
-For a step-by-step walkthrough of this example, see the companion blog post: [Building a voice agent frontend on custom ESP32 hardware](https://blog.livekit.io/esp32-custom-hardware-quickstart/).
+For a step-by-step walkthrough of this example, see the companion blog post: [Building a voice agent frontend on custom ESP32 hardware](https://livekit.io/blog/esp32-custom-hardware-quickstart).
 
 ## Configuration
 
