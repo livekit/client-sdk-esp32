@@ -42,6 +42,16 @@ static void clear_descriptor(data_stream_descriptor_t *desc)
     memset(desc, 0, sizeof(data_stream_descriptor_t));
 }
 
+static void reset_stream_state(data_stream_descriptor_t *desc)
+{
+    desc->active = false;
+    desc->stream_id[0] = '\0';
+    desc->next_chunk_index = 0;
+    desc->bytes_processed = 0;
+    desc->total_length = 0;
+    desc->has_total_length = false;
+}
+
 static data_stream_descriptor_t* find_empty_slot(data_stream_manager_t *mgr)
 {
     for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAMS; i++) {
@@ -199,7 +209,7 @@ data_stream_manager_err_t data_stream_manager_handle_chunk(data_stream_manager_h
 
     if (desc->has_total_length && desc->bytes_processed > desc->total_length) {
         ESP_LOGE(TAG, "Stream %s exceeded total_length", chunk->stream_id);
-        clear_descriptor(desc);
+        reset_stream_state(desc);
         return DATA_STREAM_MANAGER_ERR_NONE;
     }
 
@@ -239,6 +249,6 @@ data_stream_manager_err_t data_stream_manager_handle_trailer(data_stream_manager
         desc->handler.on_close(&trailer_info, desc->handler.ctx);
     }
 
-    clear_descriptor(desc);
+    reset_stream_state(desc);
     return DATA_STREAM_MANAGER_ERR_NONE;
 }
