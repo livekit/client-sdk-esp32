@@ -186,6 +186,7 @@ data_stream_manager_err_t data_stream_manager_handle_header(data_stream_manager_
             .timestamp = header->timestamp,
             .total_length = header->total_length,
             .has_total_length = header->has_total_length,
+            .is_text = header->which_content_header == LIVEKIT_PB_DATA_STREAM_HEADER_TEXT_HEADER_TAG,
         };
         slot->handler.on_open(&info, slot->handler.ctx);
     }

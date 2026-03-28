@@ -33,6 +33,8 @@ typedef struct {
     int64_t timestamp;
     uint64_t total_length;
     bool has_total_length;
+    /// True if this is a text stream (UTF-8 chunks), false if byte stream (raw binary).
+    bool is_text;
 } livekit_data_stream_header_t;
 
 /// A received chunk of data stream content.
