@@ -460,7 +460,7 @@ livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const ch
 /// Receive structured data streams from other participants. A data stream
 /// is a sequence of chunks delivered in order (Header -> Chunks -> Trailer).
 ///
-/// Register a handler for a topic using @ref livekit_room_on_data_stream.
+/// Register a handler for a topic using @ref livekit_room_data_stream_topic_register.
 /// The handler's @ref livekit_data_stream_handler_t::on_recv callback is
 /// invoked for each received chunk. The optional `on_open` and `on_close`
 /// callbacks can be used for additional behavior.
@@ -475,7 +475,15 @@ livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const ch
 ///                     The struct is copied internally.
 /// @return @ref LIVEKIT_ERR_NONE if successful, otherwise an error code.
 ///
-livekit_err_t livekit_room_on_data_stream(livekit_room_handle_t handle, const char* topic, const livekit_data_stream_handler_t* handler);
+livekit_err_t livekit_room_data_stream_topic_register(livekit_room_handle_t handle, const char* topic, const livekit_data_stream_handler_t* handler);
+
+/// Unregisters a handler for incoming data streams on a given topic.
+///
+/// @param handle[in] Room handle.
+/// @param topic[in] Topic to unregister.
+/// @return @ref LIVEKIT_ERR_NONE if successful, otherwise an error code.
+///
+livekit_err_t livekit_room_data_stream_topic_unregister(livekit_room_handle_t handle, const char* topic);
 
 /// @}
 

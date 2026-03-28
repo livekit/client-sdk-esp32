@@ -430,7 +430,7 @@ livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const ch
     return LIVEKIT_ERR_NONE;
 }
 
-livekit_err_t livekit_room_on_data_stream(livekit_room_handle_t handle, const char* topic, const livekit_data_stream_handler_t* handler)
+livekit_err_t livekit_room_data_stream_topic_register(livekit_room_handle_t handle, const char* topic, const livekit_data_stream_handler_t* handler)
 {
     if (handle == NULL || topic == NULL || handler == NULL || handler->on_recv == NULL) {
         return LIVEKIT_ERR_INVALID_ARG;
@@ -441,6 +441,21 @@ livekit_err_t livekit_room_on_data_stream(livekit_room_handle_t handle, const ch
     if (err != DATA_STREAM_MANAGER_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to register data stream handler for topic '%s'", topic);
         return err == DATA_STREAM_MANAGER_ERR_FULL ? LIVEKIT_ERR_NO_MEM : LIVEKIT_ERR_OTHER;
+    }
+    return LIVEKIT_ERR_NONE;
+}
+
+livekit_err_t livekit_room_data_stream_topic_unregister(livekit_room_handle_t handle, const char* topic)
+{
+    if (handle == NULL || topic == NULL) {
+        return LIVEKIT_ERR_INVALID_ARG;
+    }
+    livekit_room_t *room = (livekit_room_t *)handle;
+
+    data_stream_manager_err_t err = data_stream_manager_unregister(room->data_stream_manager, topic);
+    if (err != DATA_STREAM_MANAGER_ERR_NONE) {
+        ESP_LOGE(TAG, "Failed to unregister data stream handler for topic '%s'", topic);
+        return LIVEKIT_ERR_OTHER;
     }
     return LIVEKIT_ERR_NONE;
 }

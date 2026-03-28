@@ -189,7 +189,7 @@ static void on_text_chunk(const livekit_data_stream_chunk_t* chunk, void* ctx)
 livekit_data_stream_handler_t handler = {
     .on_recv = on_text_chunk,
 };
-livekit_room_on_data_stream(room_handle, "lk.chat", &handler);
+livekit_room_data_stream_topic_register(room_handle, "lk.chat", &handler);
 ```
 
 The optional `on_open` and `on_close` callbacks in the handler can be set for additional behavior such as logging stream metadata or detecting abnormal closure.
