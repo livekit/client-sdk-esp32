@@ -24,7 +24,7 @@ static const char* TAG = "livekit_data_stream";
 
 typedef struct {
     bool active;
-    const char* topic;
+    char* topic;
     livekit_data_stream_handler_t handler;
     char stream_id[37];
     uint64_t next_chunk_index;
@@ -39,6 +39,7 @@ typedef struct {
 
 static void clear_descriptor(data_stream_descriptor_t *desc)
 {
+    free(desc->topic);
     memset(desc, 0, sizeof(data_stream_descriptor_t));
 }
 
@@ -106,7 +107,11 @@ data_stream_manager_err_t data_stream_manager_destroy(data_stream_manager_handle
     if (handle == NULL) {
         return DATA_STREAM_MANAGER_ERR_INVALID_ARG;
     }
-    free(handle);
+    data_stream_manager_t *mgr = (data_stream_manager_t *)handle;
+    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAMS; i++) {
+        free(mgr->streams[i].topic);
+    }
+    free(mgr);
     return DATA_STREAM_MANAGER_ERR_NONE;
 }
 
@@ -122,7 +127,10 @@ data_stream_manager_err_t data_stream_manager_register(data_stream_manager_handl
         return DATA_STREAM_MANAGER_ERR_FULL;
     }
 
-    slot->topic = topic;
+    slot->topic = strdup(topic);
+    if (slot->topic == NULL) {
+        return DATA_STREAM_MANAGER_ERR_NO_MEM;
+    }
     slot->handler = *handler;
     return DATA_STREAM_MANAGER_ERR_NONE;
 }
