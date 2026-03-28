@@ -60,9 +60,17 @@ livekit_pb.RpcError.data type:FT_POINTER
 
 livekit_pb.DataStream.Header.stream_id max_length:36
 livekit_pb.DataStream.Header.topic type:FT_POINTER
-livekit_pb.DataStream.Header.mime_type type:FT_POINTER
+livekit_pb.DataStream.Header.mime_type type:FT_IGNORE
 livekit_pb.DataStream.Header.encryption_type type:FT_IGNORE
 livekit_pb.DataStream.Header.attributes type:FT_IGNORE
+
+livekit_pb.DataStream.TextHeader.operation_type type:FT_IGNORE
+livekit_pb.DataStream.TextHeader.version type:FT_IGNORE
+livekit_pb.DataStream.TextHeader.reply_to_stream_id type:FT_IGNORE
+livekit_pb.DataStream.TextHeader.attached_stream_ids type:FT_IGNORE
+livekit_pb.DataStream.TextHeader.generated type:FT_IGNORE
+
+livekit_pb.DataStream.ByteHeader.name type:FT_IGNORE
 
 livekit_pb.DataStream.Chunk.stream_id max_length:36
 livekit_pb.DataStream.Chunk.content type:FT_POINTER
