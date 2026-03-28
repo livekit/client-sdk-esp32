@@ -1,0 +1,37 @@
+menu "LiveKit Example"
+
+    choice LK_EXAMPLE_CONNECTION_METHOD
+        prompt "Choose room connection method"
+        config LK_EXAMPLE_USE_SANDBOX
+            bool "Sandbox token"
+        config LK_EXAMPLE_USE_PREGENERATED
+            bool "Pre-generated token"
+    endchoice
+
+    config LK_EXAMPLE_SERVER_URL
+        depends on LK_EXAMPLE_USE_PREGENERATED
+        string "Server URL"
+        default "ws://localhost:7880"
+
+    config LK_EXAMPLE_TOKEN
+        depends on LK_EXAMPLE_USE_PREGENERATED
+        string "Token"
+
+    config LK_EXAMPLE_SANDBOX_ID
+        depends on LK_EXAMPLE_USE_SANDBOX
+        string "Sandbox ID"
+
+    config LK_EXAMPLE_ROOM_NAME
+        depends on LK_EXAMPLE_USE_SANDBOX
+        string "Room name (optional)"
+
+    config LK_EXAMPLE_PARTICIPANT_NAME
+        depends on LK_EXAMPLE_USE_SANDBOX
+        string "Participant name (optional)"
+
+    config LK_EXAMPLE_SPEAKER_VOLUME
+        int "Default speaker volume (0-100%)"
+        default 85
+        range 0 100
+
+endmenu
