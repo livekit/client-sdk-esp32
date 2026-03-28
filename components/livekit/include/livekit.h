@@ -458,12 +458,30 @@ livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const ch
 /// @defgroup DataStreams Data Streams
 ///
 /// Receive structured data streams from other participants. A data stream
-/// is a sequence of chunks delivered in order (Header -> Chunks -> Trailer).
+/// delivers content as a sequence of events: open, recv (one or more), and close.
 ///
 /// Register a handler for a topic using @ref livekit_room_data_stream_topic_register.
 /// The handler's @ref livekit_data_stream_handler_t::on_recv callback is
 /// invoked for each received chunk. The optional `on_open` and `on_close`
 /// callbacks can be used for additional behavior.
+///
+/// The maximum number of concurrent streams is controlled by
+/// `CONFIG_LK_MAX_DATA_STREAMS` in Kconfig (default 4).
+///
+/// Example usage:
+/// @code
+/// static void on_text_chunk(const livekit_data_stream_chunk_t* chunk, void* ctx)
+/// {
+///     // Each chunk is valid UTF-8, safe to use as a string directly
+///     ESP_LOGI(TAG, "%.*s", (int)chunk->content_size, (const char*)chunk->content);
+/// }
+///
+/// livekit_data_stream_handler_t handler = {
+///     .on_recv = on_text_chunk,
+/// };
+/// livekit_room_data_stream_topic_register(room_handle, "lk.chat", &handler);
+/// @endcode
+///
 /// @{
 
 /// Registers a handler for incoming data streams on a given topic.

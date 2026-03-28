@@ -26,5 +26,6 @@ menu "LiveKit"
         default "Video"
     config LK_MAX_DATA_STREAMS
         int "Maximum concurrent incoming data streams"
+        range 1 32
         default 4
 endmenu
