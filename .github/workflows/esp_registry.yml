@@ -21,17 +21,17 @@ jobs:
         nanopb:./components/third_party/nanopb
         khash:./components/third_party/khash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with: { submodules: recursive }
       - name: Upload Components (Dry Run)
-        uses: espressif/upload-components-ci-action@v2
+        uses: espressif/upload-components-ci-action@2ce17d73e35473317c1419dbd4f007aacb593040 # v2.2.1
         if: ${{ inputs.dry_run }}
         with:
           components: ${{ env.COMPONENTS }}
           namespace: livekit
           dry_run: true
       - name: Upload Components
-        uses: espressif/upload-components-ci-action@v2
+        uses: espressif/upload-components-ci-action@2ce17d73e35473317c1419dbd4f007aacb593040 # v2.2.1
         if: ${{ !inputs.dry_run }}
         with:
           components: ${{ env.COMPONENTS }}
@@ -39,7 +39,7 @@ jobs:
           api_token: ${{ secrets.ESP_REGISTRY_TOKEN }}
       - name: Save Archives
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: archives
           path: components/**/*.tgz
