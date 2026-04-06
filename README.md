@@ -26,7 +26,7 @@ Use this SDK to add realtime video, audio and data features to your ESP32 projec
 - **Bidirectional audio**: Opus encoding, acoustic echo cancellation (AEC)
 - **Video publishing**: H.264 encoding, subscribing coming soon
 - **AI Agents**: interact with agents in the cloud built with [LiveKit Agents](https://docs.livekit.io/agents/)
-- **Real-time data**: data packets, remote method calls (RPC)
+- **Real-time data**: data streams (receiving), data packets, remote method calls (RPC)
 
 ## Getting Started
 
@@ -170,6 +170,30 @@ livekit_room_rpc_register(room_handle, "get_cpu_temp", get_cpu_temp);
 > [!TIP]
 > In the [*voice_agent*](./components/livekit/examples/voice_agent/) example, RPC is used to allow an AI agent to interact
 > with hardware by defining a series of methods for the agent to invoke.
+
+#### Data streams
+
+Data streams deliver ordered sequences of chunks (Header → Chunks → Trailer) over the reliable data channel. Currently, only receiving data streams is supported. There are two kinds:
+
+- **Text streams**: Each chunk is independently valid UTF-8 and can be used directly as a string. Used for chat messages, transcriptions, etc.
+- **Byte streams**: Chunks are raw binary fragments of a larger payload, split without delimiters. Chunks must be aggregated by the application to reconstruct the original data. Used for file transfers, binary payloads, etc.
+
+Register a handler to receive text stream chunks on a topic:
+
+```c
+static void on_text_chunk(const livekit_data_stream_chunk_t* chunk, void* ctx)
+{
+    // Each chunk is valid UTF-8, safe to use as a string directly
+    ESP_LOGI(TAG, "%.*s", (int)chunk->content_size, (const char*)chunk->content);
+}
+
+livekit_data_stream_handler_t handler = {
+    .on_recv = on_text_chunk,
+};
+livekit_room_data_stream_topic_register(room_handle, "lk.chat", &handler);
+```
+
+The optional `on_open` and `on_close` callbacks in the handler can be set for additional behavior such as logging stream metadata or detecting abnormal closure.
 
 #### User packets
 
