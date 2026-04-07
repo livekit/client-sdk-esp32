@@ -33,14 +33,14 @@ typedef struct {
     char stream_id[37];
     uint64_t chunk_index;
     data_stream_writer_t *writer;
-} data_stream_write_descriptor_t;
+} data_stream_writer_descriptor_t;
 
 struct data_stream_writer {
-    data_stream_write_descriptor_t streams[CONFIG_LK_MAX_DATA_STREAM_WRITERS];
+    data_stream_writer_descriptor_t streams[CONFIG_LK_MAX_DATA_STREAM_WRITERS];
     data_stream_writer_options_t options;
 };
 
-static data_stream_write_descriptor_t* find_empty_slot(data_stream_writer_t *w)
+static data_stream_writer_descriptor_t* find_empty_slot(data_stream_writer_t *w)
 {
     for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAM_WRITERS; i++) {
         if (!w->streams[i].active) {
@@ -55,7 +55,7 @@ static bool send_packet(data_stream_writer_t *w, const livekit_pb_data_packet_t 
     return w->options.send_packet(packet, w->options.ctx);
 }
 
-static data_stream_writer_err_t send_header(data_stream_write_descriptor_t *desc, const livekit_data_stream_options_t *options)
+static data_stream_writer_err_t send_header(data_stream_writer_descriptor_t *desc, const livekit_data_stream_options_t *options)
 {
     livekit_pb_data_stream_header_t pb_header = LIVEKIT_PB_DATA_STREAM_HEADER_INIT_ZERO;
     strlcpy(pb_header.stream_id, desc->stream_id, sizeof(pb_header.stream_id));
@@ -80,7 +80,7 @@ static data_stream_writer_err_t send_header(data_stream_write_descriptor_t *desc
     return DATA_STREAM_WRITER_ERR_NONE;
 }
 
-static data_stream_writer_err_t send_chunk(data_stream_write_descriptor_t *desc, const uint8_t *data, size_t size)
+static data_stream_writer_err_t send_chunk(data_stream_writer_descriptor_t *desc, const uint8_t *data, size_t size)
 {
     pb_bytes_array_t *content = malloc(PB_BYTES_ARRAY_T_ALLOCSIZE(size));
     if (content == NULL) {
@@ -109,7 +109,7 @@ static data_stream_writer_err_t send_chunk(data_stream_write_descriptor_t *desc,
     return DATA_STREAM_WRITER_ERR_NONE;
 }
 
-static data_stream_writer_err_t send_trailer(data_stream_write_descriptor_t *desc)
+static data_stream_writer_err_t send_trailer(data_stream_writer_descriptor_t *desc)
 {
     livekit_pb_livekit_data_stream_handle_trailer_t pb_trailer = LIVEKIT_PB_DATA_STREAM_TRAILER_INIT_ZERO;
     strlcpy(pb_trailer.stream_id, desc->stream_id, sizeof(pb_trailer.stream_id));
@@ -158,7 +158,7 @@ data_stream_writer_err_t data_stream_writer_open(data_stream_writer_handle_t han
     }
     data_stream_writer_t *w = (data_stream_writer_t *)handle;
 
-    data_stream_write_descriptor_t *slot = find_empty_slot(w);
+    data_stream_writer_descriptor_t *slot = find_empty_slot(w);
     if (slot == NULL) {
         ESP_LOGE(TAG, "No free stream slots");
         return DATA_STREAM_WRITER_ERR_FULL;
@@ -191,7 +191,7 @@ data_stream_writer_err_t data_stream_writer_write(livekit_data_stream_handle_t s
     if (stream == NULL || (data == NULL && size > 0)) {
         return DATA_STREAM_WRITER_ERR_INVALID_ARG;
     }
-    data_stream_write_descriptor_t *desc = (data_stream_write_descriptor_t *)stream;
+    data_stream_writer_descriptor_t *desc = (data_stream_writer_descriptor_t *)stream;
     if (!desc->active) {
         return DATA_STREAM_WRITER_ERR_CLOSED;
     }
@@ -225,7 +225,7 @@ data_stream_writer_err_t data_stream_writer_close(livekit_data_stream_handle_t s
     if (stream == NULL) {
         return DATA_STREAM_WRITER_ERR_INVALID_ARG;
     }
-    data_stream_write_descriptor_t *desc = (data_stream_write_descriptor_t *)stream;
+    data_stream_writer_descriptor_t *desc = (data_stream_writer_descriptor_t *)stream;
     if (!desc->active) {
         return DATA_STREAM_WRITER_ERR_CLOSED;
     }
