@@ -19,7 +19,7 @@
 #include "esp_peer.h"
 #include "engine.h"
 #include "rpc_manager.h"
-#include "data_stream_manager.h"
+#include "data_stream_reader.h"
 #include "system.h"
 #include "livekit.h"
 
@@ -27,7 +27,7 @@ static const char *TAG = "livekit";
 
 typedef struct {
     rpc_manager_handle_t rpc_manager;
-    data_stream_manager_handle_t data_stream_manager;
+    data_stream_reader_handle_t data_stream_reader;
     engine_handle_t engine;
     livekit_room_options_t options;
     livekit_connection_state_t state;
@@ -139,15 +139,15 @@ static void on_eng_data_packet(livekit_pb_data_packet_t* packet, void *ctx)
             rpc_manager_handle_packet(room->rpc_manager, packet);
             break;
         case LIVEKIT_PB_DATA_PACKET_STREAM_HEADER_TAG:
-            data_stream_manager_handle_header(room->data_stream_manager,
+            data_stream_reader_handle_header(room->data_stream_reader,
                 packet->value.stream_header, packet->participant_identity);
             break;
         case LIVEKIT_PB_DATA_PACKET_STREAM_CHUNK_TAG:
-            data_stream_manager_handle_chunk(room->data_stream_manager,
+            data_stream_reader_handle_chunk(room->data_stream_reader,
                 packet->value.stream_chunk);
             break;
         case LIVEKIT_PB_DATA_PACKET_STREAM_TRAILER_TAG:
-            data_stream_manager_handle_trailer(room->data_stream_manager,
+            data_stream_reader_handle_trailer(room->data_stream_reader,
                 packet->value.stream_trailer);
             break;
         default:
@@ -258,7 +258,7 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_r
             ret = LIVEKIT_ERR_OTHER;
             break;
         }
-        if (data_stream_manager_create(&room->data_stream_manager) != DATA_STREAM_MANAGER_ERR_NONE) {
+        if (data_stream_reader_create(&room->data_stream_reader) != DATA_STREAM_READER_ERR_NONE) {
             ESP_LOGE(TAG, "Failed to create data stream manager");
             ret = LIVEKIT_ERR_OTHER;
             break;
@@ -279,7 +279,7 @@ livekit_err_t livekit_room_destroy(livekit_room_handle_t handle)
     }
     livekit_room_close(handle);
     engine_destroy(room->engine);
-    data_stream_manager_destroy(room->data_stream_manager);
+    data_stream_reader_destroy(room->data_stream_reader);
     free(room);
     return LIVEKIT_ERR_NONE;
 }
@@ -437,10 +437,10 @@ livekit_err_t livekit_room_data_stream_topic_register(livekit_room_handle_t hand
     }
     livekit_room_t *room = (livekit_room_t *)handle;
 
-    data_stream_manager_err_t err = data_stream_manager_register(room->data_stream_manager, topic, handler);
-    if (err != DATA_STREAM_MANAGER_ERR_NONE) {
+    data_stream_reader_err_t err = data_stream_reader_register(room->data_stream_reader, topic, handler);
+    if (err != DATA_STREAM_READER_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to register data stream handler for topic '%s'", topic);
-        return err == DATA_STREAM_MANAGER_ERR_FULL ? LIVEKIT_ERR_NO_MEM : LIVEKIT_ERR_OTHER;
+        return err == DATA_STREAM_READER_ERR_FULL ? LIVEKIT_ERR_NO_MEM : LIVEKIT_ERR_OTHER;
     }
     return LIVEKIT_ERR_NONE;
 }
@@ -452,8 +452,8 @@ livekit_err_t livekit_room_data_stream_topic_unregister(livekit_room_handle_t ha
     }
     livekit_room_t *room = (livekit_room_t *)handle;
 
-    data_stream_manager_err_t err = data_stream_manager_unregister(room->data_stream_manager, topic);
-    if (err != DATA_STREAM_MANAGER_ERR_NONE) {
+    data_stream_reader_err_t err = data_stream_reader_unregister(room->data_stream_reader, topic);
+    if (err != DATA_STREAM_READER_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to unregister data stream handler for topic '%s'", topic);
         return LIVEKIT_ERR_OTHER;
     }
