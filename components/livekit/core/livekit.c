@@ -20,6 +20,7 @@
 #include "engine.h"
 #include "rpc_manager.h"
 #include "data_stream_reader.h"
+#include "data_stream_writer.h"
 #include "system.h"
 #include "livekit.h"
 
@@ -28,6 +29,7 @@ static const char *TAG = "livekit";
 typedef struct {
     rpc_manager_handle_t rpc_manager;
     data_stream_reader_handle_t data_stream_reader;
+    data_stream_writer_handle_t data_stream_writer;
     engine_handle_t engine;
     livekit_room_options_t options;
     livekit_connection_state_t state;
@@ -259,7 +261,16 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_r
             break;
         }
         if (data_stream_reader_create(&room->data_stream_reader) != DATA_STREAM_READER_ERR_NONE) {
-            ESP_LOGE(TAG, "Failed to create data stream manager");
+            ESP_LOGE(TAG, "Failed to create data stream reader");
+            ret = LIVEKIT_ERR_OTHER;
+            break;
+        }
+        data_stream_writer_options_t writer_options = {
+            .send_packet = send_reliable_packet,
+            .ctx = room
+        };
+        if (data_stream_writer_create(&room->data_stream_writer, &writer_options) != DATA_STREAM_WRITER_ERR_NONE) {
+            ESP_LOGE(TAG, "Failed to create data stream writer");
             ret = LIVEKIT_ERR_OTHER;
             break;
         }
@@ -280,6 +291,7 @@ livekit_err_t livekit_room_destroy(livekit_room_handle_t handle)
     livekit_room_close(handle);
     engine_destroy(room->engine);
     data_stream_reader_destroy(room->data_stream_reader);
+    data_stream_writer_destroy(room->data_stream_writer);
     free(room);
     return LIVEKIT_ERR_NONE;
 }
@@ -455,6 +467,47 @@ livekit_err_t livekit_room_data_stream_topic_unregister(livekit_room_handle_t ha
     data_stream_reader_err_t err = data_stream_reader_unregister(room->data_stream_reader, topic);
     if (err != DATA_STREAM_READER_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to unregister data stream handler for topic '%s'", topic);
+        return LIVEKIT_ERR_OTHER;
+    }
+    return LIVEKIT_ERR_NONE;
+}
+
+livekit_err_t livekit_room_data_stream_open(livekit_room_handle_t handle, const livekit_data_stream_header_t *header, livekit_data_stream_t *stream)
+{
+    if (handle == NULL || header == NULL || stream == NULL) {
+        return LIVEKIT_ERR_INVALID_ARG;
+    }
+    livekit_room_t *room = (livekit_room_t *)handle;
+
+    data_stream_writer_err_t err = data_stream_writer_open(room->data_stream_writer, header, (data_stream_t *)stream);
+    if (err != DATA_STREAM_WRITER_ERR_NONE) {
+        ESP_LOGE(TAG, "Failed to open data stream");
+        return err == DATA_STREAM_WRITER_ERR_FULL ? LIVEKIT_ERR_NO_MEM : LIVEKIT_ERR_OTHER;
+    }
+    return LIVEKIT_ERR_NONE;
+}
+
+livekit_err_t livekit_room_data_stream_write(livekit_data_stream_t stream, const uint8_t *data, size_t size)
+{
+    if (stream == NULL) {
+        return LIVEKIT_ERR_INVALID_ARG;
+    }
+
+    data_stream_writer_err_t err = data_stream_writer_write((data_stream_t)stream, data, size);
+    if (err != DATA_STREAM_WRITER_ERR_NONE) {
+        return LIVEKIT_ERR_OTHER;
+    }
+    return LIVEKIT_ERR_NONE;
+}
+
+livekit_err_t livekit_room_data_stream_close(livekit_data_stream_t stream)
+{
+    if (stream == NULL) {
+        return LIVEKIT_ERR_INVALID_ARG;
+    }
+
+    data_stream_writer_err_t err = data_stream_writer_close((data_stream_t)stream);
+    if (err != DATA_STREAM_WRITER_ERR_NONE) {
         return LIVEKIT_ERR_OTHER;
     }
     return LIVEKIT_ERR_NONE;

@@ -457,29 +457,41 @@ livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const ch
 
 /// @defgroup DataStreams Data Streams
 ///
-/// Receive structured data streams from other participants. A data stream
-/// delivers content as a sequence of events: open, recv (one or more), and close.
+/// Send and receive structured data streams with other participants.
 ///
-/// Register a handler for a topic using @ref livekit_room_data_stream_topic_register.
-/// The handler's @ref livekit_data_stream_handler_t::on_recv callback is
-/// invoked for each received chunk. The optional `on_open` and `on_close`
-/// callbacks can be used for additional behavior.
+/// A data stream delivers content as a sequence of events: open, recv/write
+/// (one or more), and close. Data is automatically chunked into
+/// @ref LIVEKIT_DATA_STREAM_CHUNK_SIZE byte pieces.
 ///
 /// The maximum number of concurrent streams is controlled by
 /// `CONFIG_LK_MAX_DATA_STREAMS` in Kconfig (default 4).
 ///
-/// Example usage:
+/// ### Receiving
+///
+/// Register a handler for a topic using @ref livekit_room_data_stream_topic_register.
+/// The handler's @ref livekit_data_stream_handler_t::on_recv callback is
+/// invoked for each received chunk.
+///
 /// @code
 /// static void on_text_chunk(const livekit_data_stream_chunk_t* chunk, void* ctx)
 /// {
-///     // Each chunk is valid UTF-8, safe to use as a string directly
 ///     ESP_LOGI(TAG, "%.*s", (int)chunk->content_size, (const char*)chunk->content);
 /// }
 ///
-/// livekit_data_stream_handler_t handler = {
-///     .on_recv = on_text_chunk,
-/// };
+/// livekit_data_stream_handler_t handler = { .on_recv = on_text_chunk };
 /// livekit_room_data_stream_topic_register(room_handle, "lk.chat", &handler);
+/// @endcode
+///
+/// ### Sending
+///
+/// Open a stream, write data, and close it:
+///
+/// @code
+/// livekit_data_stream_header_t header = { .topic = "lk.chat", .is_text = true };
+/// livekit_data_stream_t stream;
+/// livekit_room_data_stream_open(room_handle, &header, &stream);
+/// livekit_room_data_stream_write(stream, (const uint8_t*)"hello", 5);
+/// livekit_room_data_stream_close(stream);
 /// @endcode
 ///
 /// @{
@@ -502,6 +514,41 @@ livekit_err_t livekit_room_data_stream_topic_register(livekit_room_handle_t hand
 /// @return @ref LIVEKIT_ERR_NONE if successful, otherwise an error code.
 ///
 livekit_err_t livekit_room_data_stream_topic_unregister(livekit_room_handle_t handle, const char* topic);
+
+/// Opens an outgoing data stream.
+///
+/// Sends the stream header and returns a stream handle for writing.
+/// The caller sets `topic` and `is_text` in the header, and optionally
+/// `total_length` / `has_total_length`. The `stream_id`, `sender_identity`,
+/// and `timestamp` fields are ignored and auto-generated.
+///
+/// @param handle[in] Room handle.
+/// @param header[in] Stream header with topic and type information.
+/// @param stream[out] Stream handle for subsequent write/close calls.
+/// @return @ref LIVEKIT_ERR_NONE if successful, otherwise an error code.
+///
+livekit_err_t livekit_room_data_stream_open(livekit_room_handle_t handle, const livekit_data_stream_header_t *header, livekit_data_stream_t *stream);
+
+/// Writes data to an open outgoing data stream.
+///
+/// Data is automatically chunked into @ref LIVEKIT_DATA_STREAM_CHUNK_SIZE
+/// byte pieces. Can be called multiple times.
+///
+/// @param stream[in] Stream handle from @ref livekit_room_data_stream_open.
+/// @param data[in] Data to write.
+/// @param size[in] Size of data in bytes.
+/// @return @ref LIVEKIT_ERR_NONE if successful, otherwise an error code.
+///
+livekit_err_t livekit_room_data_stream_write(livekit_data_stream_t stream, const uint8_t *data, size_t size);
+
+/// Closes an open outgoing data stream.
+///
+/// Sends the stream trailer and releases the stream slot.
+///
+/// @param stream[in] Stream handle from @ref livekit_room_data_stream_open.
+/// @return @ref LIVEKIT_ERR_NONE if successful, otherwise an error code.
+///
+livekit_err_t livekit_room_data_stream_close(livekit_data_stream_t stream);
 
 /// @}
 

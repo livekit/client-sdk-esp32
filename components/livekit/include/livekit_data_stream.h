@@ -20,11 +20,18 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/// Maximum size in bytes of a single data stream chunk.
+#define LIVEKIT_DATA_STREAM_CHUNK_SIZE 15000
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/// Header information about a received data stream.
+/// Opaque handle to an open outgoing data stream.
+/// @ingroup DataStreams
+typedef void *livekit_data_stream_t;
+
+/// Header information about a data stream.
 /// @ingroup DataStreams
 typedef struct {
     const char* stream_id;

@@ -28,6 +28,7 @@ typedef struct data_stream_writer data_stream_writer_t;
 
 typedef struct {
     bool active;
+    char *topic;
     char stream_id[37];
     uint64_t chunk_index;
     data_stream_writer_t *writer;
@@ -141,7 +142,11 @@ data_stream_writer_err_t data_stream_writer_destroy(data_stream_writer_handle_t 
     if (handle == NULL) {
         return DATA_STREAM_WRITER_ERR_INVALID_ARG;
     }
-    free(handle);
+    data_stream_writer_t *w = (data_stream_writer_t *)handle;
+    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAMS; i++) {
+        free(w->streams[i].topic);
+    }
+    free(w);
     return DATA_STREAM_WRITER_ERR_NONE;
 }
 
@@ -158,6 +163,10 @@ data_stream_writer_err_t data_stream_writer_open(data_stream_writer_handle_t han
         return DATA_STREAM_WRITER_ERR_FULL;
     }
 
+    slot->topic = strdup(header->topic);
+    if (slot->topic == NULL) {
+        return DATA_STREAM_WRITER_ERR_NO_MEM;
+    }
     slot->active = true;
     slot->chunk_index = 0;
     slot->writer = w;
@@ -165,6 +174,8 @@ data_stream_writer_err_t data_stream_writer_open(data_stream_writer_handle_t han
 
     data_stream_writer_err_t err = send_header(slot, header);
     if (err != DATA_STREAM_WRITER_ERR_NONE) {
+        free(slot->topic);
+        slot->topic = NULL;
         slot->active = false;
         return err;
     }
@@ -210,6 +221,8 @@ data_stream_writer_err_t data_stream_writer_close(data_stream_t stream)
 
     data_stream_writer_err_t err = send_trailer(desc);
     desc->active = false;
+    free(desc->topic);
+    desc->topic = NULL;
     desc->stream_id[0] = '\0';
     desc->chunk_index = 0;
     return err;
