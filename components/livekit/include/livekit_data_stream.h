@@ -29,7 +29,7 @@ extern "C" {
 
 /// Opaque handle to an open outgoing data stream.
 /// @ingroup DataStreams
-typedef void *livekit_data_stream_t;
+typedef void *livekit_data_stream_handle_t;
 
 /// Header information about a data stream.
 /// @ingroup DataStreams
@@ -59,7 +59,7 @@ typedef struct {
     const char* stream_id;
     /// Empty string for normal closure, non-empty for abnormal end.
     const char* reason;
-} livekit_data_stream_trailer_t;
+} livekit_data_stream_handle_trailer_t;
 
 /// Called when a new data stream is opened.
 /// @ingroup DataStreams
@@ -74,7 +74,7 @@ typedef void (*livekit_data_stream_recv_cb_t)(
 /// Called when a data stream is closed.
 /// @ingroup DataStreams
 typedef void (*livekit_data_stream_close_cb_t)(
-    const livekit_data_stream_trailer_t* trailer, void* ctx);
+    const livekit_data_stream_handle_trailer_t* trailer, void* ctx);
 
 /// Options for opening an outgoing data stream.
 /// @ingroup DataStreams

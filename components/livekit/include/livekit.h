@@ -487,7 +487,7 @@ livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const ch
 ///
 /// @code
 /// livekit_data_stream_options_t opts = { .topic = "lk.chat", .is_text = true };
-/// livekit_data_stream_t stream;
+/// livekit_data_stream_handle_t stream;
 /// livekit_room_data_stream_open(room_handle, &opts, &stream);
 /// livekit_room_data_stream_write(stream, (const uint8_t*)"hello ", 6);
 /// livekit_room_data_stream_write(stream, (const uint8_t*)"world", 5);
@@ -506,7 +506,7 @@ livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const ch
 ///     .total_length = image_size,
 ///     .has_total_length = true,
 /// };
-/// livekit_data_stream_t stream;
+/// livekit_data_stream_handle_t stream;
 /// livekit_room_data_stream_open(room_handle, &opts, &stream);
 /// livekit_room_data_stream_write(stream, image_data, image_size);
 /// livekit_room_data_stream_close(stream);
@@ -542,7 +542,7 @@ livekit_err_t livekit_room_data_stream_topic_unregister(livekit_room_handle_t ha
 /// @param stream[out] Stream handle for subsequent write/close calls.
 /// @return @ref LIVEKIT_ERR_NONE if successful, otherwise an error code.
 ///
-livekit_err_t livekit_room_data_stream_open(livekit_room_handle_t handle, const livekit_data_stream_options_t *options, livekit_data_stream_t *stream);
+livekit_err_t livekit_room_data_stream_open(livekit_room_handle_t handle, const livekit_data_stream_options_t *options, livekit_data_stream_handle_t *stream);
 
 /// Writes data to an open outgoing data stream.
 ///
@@ -554,7 +554,7 @@ livekit_err_t livekit_room_data_stream_open(livekit_room_handle_t handle, const 
 /// @param size[in] Size of data in bytes.
 /// @return @ref LIVEKIT_ERR_NONE if successful, otherwise an error code.
 ///
-livekit_err_t livekit_room_data_stream_write(livekit_data_stream_t stream, const uint8_t *data, size_t size);
+livekit_err_t livekit_room_data_stream_write(livekit_data_stream_handle_t stream, const uint8_t *data, size_t size);
 
 /// Closes an open outgoing data stream.
 ///
@@ -563,7 +563,7 @@ livekit_err_t livekit_room_data_stream_write(livekit_data_stream_t stream, const
 /// @param stream[in] Stream handle from @ref livekit_room_data_stream_open.
 /// @return @ref LIVEKIT_ERR_NONE if successful, otherwise an error code.
 ///
-livekit_err_t livekit_room_data_stream_close(livekit_data_stream_t stream);
+livekit_err_t livekit_room_data_stream_close(livekit_data_stream_handle_t stream);
 
 /// @}
 

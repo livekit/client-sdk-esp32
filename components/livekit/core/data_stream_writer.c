@@ -111,7 +111,7 @@ static data_stream_writer_err_t send_chunk(data_stream_write_descriptor_t *desc,
 
 static data_stream_writer_err_t send_trailer(data_stream_write_descriptor_t *desc)
 {
-    livekit_pb_data_stream_trailer_t pb_trailer = LIVEKIT_PB_DATA_STREAM_TRAILER_INIT_ZERO;
+    livekit_pb_livekit_data_stream_handle_trailer_t pb_trailer = LIVEKIT_PB_DATA_STREAM_TRAILER_INIT_ZERO;
     strlcpy(pb_trailer.stream_id, desc->stream_id, sizeof(pb_trailer.stream_id));
 
     livekit_pb_data_packet_t packet = LIVEKIT_PB_DATA_PACKET_INIT_ZERO;
@@ -151,7 +151,7 @@ data_stream_writer_err_t data_stream_writer_destroy(data_stream_writer_handle_t 
     return DATA_STREAM_WRITER_ERR_NONE;
 }
 
-data_stream_writer_err_t data_stream_writer_open(data_stream_writer_handle_t handle, const livekit_data_stream_options_t *options, data_stream_t *stream)
+data_stream_writer_err_t data_stream_writer_open(data_stream_writer_handle_t handle, const livekit_data_stream_options_t *options, livekit_data_stream_handle_t *stream)
 {
     if (handle == NULL || options == NULL || options->topic == NULL || stream == NULL) {
         return DATA_STREAM_WRITER_ERR_INVALID_ARG;
@@ -182,11 +182,11 @@ data_stream_writer_err_t data_stream_writer_open(data_stream_writer_handle_t han
         return err;
     }
 
-    *stream = (data_stream_t)slot;
+    *stream = (livekit_data_stream_handle_t)slot;
     return DATA_STREAM_WRITER_ERR_NONE;
 }
 
-data_stream_writer_err_t data_stream_writer_write(data_stream_t stream, const uint8_t *data, size_t size)
+data_stream_writer_err_t data_stream_writer_write(livekit_data_stream_handle_t stream, const uint8_t *data, size_t size)
 {
     if (stream == NULL || (data == NULL && size > 0)) {
         return DATA_STREAM_WRITER_ERR_INVALID_ARG;
@@ -220,7 +220,7 @@ data_stream_writer_err_t data_stream_writer_write(data_stream_t stream, const ui
     return DATA_STREAM_WRITER_ERR_NONE;
 }
 
-data_stream_writer_err_t data_stream_writer_close(data_stream_t stream)
+data_stream_writer_err_t data_stream_writer_close(livekit_data_stream_handle_t stream)
 {
     if (stream == NULL) {
         return DATA_STREAM_WRITER_ERR_INVALID_ARG;

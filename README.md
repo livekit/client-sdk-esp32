@@ -198,7 +198,7 @@ The optional `on_open` and `on_close` callbacks in the handler can be set for ad
 
 ```c
 livekit_data_stream_options_t opts = { .topic = "lk.chat", .is_text = true };
-livekit_data_stream_t stream;
+livekit_data_stream_handle_t stream;
 livekit_room_data_stream_open(room_handle, &opts, &stream);
 livekit_room_data_stream_write(stream, (const uint8_t*)"hello world", 11);
 livekit_room_data_stream_close(stream);
@@ -216,7 +216,7 @@ livekit_data_stream_options_t opts = {
     .total_length = image_size,
     .has_total_length = true,
 };
-livekit_data_stream_t stream;
+livekit_data_stream_handle_t stream;
 livekit_room_data_stream_open(room_handle, &opts, &stream);
 livekit_room_data_stream_write(stream, image_data, image_size);
 livekit_room_data_stream_close(stream);
