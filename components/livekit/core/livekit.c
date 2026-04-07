@@ -472,14 +472,14 @@ livekit_err_t livekit_room_data_stream_topic_unregister(livekit_room_handle_t ha
     return LIVEKIT_ERR_NONE;
 }
 
-livekit_err_t livekit_room_data_stream_open(livekit_room_handle_t handle, const livekit_data_stream_header_t *header, livekit_data_stream_t *stream)
+livekit_err_t livekit_room_data_stream_open(livekit_room_handle_t handle, const livekit_data_stream_options_t *options, livekit_data_stream_t *stream)
 {
-    if (handle == NULL || header == NULL || stream == NULL) {
+    if (handle == NULL || options == NULL || stream == NULL) {
         return LIVEKIT_ERR_INVALID_ARG;
     }
     livekit_room_t *room = (livekit_room_t *)handle;
 
-    data_stream_writer_err_t err = data_stream_writer_open(room->data_stream_writer, header, (data_stream_t *)stream);
+    data_stream_writer_err_t err = data_stream_writer_open(room->data_stream_writer, options, (data_stream_t *)stream);
     if (err != DATA_STREAM_WRITER_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to open data stream");
         return err == DATA_STREAM_WRITER_ERR_FULL ? LIVEKIT_ERR_NO_MEM : LIVEKIT_ERR_OTHER;

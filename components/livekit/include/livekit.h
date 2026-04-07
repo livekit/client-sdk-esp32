@@ -487,9 +487,9 @@ livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const ch
 /// Open a stream, write data, and close it:
 ///
 /// @code
-/// livekit_data_stream_header_t header = { .topic = "lk.chat", .is_text = true };
+/// livekit_data_stream_options_t options = { .topic = "lk.chat", .is_text = true };
 /// livekit_data_stream_t stream;
-/// livekit_room_data_stream_open(room_handle, &header, &stream);
+/// livekit_room_data_stream_open(room_handle, &options, &stream);
 /// livekit_room_data_stream_write(stream, (const uint8_t*)"hello", 5);
 /// livekit_room_data_stream_close(stream);
 /// @endcode
@@ -518,16 +518,13 @@ livekit_err_t livekit_room_data_stream_topic_unregister(livekit_room_handle_t ha
 /// Opens an outgoing data stream.
 ///
 /// Sends the stream header and returns a stream handle for writing.
-/// The caller sets `topic` and `is_text` in the header, and optionally
-/// `total_length` / `has_total_length`. The `stream_id`, `sender_identity`,
-/// and `timestamp` fields are ignored and auto-generated.
 ///
 /// @param handle[in] Room handle.
-/// @param header[in] Stream header with topic and type information.
+/// @param options[in] Stream options (topic, type, optional total length).
 /// @param stream[out] Stream handle for subsequent write/close calls.
 /// @return @ref LIVEKIT_ERR_NONE if successful, otherwise an error code.
 ///
-livekit_err_t livekit_room_data_stream_open(livekit_room_handle_t handle, const livekit_data_stream_header_t *header, livekit_data_stream_t *stream);
+livekit_err_t livekit_room_data_stream_open(livekit_room_handle_t handle, const livekit_data_stream_options_t *options, livekit_data_stream_t *stream);
 
 /// Writes data to an open outgoing data stream.
 ///

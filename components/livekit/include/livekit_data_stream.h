@@ -76,6 +76,19 @@ typedef void (*livekit_data_stream_recv_cb_t)(
 typedef void (*livekit_data_stream_close_cb_t)(
     const livekit_data_stream_trailer_t* trailer, void* ctx);
 
+/// Options for opening an outgoing data stream.
+/// @ingroup DataStreams
+typedef struct {
+    /// Topic to publish the stream under. Required.
+    const char *topic;
+    /// True for a text stream (UTF-8 chunks), false for a byte stream (raw binary).
+    bool is_text;
+    /// Total size of the stream in bytes, if known upfront.
+    uint64_t total_length;
+    /// Whether total_length is set.
+    bool has_total_length;
+} livekit_data_stream_options_t;
+
 /// Handler for incoming data streams on a topic.
 /// @ingroup DataStreams
 typedef struct {

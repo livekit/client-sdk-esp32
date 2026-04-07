@@ -54,16 +54,16 @@ static bool send_packet(data_stream_writer_t *w, const livekit_pb_data_packet_t 
     return w->options.send_packet(packet, w->options.ctx);
 }
 
-static data_stream_writer_err_t send_header(data_stream_write_descriptor_t *desc, const livekit_data_stream_header_t *header)
+static data_stream_writer_err_t send_header(data_stream_write_descriptor_t *desc, const livekit_data_stream_options_t *options)
 {
     livekit_pb_data_stream_header_t pb_header = LIVEKIT_PB_DATA_STREAM_HEADER_INIT_ZERO;
     strlcpy(pb_header.stream_id, desc->stream_id, sizeof(pb_header.stream_id));
     pb_header.timestamp = get_unix_time_ms();
-    pb_header.topic = (char *)header->topic;
-    pb_header.has_total_length = header->has_total_length;
-    pb_header.total_length = header->total_length;
+    pb_header.topic = (char *)options->topic;
+    pb_header.has_total_length = options->has_total_length;
+    pb_header.total_length = options->total_length;
 
-    if (header->is_text) {
+    if (options->is_text) {
         pb_header.which_content_header = LIVEKIT_PB_DATA_STREAM_HEADER_TEXT_HEADER_TAG;
     } else {
         pb_header.which_content_header = LIVEKIT_PB_DATA_STREAM_HEADER_BYTE_HEADER_TAG;
@@ -150,9 +150,9 @@ data_stream_writer_err_t data_stream_writer_destroy(data_stream_writer_handle_t 
     return DATA_STREAM_WRITER_ERR_NONE;
 }
 
-data_stream_writer_err_t data_stream_writer_open(data_stream_writer_handle_t handle, const livekit_data_stream_header_t *header, data_stream_t *stream)
+data_stream_writer_err_t data_stream_writer_open(data_stream_writer_handle_t handle, const livekit_data_stream_options_t *options, data_stream_t *stream)
 {
-    if (handle == NULL || header == NULL || header->topic == NULL || stream == NULL) {
+    if (handle == NULL || options == NULL || options->topic == NULL || stream == NULL) {
         return DATA_STREAM_WRITER_ERR_INVALID_ARG;
     }
     data_stream_writer_t *w = (data_stream_writer_t *)handle;
@@ -163,7 +163,7 @@ data_stream_writer_err_t data_stream_writer_open(data_stream_writer_handle_t han
         return DATA_STREAM_WRITER_ERR_FULL;
     }
 
-    slot->topic = strdup(header->topic);
+    slot->topic = strdup(options->topic);
     if (slot->topic == NULL) {
         return DATA_STREAM_WRITER_ERR_NO_MEM;
     }
@@ -172,7 +172,7 @@ data_stream_writer_err_t data_stream_writer_open(data_stream_writer_handle_t han
     slot->writer = w;
     generate_uuid(slot->stream_id);
 
-    data_stream_writer_err_t err = send_header(slot, header);
+    data_stream_writer_err_t err = send_header(slot, options);
     if (err != DATA_STREAM_WRITER_ERR_NONE) {
         free(slot->topic);
         slot->topic = NULL;

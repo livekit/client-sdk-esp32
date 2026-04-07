@@ -52,11 +52,7 @@ data_stream_writer_err_t data_stream_writer_destroy(data_stream_writer_handle_t 
 ///
 /// Allocates a slot, generates a stream_id and timestamp, sends the header
 /// packet, and returns a stream handle for subsequent write/close calls.
-///
-/// The caller sets topic, is_text, and optionally total_length/has_total_length
-/// in the header. The stream_id, sender_identity, and timestamp fields are
-/// ignored and auto-generated.
-data_stream_writer_err_t data_stream_writer_open(data_stream_writer_handle_t handle, const livekit_data_stream_header_t *header, data_stream_t *stream);
+data_stream_writer_err_t data_stream_writer_open(data_stream_writer_handle_t handle, const livekit_data_stream_options_t *options, data_stream_t *stream);
 
 /// Writes data to an open stream.
 ///
