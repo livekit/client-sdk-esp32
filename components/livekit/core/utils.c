@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <sys/time.h>
 #include <stdint.h>
@@ -51,7 +52,8 @@ void generate_uuid(char out[37])
     // Set variant 1 (bits 6-7 of clk_seq_hi_res)
     r2 = (r2 & 0x3FFFFFFF) | 0x80000000;
 
-    snprintf(out, 37, "%08x-%04x-%04x-%04x-%04x%08x",
+    snprintf(out, 37,
+             "%08" PRIx32 "-%04" PRIx32 "-%04" PRIx32 "-%04" PRIx32 "-%04" PRIx32 "%08" PRIx32,
              r0,
              (r1 >> 16) & 0xFFFF,
              r1 & 0xFFFF,
