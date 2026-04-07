@@ -24,21 +24,18 @@ static const char* TAG = "livekit_data_stream_writer";
 
 #define CHUNK_SIZE LIVEKIT_DATA_STREAM_CHUNK_SIZE
 
-typedef struct data_stream_writer data_stream_writer_t;
-
 typedef struct {
     bool active;
     bool is_text;
     char *topic;
     char stream_id[37];
     uint64_t chunk_index;
-    data_stream_writer_t *writer;
 } data_stream_writer_descriptor_t;
 
-struct data_stream_writer {
+typedef struct {
     data_stream_writer_descriptor_t streams[CONFIG_LK_MAX_DATA_STREAM_WRITERS];
     data_stream_writer_options_t options;
-};
+} data_stream_writer_t;
 
 static data_stream_writer_descriptor_t* find_empty_slot(data_stream_writer_t *w)
 {
@@ -55,7 +52,7 @@ static bool send_packet(data_stream_writer_t *w, const livekit_pb_data_packet_t 
     return w->options.send_packet(packet, w->options.ctx);
 }
 
-static data_stream_writer_err_t send_header(data_stream_writer_descriptor_t *desc, const livekit_data_stream_options_t *options)
+static data_stream_writer_err_t send_header(data_stream_writer_t *w, data_stream_writer_descriptor_t *desc, const livekit_data_stream_options_t *options)
 {
     livekit_pb_data_stream_header_t pb_header = LIVEKIT_PB_DATA_STREAM_HEADER_INIT_ZERO;
     strlcpy(pb_header.stream_id, desc->stream_id, sizeof(pb_header.stream_id));
@@ -74,13 +71,13 @@ static data_stream_writer_err_t send_header(data_stream_writer_descriptor_t *des
     packet.which_value = LIVEKIT_PB_DATA_PACKET_STREAM_HEADER_TAG;
     packet.value.stream_header = &pb_header;
 
-    if (!send_packet(desc->writer, &packet)) {
+    if (!send_packet(w, &packet)) {
         return DATA_STREAM_WRITER_ERR_SEND;
     }
     return DATA_STREAM_WRITER_ERR_NONE;
 }
 
-static data_stream_writer_err_t send_chunk(data_stream_writer_descriptor_t *desc, const uint8_t *data, size_t size)
+static data_stream_writer_err_t send_chunk(data_stream_writer_t *w, data_stream_writer_descriptor_t *desc, const uint8_t *data, size_t size)
 {
     pb_bytes_array_t *content = malloc(PB_BYTES_ARRAY_T_ALLOCSIZE(size));
     if (content == NULL) {
@@ -98,7 +95,7 @@ static data_stream_writer_err_t send_chunk(data_stream_writer_descriptor_t *desc
     packet.which_value = LIVEKIT_PB_DATA_PACKET_STREAM_CHUNK_TAG;
     packet.value.stream_chunk = &pb_chunk;
 
-    bool ok = send_packet(desc->writer, &packet);
+    bool ok = send_packet(w, &packet);
     free(content);
 
     if (!ok) {
@@ -109,16 +106,16 @@ static data_stream_writer_err_t send_chunk(data_stream_writer_descriptor_t *desc
     return DATA_STREAM_WRITER_ERR_NONE;
 }
 
-static data_stream_writer_err_t send_trailer(data_stream_writer_descriptor_t *desc)
+static data_stream_writer_err_t send_trailer(data_stream_writer_t *w, data_stream_writer_descriptor_t *desc)
 {
-    livekit_pb_livekit_data_stream_handle_trailer_t pb_trailer = LIVEKIT_PB_DATA_STREAM_TRAILER_INIT_ZERO;
+    livekit_pb_data_stream_trailer_t pb_trailer = LIVEKIT_PB_DATA_STREAM_TRAILER_INIT_ZERO;
     strlcpy(pb_trailer.stream_id, desc->stream_id, sizeof(pb_trailer.stream_id));
 
     livekit_pb_data_packet_t packet = LIVEKIT_PB_DATA_PACKET_INIT_ZERO;
     packet.which_value = LIVEKIT_PB_DATA_PACKET_STREAM_TRAILER_TAG;
     packet.value.stream_trailer = &pb_trailer;
 
-    if (!send_packet(desc->writer, &packet)) {
+    if (!send_packet(w, &packet)) {
         return DATA_STREAM_WRITER_ERR_SEND;
     }
     return DATA_STREAM_WRITER_ERR_NONE;
@@ -171,10 +168,9 @@ data_stream_writer_err_t data_stream_writer_open(data_stream_writer_handle_t han
     slot->active = true;
     slot->is_text = options->is_text;
     slot->chunk_index = 0;
-    slot->writer = w;
     generate_uuid(slot->stream_id);
 
-    data_stream_writer_err_t err = send_header(slot, options);
+    data_stream_writer_err_t err = send_header(w, slot, options);
     if (err != DATA_STREAM_WRITER_ERR_NONE) {
         free(slot->topic);
         slot->topic = NULL;
@@ -186,11 +182,12 @@ data_stream_writer_err_t data_stream_writer_open(data_stream_writer_handle_t han
     return DATA_STREAM_WRITER_ERR_NONE;
 }
 
-data_stream_writer_err_t data_stream_writer_write(livekit_data_stream_handle_t stream, const uint8_t *data, size_t size)
+data_stream_writer_err_t data_stream_writer_write(data_stream_writer_handle_t handle, livekit_data_stream_handle_t stream, const uint8_t *data, size_t size)
 {
-    if (stream == NULL || (data == NULL && size > 0)) {
+    if (handle == NULL || stream == NULL || (data == NULL && size > 0)) {
         return DATA_STREAM_WRITER_ERR_INVALID_ARG;
     }
+    data_stream_writer_t *w = (data_stream_writer_t *)handle;
     data_stream_writer_descriptor_t *desc = (data_stream_writer_descriptor_t *)stream;
     if (!desc->active) {
         return DATA_STREAM_WRITER_ERR_CLOSED;
@@ -209,7 +206,7 @@ data_stream_writer_err_t data_stream_writer_write(livekit_data_stream_handle_t s
             }
         }
 
-        data_stream_writer_err_t err = send_chunk(desc, ptr, chunk_size);
+        data_stream_writer_err_t err = send_chunk(w, desc, ptr, chunk_size);
         if (err != DATA_STREAM_WRITER_ERR_NONE) {
             return err;
         }
@@ -220,17 +217,18 @@ data_stream_writer_err_t data_stream_writer_write(livekit_data_stream_handle_t s
     return DATA_STREAM_WRITER_ERR_NONE;
 }
 
-data_stream_writer_err_t data_stream_writer_close(livekit_data_stream_handle_t stream)
+data_stream_writer_err_t data_stream_writer_close(data_stream_writer_handle_t handle, livekit_data_stream_handle_t stream)
 {
-    if (stream == NULL) {
+    if (handle == NULL || stream == NULL) {
         return DATA_STREAM_WRITER_ERR_INVALID_ARG;
     }
+    data_stream_writer_t *w = (data_stream_writer_t *)handle;
     data_stream_writer_descriptor_t *desc = (data_stream_writer_descriptor_t *)stream;
     if (!desc->active) {
         return DATA_STREAM_WRITER_ERR_CLOSED;
     }
 
-    data_stream_writer_err_t err = send_trailer(desc);
+    data_stream_writer_err_t err = send_trailer(w, desc);
     desc->active = false;
     free(desc->topic);
     desc->topic = NULL;

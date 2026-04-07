@@ -55,12 +55,12 @@ data_stream_writer_err_t data_stream_writer_open(data_stream_writer_handle_t han
 ///
 /// Data is automatically chunked into pieces of LIVEKIT_DATA_STREAM_CHUNK_SIZE
 /// bytes. Can be called multiple times.
-data_stream_writer_err_t data_stream_writer_write(livekit_data_stream_handle_t stream, const uint8_t *data, size_t size);
+data_stream_writer_err_t data_stream_writer_write(data_stream_writer_handle_t handle, livekit_data_stream_handle_t stream, const uint8_t *data, size_t size);
 
 /// Closes an open stream.
 ///
 /// Sends the trailer packet and releases the slot.
-data_stream_writer_err_t data_stream_writer_close(livekit_data_stream_handle_t stream);
+data_stream_writer_err_t data_stream_writer_close(data_stream_writer_handle_t handle, livekit_data_stream_handle_t stream);
 
 #ifdef __cplusplus
 }

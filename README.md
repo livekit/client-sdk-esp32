@@ -200,8 +200,8 @@ The optional `on_open` and `on_close` callbacks in the handler can be set for ad
 livekit_data_stream_options_t opts = { .topic = "lk.chat", .is_text = true };
 livekit_data_stream_handle_t stream;
 livekit_room_data_stream_open(room_handle, &opts, &stream);
-livekit_room_data_stream_write(stream, (const uint8_t*)"hello world", 11);
-livekit_room_data_stream_close(stream);
+livekit_room_data_stream_write(room_handle, stream, (const uint8_t*)"hello world", 11);
+livekit_room_data_stream_close(room_handle, stream);
 ```
 
 **Sending a byte stream:**
@@ -218,8 +218,8 @@ livekit_data_stream_options_t opts = {
 };
 livekit_data_stream_handle_t stream;
 livekit_room_data_stream_open(room_handle, &opts, &stream);
-livekit_room_data_stream_write(stream, image_data, image_size);
-livekit_room_data_stream_close(stream);
+livekit_room_data_stream_write(room_handle, stream, image_data, image_size);
+livekit_room_data_stream_close(room_handle, stream);
 ```
 
 #### User packets

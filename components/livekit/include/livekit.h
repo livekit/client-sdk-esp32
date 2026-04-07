@@ -489,9 +489,9 @@ livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const ch
 /// livekit_data_stream_options_t opts = { .topic = "lk.chat", .is_text = true };
 /// livekit_data_stream_handle_t stream;
 /// livekit_room_data_stream_open(room_handle, &opts, &stream);
-/// livekit_room_data_stream_write(stream, (const uint8_t*)"hello ", 6);
-/// livekit_room_data_stream_write(stream, (const uint8_t*)"world", 5);
-/// livekit_room_data_stream_close(stream);
+/// livekit_room_data_stream_write(room_handle, stream, (const uint8_t*)"hello ", 6);
+/// livekit_room_data_stream_write(room_handle, stream, (const uint8_t*)"world", 5);
+/// livekit_room_data_stream_close(room_handle, stream);
 /// @endcode
 ///
 /// ### Sending a Byte Stream
@@ -508,8 +508,8 @@ livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const ch
 /// };
 /// livekit_data_stream_handle_t stream;
 /// livekit_room_data_stream_open(room_handle, &opts, &stream);
-/// livekit_room_data_stream_write(stream, image_data, image_size);
-/// livekit_room_data_stream_close(stream);
+/// livekit_room_data_stream_write(room_handle, stream, image_data, image_size);
+/// livekit_room_data_stream_close(room_handle, stream);
 /// @endcode
 ///
 /// @{
@@ -549,21 +549,23 @@ livekit_err_t livekit_room_data_stream_open(livekit_room_handle_t handle, const 
 /// Data is automatically chunked into @ref LIVEKIT_DATA_STREAM_CHUNK_SIZE
 /// byte pieces. Can be called multiple times.
 ///
+/// @param handle[in] Room handle.
 /// @param stream[in] Stream handle from @ref livekit_room_data_stream_open.
 /// @param data[in] Data to write.
 /// @param size[in] Size of data in bytes.
 /// @return @ref LIVEKIT_ERR_NONE if successful, otherwise an error code.
 ///
-livekit_err_t livekit_room_data_stream_write(livekit_data_stream_handle_t stream, const uint8_t *data, size_t size);
+livekit_err_t livekit_room_data_stream_write(livekit_room_handle_t handle, livekit_data_stream_handle_t stream, const uint8_t *data, size_t size);
 
 /// Closes an open outgoing data stream.
 ///
 /// Sends the stream trailer and releases the stream slot.
 ///
+/// @param handle[in] Room handle.
 /// @param stream[in] Stream handle from @ref livekit_room_data_stream_open.
 /// @return @ref LIVEKIT_ERR_NONE if successful, otherwise an error code.
 ///
-livekit_err_t livekit_room_data_stream_close(livekit_data_stream_handle_t stream);
+livekit_err_t livekit_room_data_stream_close(livekit_room_handle_t handle, livekit_data_stream_handle_t stream);
 
 /// @}
 

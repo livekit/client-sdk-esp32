@@ -487,26 +487,28 @@ livekit_err_t livekit_room_data_stream_open(livekit_room_handle_t handle, const 
     return LIVEKIT_ERR_NONE;
 }
 
-livekit_err_t livekit_room_data_stream_write(livekit_data_stream_handle_t stream, const uint8_t *data, size_t size)
+livekit_err_t livekit_room_data_stream_write(livekit_room_handle_t handle, livekit_data_stream_handle_t stream, const uint8_t *data, size_t size)
 {
-    if (stream == NULL) {
+    if (handle == NULL || stream == NULL) {
         return LIVEKIT_ERR_INVALID_ARG;
     }
+    livekit_room_t *room = (livekit_room_t *)handle;
 
-    data_stream_writer_err_t err = data_stream_writer_write(stream, data, size);
+    data_stream_writer_err_t err = data_stream_writer_write(room->data_stream_writer, stream, data, size);
     if (err != DATA_STREAM_WRITER_ERR_NONE) {
         return LIVEKIT_ERR_OTHER;
     }
     return LIVEKIT_ERR_NONE;
 }
 
-livekit_err_t livekit_room_data_stream_close(livekit_data_stream_handle_t stream)
+livekit_err_t livekit_room_data_stream_close(livekit_room_handle_t handle, livekit_data_stream_handle_t stream)
 {
-    if (stream == NULL) {
+    if (handle == NULL || stream == NULL) {
         return LIVEKIT_ERR_INVALID_ARG;
     }
+    livekit_room_t *room = (livekit_room_t *)handle;
 
-    data_stream_writer_err_t err = data_stream_writer_close(stream);
+    data_stream_writer_err_t err = data_stream_writer_close(room->data_stream_writer, stream);
     if (err != DATA_STREAM_WRITER_ERR_NONE) {
         return LIVEKIT_ERR_OTHER;
     }
