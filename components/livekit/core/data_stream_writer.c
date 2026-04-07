@@ -35,13 +35,13 @@ typedef struct {
 } data_stream_write_descriptor_t;
 
 struct data_stream_writer {
-    data_stream_write_descriptor_t streams[CONFIG_LK_MAX_DATA_STREAMS];
+    data_stream_write_descriptor_t streams[CONFIG_LK_MAX_DATA_STREAM_WRITERS];
     data_stream_writer_options_t options;
 };
 
 static data_stream_write_descriptor_t* find_empty_slot(data_stream_writer_t *w)
 {
-    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAMS; i++) {
+    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAM_WRITERS; i++) {
         if (!w->streams[i].active) {
             return &w->streams[i];
         }
@@ -143,7 +143,7 @@ data_stream_writer_err_t data_stream_writer_destroy(data_stream_writer_handle_t 
         return DATA_STREAM_WRITER_ERR_INVALID_ARG;
     }
     data_stream_writer_t *w = (data_stream_writer_t *)handle;
-    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAMS; i++) {
+    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAM_WRITERS; i++) {
         free(w->streams[i].topic);
     }
     free(w);

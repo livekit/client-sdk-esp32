@@ -34,7 +34,7 @@ typedef struct {
 } data_stream_descriptor_t;
 
 typedef struct {
-    data_stream_descriptor_t streams[CONFIG_LK_MAX_DATA_STREAMS];
+    data_stream_descriptor_t streams[CONFIG_LK_MAX_DATA_STREAM_READERS];
 } data_stream_reader_t;
 
 static void clear_descriptor(data_stream_descriptor_t *desc)
@@ -55,7 +55,7 @@ static void reset_stream_state(data_stream_descriptor_t *desc)
 
 static data_stream_descriptor_t* find_empty_slot(data_stream_reader_t *mgr)
 {
-    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAMS; i++) {
+    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAM_READERS; i++) {
         if (mgr->streams[i].handler.on_recv == NULL) {
             return &mgr->streams[i];
         }
@@ -65,7 +65,7 @@ static data_stream_descriptor_t* find_empty_slot(data_stream_reader_t *mgr)
 
 static data_stream_descriptor_t* find_by_stream_id(data_stream_reader_t *mgr, const char* stream_id)
 {
-    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAMS; i++) {
+    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAM_READERS; i++) {
         data_stream_descriptor_t *desc = &mgr->streams[i];
         if (desc->active && strcmp(desc->stream_id, stream_id) == 0) {
             return desc;
@@ -79,7 +79,7 @@ static data_stream_descriptor_t* find_by_topic(data_stream_reader_t *mgr, const 
     if (topic == NULL) {
         return NULL;
     }
-    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAMS; i++) {
+    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAM_READERS; i++) {
         data_stream_descriptor_t *desc = &mgr->streams[i];
         if (desc->handler.on_recv != NULL && !desc->active &&
             desc->topic != NULL && strcmp(desc->topic, topic) == 0) {
@@ -108,7 +108,7 @@ data_stream_reader_err_t data_stream_reader_destroy(data_stream_reader_handle_t 
         return DATA_STREAM_READER_ERR_INVALID_ARG;
     }
     data_stream_reader_t *mgr = (data_stream_reader_t *)handle;
-    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAMS; i++) {
+    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAM_READERS; i++) {
         free(mgr->streams[i].topic);
     }
     free(mgr);
@@ -142,7 +142,7 @@ data_stream_reader_err_t data_stream_reader_unregister(data_stream_reader_handle
     }
     data_stream_reader_t *mgr = (data_stream_reader_t *)handle;
 
-    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAMS; i++) {
+    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAM_READERS; i++) {
         data_stream_descriptor_t *desc = &mgr->streams[i];
         if (desc->handler.on_recv != NULL &&
             desc->topic != NULL && strcmp(desc->topic, topic) == 0) {

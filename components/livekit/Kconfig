@@ -24,8 +24,12 @@ menu "LiveKit"
     config LK_PUB_VIDEO_TRACK_NAME
         string "Name of the published video track"
         default "Video"
-    config LK_MAX_DATA_STREAMS
+    config LK_MAX_DATA_STREAM_READERS
         int "Maximum concurrent incoming data streams"
+        range 1 32
+        default 4
+    config LK_MAX_DATA_STREAM_WRITERS
+        int "Maximum concurrent outgoing data streams"
         range 1 32
         default 4
 endmenu

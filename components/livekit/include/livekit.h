@@ -464,7 +464,8 @@ livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const ch
 /// @ref LIVEKIT_DATA_STREAM_CHUNK_SIZE byte pieces.
 ///
 /// The maximum number of concurrent streams is controlled by
-/// `CONFIG_LK_MAX_DATA_STREAMS` in Kconfig (default 4).
+/// `CONFIG_LK_MAX_DATA_STREAM_READERS` and `CONFIG_LK_MAX_DATA_STREAM_WRITERS`
+/// in Kconfig (default 4 each).
 ///
 /// ### Receiving
 ///
