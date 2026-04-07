@@ -28,6 +28,7 @@ typedef struct data_stream_writer data_stream_writer_t;
 
 typedef struct {
     bool active;
+    bool is_text;
     char *topic;
     char stream_id[37];
     uint64_t chunk_index;
@@ -168,6 +169,7 @@ data_stream_writer_err_t data_stream_writer_open(data_stream_writer_handle_t han
         return DATA_STREAM_WRITER_ERR_NO_MEM;
     }
     slot->active = true;
+    slot->is_text = options->is_text;
     slot->chunk_index = 0;
     slot->writer = w;
     generate_uuid(slot->stream_id);
@@ -198,6 +200,15 @@ data_stream_writer_err_t data_stream_writer_write(data_stream_t stream, const ui
     size_t remaining = size;
     while (remaining > 0) {
         size_t chunk_size = remaining > CHUNK_SIZE ? CHUNK_SIZE : remaining;
+
+        // For text streams, avoid splitting in the middle of a multi-byte
+        // UTF-8 character by walking back from the cut point.
+        if (desc->is_text && chunk_size < remaining) {
+            while (chunk_size > 0 && (ptr[chunk_size] & 0xC0) == 0x80) {
+                chunk_size--;
+            }
+        }
+
         data_stream_writer_err_t err = send_chunk(desc, ptr, chunk_size);
         if (err != DATA_STREAM_WRITER_ERR_NONE) {
             return err;

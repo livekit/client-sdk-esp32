@@ -483,15 +483,32 @@ livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const ch
 /// livekit_room_data_stream_topic_register(room_handle, "lk.chat", &handler);
 /// @endcode
 ///
-/// ### Sending
-///
-/// Open a stream, write data, and close it:
+/// ### Sending a Text Stream
 ///
 /// @code
-/// livekit_data_stream_options_t options = { .topic = "lk.chat", .is_text = true };
+/// livekit_data_stream_options_t opts = { .topic = "lk.chat", .is_text = true };
 /// livekit_data_stream_t stream;
-/// livekit_room_data_stream_open(room_handle, &options, &stream);
-/// livekit_room_data_stream_write(stream, (const uint8_t*)"hello", 5);
+/// livekit_room_data_stream_open(room_handle, &opts, &stream);
+/// livekit_room_data_stream_write(stream, (const uint8_t*)"hello ", 6);
+/// livekit_room_data_stream_write(stream, (const uint8_t*)"world", 5);
+/// livekit_room_data_stream_close(stream);
+/// @endcode
+///
+/// ### Sending a Byte Stream
+///
+/// @code
+/// uint8_t image_data[4096];
+/// size_t image_size = read_image(image_data, sizeof(image_data));
+///
+/// livekit_data_stream_options_t opts = {
+///     .topic = "image",
+///     .is_text = false,
+///     .total_length = image_size,
+///     .has_total_length = true,
+/// };
+/// livekit_data_stream_t stream;
+/// livekit_room_data_stream_open(room_handle, &opts, &stream);
+/// livekit_room_data_stream_write(stream, image_data, image_size);
 /// livekit_room_data_stream_close(stream);
 /// @endcode
 ///
