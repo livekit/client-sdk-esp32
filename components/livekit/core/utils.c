@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <inttypes.h>
+#include <stdio.h>
 #include <sys/time.h>
 #include <stdint.h>
 #include "esp_random.h"
@@ -36,4 +38,26 @@ uint16_t backoff_ms_for_attempt(uint16_t attempt)
     uint16_t rand = (uint16_t)(esp_random() % 1001); // range [0, 1000]
     uint16_t total = base + rand;
     return total > MAX_BACKOFF_MS ? MAX_BACKOFF_MS : total;
+}
+
+void generate_uuid(char out[37])
+{
+    uint32_t r0 = esp_random();
+    uint32_t r1 = esp_random();
+    uint32_t r2 = esp_random();
+    uint32_t r3 = esp_random();
+
+    // Set version 4 (bits 12-15 of time_hi_and_version)
+    r1 = (r1 & 0xFFFF0FFF) | 0x00004000;
+    // Set variant 1 (bits 6-7 of clk_seq_hi_res)
+    r2 = (r2 & 0x3FFFFFFF) | 0x80000000;
+
+    snprintf(out, 37,
+             "%08" PRIx32 "-%04" PRIx32 "-%04" PRIx32 "-%04" PRIx32 "-%04" PRIx32 "%08" PRIx32,
+             r0,
+             (r1 >> 16) & 0xFFFF,
+             r1 & 0xFFFF,
+             (r2 >> 16) & 0xFFFF,
+             r2 & 0xFFFF,
+             r3);
 }

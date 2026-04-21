@@ -18,7 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <esp_log.h>
-#include "data_stream_manager.h"
+#include "data_stream_reader.h"
 
 static const char* TAG = "livekit_data_stream";
 
@@ -31,19 +31,19 @@ typedef struct {
     uint64_t bytes_processed;
     uint64_t total_length;
     bool has_total_length;
-} data_stream_descriptor_t;
+} data_stream_reader_descriptor_t;
 
 typedef struct {
-    data_stream_descriptor_t streams[CONFIG_LK_MAX_DATA_STREAMS];
-} data_stream_manager_t;
+    data_stream_reader_descriptor_t streams[CONFIG_LK_MAX_DATA_STREAM_READERS];
+} data_stream_reader_t;
 
-static void clear_descriptor(data_stream_descriptor_t *desc)
+static void clear_descriptor(data_stream_reader_descriptor_t *desc)
 {
     free(desc->topic);
-    memset(desc, 0, sizeof(data_stream_descriptor_t));
+    memset(desc, 0, sizeof(data_stream_reader_descriptor_t));
 }
 
-static void reset_stream_state(data_stream_descriptor_t *desc)
+static void reset_stream_state(data_stream_reader_descriptor_t *desc)
 {
     desc->active = false;
     desc->stream_id[0] = '\0';
@@ -53,9 +53,9 @@ static void reset_stream_state(data_stream_descriptor_t *desc)
     desc->has_total_length = false;
 }
 
-static data_stream_descriptor_t* find_empty_slot(data_stream_manager_t *mgr)
+static data_stream_reader_descriptor_t* find_empty_slot(data_stream_reader_t *mgr)
 {
-    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAMS; i++) {
+    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAM_READERS; i++) {
         if (mgr->streams[i].handler.on_recv == NULL) {
             return &mgr->streams[i];
         }
@@ -63,10 +63,10 @@ static data_stream_descriptor_t* find_empty_slot(data_stream_manager_t *mgr)
     return NULL;
 }
 
-static data_stream_descriptor_t* find_by_stream_id(data_stream_manager_t *mgr, const char* stream_id)
+static data_stream_reader_descriptor_t* find_by_stream_id(data_stream_reader_t *mgr, const char* stream_id)
 {
-    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAMS; i++) {
-        data_stream_descriptor_t *desc = &mgr->streams[i];
+    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAM_READERS; i++) {
+        data_stream_reader_descriptor_t *desc = &mgr->streams[i];
         if (desc->active && strcmp(desc->stream_id, stream_id) == 0) {
             return desc;
         }
@@ -74,13 +74,13 @@ static data_stream_descriptor_t* find_by_stream_id(data_stream_manager_t *mgr, c
     return NULL;
 }
 
-static data_stream_descriptor_t* find_by_topic(data_stream_manager_t *mgr, const char* topic)
+static data_stream_reader_descriptor_t* find_by_topic(data_stream_reader_t *mgr, const char* topic)
 {
     if (topic == NULL) {
         return NULL;
     }
-    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAMS; i++) {
-        data_stream_descriptor_t *desc = &mgr->streams[i];
+    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAM_READERS; i++) {
+        data_stream_reader_descriptor_t *desc = &mgr->streams[i];
         if (desc->handler.on_recv != NULL && !desc->active &&
             desc->topic != NULL && strcmp(desc->topic, topic) == 0) {
             return desc;
@@ -89,86 +89,86 @@ static data_stream_descriptor_t* find_by_topic(data_stream_manager_t *mgr, const
     return NULL;
 }
 
-data_stream_manager_err_t data_stream_manager_create(data_stream_manager_handle_t *handle)
+data_stream_reader_err_t data_stream_reader_create(data_stream_reader_handle_t *handle)
 {
     if (handle == NULL) {
-        return DATA_STREAM_MANAGER_ERR_INVALID_ARG;
+        return DATA_STREAM_READER_ERR_INVALID_ARG;
     }
-    data_stream_manager_t *mgr = calloc(1, sizeof(data_stream_manager_t));
+    data_stream_reader_t *mgr = calloc(1, sizeof(data_stream_reader_t));
     if (mgr == NULL) {
-        return DATA_STREAM_MANAGER_ERR_NO_MEM;
+        return DATA_STREAM_READER_ERR_NO_MEM;
     }
-    *handle = (data_stream_manager_handle_t)mgr;
-    return DATA_STREAM_MANAGER_ERR_NONE;
+    *handle = (data_stream_reader_handle_t)mgr;
+    return DATA_STREAM_READER_ERR_NONE;
 }
 
-data_stream_manager_err_t data_stream_manager_destroy(data_stream_manager_handle_t handle)
+data_stream_reader_err_t data_stream_reader_destroy(data_stream_reader_handle_t handle)
 {
     if (handle == NULL) {
-        return DATA_STREAM_MANAGER_ERR_INVALID_ARG;
+        return DATA_STREAM_READER_ERR_INVALID_ARG;
     }
-    data_stream_manager_t *mgr = (data_stream_manager_t *)handle;
-    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAMS; i++) {
+    data_stream_reader_t *mgr = (data_stream_reader_t *)handle;
+    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAM_READERS; i++) {
         free(mgr->streams[i].topic);
     }
     free(mgr);
-    return DATA_STREAM_MANAGER_ERR_NONE;
+    return DATA_STREAM_READER_ERR_NONE;
 }
 
-data_stream_manager_err_t data_stream_manager_register(data_stream_manager_handle_t handle, const char* topic, const livekit_data_stream_handler_t* handler)
+data_stream_reader_err_t data_stream_reader_register(data_stream_reader_handle_t handle, const char* topic, const livekit_data_stream_handler_t* handler)
 {
     if (handle == NULL || topic == NULL || handler == NULL || handler->on_recv == NULL) {
-        return DATA_STREAM_MANAGER_ERR_INVALID_ARG;
+        return DATA_STREAM_READER_ERR_INVALID_ARG;
     }
-    data_stream_manager_t *mgr = (data_stream_manager_t *)handle;
+    data_stream_reader_t *mgr = (data_stream_reader_t *)handle;
 
-    data_stream_descriptor_t *slot = find_empty_slot(mgr);
+    data_stream_reader_descriptor_t *slot = find_empty_slot(mgr);
     if (slot == NULL) {
-        return DATA_STREAM_MANAGER_ERR_FULL;
+        return DATA_STREAM_READER_ERR_FULL;
     }
 
     slot->topic = strdup(topic);
     if (slot->topic == NULL) {
-        return DATA_STREAM_MANAGER_ERR_NO_MEM;
+        return DATA_STREAM_READER_ERR_NO_MEM;
     }
     slot->handler = *handler;
-    return DATA_STREAM_MANAGER_ERR_NONE;
+    return DATA_STREAM_READER_ERR_NONE;
 }
 
-data_stream_manager_err_t data_stream_manager_unregister(data_stream_manager_handle_t handle, const char* topic)
+data_stream_reader_err_t data_stream_reader_unregister(data_stream_reader_handle_t handle, const char* topic)
 {
     if (handle == NULL || topic == NULL) {
-        return DATA_STREAM_MANAGER_ERR_INVALID_ARG;
+        return DATA_STREAM_READER_ERR_INVALID_ARG;
     }
-    data_stream_manager_t *mgr = (data_stream_manager_t *)handle;
+    data_stream_reader_t *mgr = (data_stream_reader_t *)handle;
 
-    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAMS; i++) {
-        data_stream_descriptor_t *desc = &mgr->streams[i];
+    for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAM_READERS; i++) {
+        data_stream_reader_descriptor_t *desc = &mgr->streams[i];
         if (desc->handler.on_recv != NULL &&
             desc->topic != NULL && strcmp(desc->topic, topic) == 0) {
             clear_descriptor(desc);
-            return DATA_STREAM_MANAGER_ERR_NONE;
+            return DATA_STREAM_READER_ERR_NONE;
         }
     }
-    return DATA_STREAM_MANAGER_ERR_INVALID_ARG;
+    return DATA_STREAM_READER_ERR_INVALID_ARG;
 }
 
-data_stream_manager_err_t data_stream_manager_handle_header(data_stream_manager_handle_t handle, const livekit_pb_data_stream_header_t* header, const char* sender_identity)
+data_stream_reader_err_t data_stream_reader_handle_header(data_stream_reader_handle_t handle, const livekit_pb_data_stream_header_t* header, const char* sender_identity)
 {
     if (handle == NULL || header == NULL) {
-        return DATA_STREAM_MANAGER_ERR_INVALID_ARG;
+        return DATA_STREAM_READER_ERR_INVALID_ARG;
     }
-    data_stream_manager_t *mgr = (data_stream_manager_t *)handle;
+    data_stream_reader_t *mgr = (data_stream_reader_t *)handle;
 
     if (find_by_stream_id(mgr, header->stream_id) != NULL) {
         ESP_LOGW(TAG, "Duplicate stream_id: %s", header->stream_id);
-        return DATA_STREAM_MANAGER_ERR_NONE;
+        return DATA_STREAM_READER_ERR_NONE;
     }
 
-    data_stream_descriptor_t *slot = find_by_topic(mgr, header->topic);
+    data_stream_reader_descriptor_t *slot = find_by_topic(mgr, header->topic);
     if (slot == NULL) {
         ESP_LOGD(TAG, "No handler for topic: %s", header->topic ? header->topic : "(null)");
-        return DATA_STREAM_MANAGER_ERR_NONE;
+        return DATA_STREAM_READER_ERR_NONE;
     }
 
     slot->active = true;
@@ -191,20 +191,20 @@ data_stream_manager_err_t data_stream_manager_handle_header(data_stream_manager_
         slot->handler.on_open(&info, slot->handler.ctx);
     }
 
-    return DATA_STREAM_MANAGER_ERR_NONE;
+    return DATA_STREAM_READER_ERR_NONE;
 }
 
-data_stream_manager_err_t data_stream_manager_handle_chunk(data_stream_manager_handle_t handle, const livekit_pb_data_stream_chunk_t* chunk)
+data_stream_reader_err_t data_stream_reader_handle_chunk(data_stream_reader_handle_t handle, const livekit_pb_data_stream_chunk_t* chunk)
 {
     if (handle == NULL || chunk == NULL) {
-        return DATA_STREAM_MANAGER_ERR_INVALID_ARG;
+        return DATA_STREAM_READER_ERR_INVALID_ARG;
     }
-    data_stream_manager_t *mgr = (data_stream_manager_t *)handle;
+    data_stream_reader_t *mgr = (data_stream_reader_t *)handle;
 
-    data_stream_descriptor_t *desc = find_by_stream_id(mgr, chunk->stream_id);
+    data_stream_reader_descriptor_t *desc = find_by_stream_id(mgr, chunk->stream_id);
     if (desc == NULL) {
         ESP_LOGD(TAG, "Unknown stream_id for chunk: %s", chunk->stream_id);
-        return DATA_STREAM_MANAGER_ERR_NONE;
+        return DATA_STREAM_READER_ERR_NONE;
     }
 
     if (chunk->chunk_index != desc->next_chunk_index) {
@@ -219,7 +219,7 @@ data_stream_manager_err_t data_stream_manager_handle_chunk(data_stream_manager_h
     if (desc->has_total_length && desc->bytes_processed > desc->total_length) {
         ESP_LOGE(TAG, "Stream %s exceeded total_length", chunk->stream_id);
         reset_stream_state(desc);
-        return DATA_STREAM_MANAGER_ERR_NONE;
+        return DATA_STREAM_READER_ERR_NONE;
     }
 
     livekit_data_stream_chunk_t chunk_info = {
@@ -230,20 +230,20 @@ data_stream_manager_err_t data_stream_manager_handle_chunk(data_stream_manager_h
     };
     desc->handler.on_recv(&chunk_info, desc->handler.ctx);
 
-    return DATA_STREAM_MANAGER_ERR_NONE;
+    return DATA_STREAM_READER_ERR_NONE;
 }
 
-data_stream_manager_err_t data_stream_manager_handle_trailer(data_stream_manager_handle_t handle, const livekit_pb_data_stream_trailer_t* trailer)
+data_stream_reader_err_t data_stream_reader_handle_trailer(data_stream_reader_handle_t handle, const livekit_pb_data_stream_trailer_t* trailer)
 {
     if (handle == NULL || trailer == NULL) {
-        return DATA_STREAM_MANAGER_ERR_INVALID_ARG;
+        return DATA_STREAM_READER_ERR_INVALID_ARG;
     }
-    data_stream_manager_t *mgr = (data_stream_manager_t *)handle;
+    data_stream_reader_t *mgr = (data_stream_reader_t *)handle;
 
-    data_stream_descriptor_t *desc = find_by_stream_id(mgr, trailer->stream_id);
+    data_stream_reader_descriptor_t *desc = find_by_stream_id(mgr, trailer->stream_id);
     if (desc == NULL) {
         ESP_LOGD(TAG, "Unknown stream_id for trailer: %s", trailer->stream_id);
-        return DATA_STREAM_MANAGER_ERR_NONE;
+        return DATA_STREAM_READER_ERR_NONE;
     }
 
     if (trailer->reason[0] != '\0') {
@@ -259,5 +259,5 @@ data_stream_manager_err_t data_stream_manager_handle_trailer(data_stream_manager
     }
 
     reset_stream_state(desc);
-    return DATA_STREAM_MANAGER_ERR_NONE;
+    return DATA_STREAM_READER_ERR_NONE;
 }

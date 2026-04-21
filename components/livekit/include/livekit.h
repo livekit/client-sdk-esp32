@@ -457,29 +457,59 @@ livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const ch
 
 /// @defgroup DataStreams Data Streams
 ///
-/// Receive structured data streams from other participants. A data stream
-/// delivers content as a sequence of events: open, recv (one or more), and close.
+/// Send and receive structured data streams with other participants.
+///
+/// A data stream delivers content as a sequence of events: open, recv/write
+/// (one or more), and close. Data is automatically chunked into
+/// @ref LIVEKIT_DATA_STREAM_CHUNK_SIZE byte pieces.
+///
+/// The maximum number of concurrent streams is controlled by
+/// `CONFIG_LK_MAX_DATA_STREAM_READERS` and `CONFIG_LK_MAX_DATA_STREAM_WRITERS`
+/// in Kconfig (default 4 each).
+///
+/// ### Receiving
 ///
 /// Register a handler for a topic using @ref livekit_room_data_stream_topic_register.
 /// The handler's @ref livekit_data_stream_handler_t::on_recv callback is
-/// invoked for each received chunk. The optional `on_open` and `on_close`
-/// callbacks can be used for additional behavior.
+/// invoked for each received chunk.
 ///
-/// The maximum number of concurrent streams is controlled by
-/// `CONFIG_LK_MAX_DATA_STREAMS` in Kconfig (default 4).
-///
-/// Example usage:
 /// @code
 /// static void on_text_chunk(const livekit_data_stream_chunk_t* chunk, void* ctx)
 /// {
-///     // Each chunk is valid UTF-8, safe to use as a string directly
 ///     ESP_LOGI(TAG, "%.*s", (int)chunk->content_size, (const char*)chunk->content);
 /// }
 ///
-/// livekit_data_stream_handler_t handler = {
-///     .on_recv = on_text_chunk,
-/// };
+/// livekit_data_stream_handler_t handler = { .on_recv = on_text_chunk };
 /// livekit_room_data_stream_topic_register(room_handle, "lk.chat", &handler);
+/// @endcode
+///
+/// ### Sending a Text Stream
+///
+/// @code
+/// livekit_data_stream_options_t opts = { .topic = "lk.chat", .is_text = true };
+/// livekit_data_stream_handle_t stream;
+/// livekit_room_data_stream_open(room_handle, &opts, &stream);
+/// livekit_room_data_stream_write(room_handle, stream, (const uint8_t*)"hello ", 6);
+/// livekit_room_data_stream_write(room_handle, stream, (const uint8_t*)"world", 5);
+/// livekit_room_data_stream_close(room_handle, stream);
+/// @endcode
+///
+/// ### Sending a Byte Stream
+///
+/// @code
+/// uint8_t image_data[4096];
+/// size_t image_size = read_image(image_data, sizeof(image_data));
+///
+/// livekit_data_stream_options_t opts = {
+///     .topic = "image",
+///     .is_text = false,
+///     .total_length = image_size,
+///     .has_total_length = true,
+/// };
+/// livekit_data_stream_handle_t stream;
+/// livekit_room_data_stream_open(room_handle, &opts, &stream);
+/// livekit_room_data_stream_write(room_handle, stream, image_data, image_size);
+/// livekit_room_data_stream_close(room_handle, stream);
 /// @endcode
 ///
 /// @{
@@ -502,6 +532,40 @@ livekit_err_t livekit_room_data_stream_topic_register(livekit_room_handle_t hand
 /// @return @ref LIVEKIT_ERR_NONE if successful, otherwise an error code.
 ///
 livekit_err_t livekit_room_data_stream_topic_unregister(livekit_room_handle_t handle, const char* topic);
+
+/// Opens an outgoing data stream.
+///
+/// Sends the stream header and returns a stream handle for writing.
+///
+/// @param handle[in] Room handle.
+/// @param options[in] Stream options (topic, type, optional total length).
+/// @param stream[out] Stream handle for subsequent write/close calls.
+/// @return @ref LIVEKIT_ERR_NONE if successful, otherwise an error code.
+///
+livekit_err_t livekit_room_data_stream_open(livekit_room_handle_t handle, const livekit_data_stream_options_t *options, livekit_data_stream_handle_t *stream);
+
+/// Writes data to an open outgoing data stream.
+///
+/// Data is automatically chunked into @ref LIVEKIT_DATA_STREAM_CHUNK_SIZE
+/// byte pieces. Can be called multiple times.
+///
+/// @param handle[in] Room handle.
+/// @param stream[in] Stream handle from @ref livekit_room_data_stream_open.
+/// @param data[in] Data to write.
+/// @param size[in] Size of data in bytes.
+/// @return @ref LIVEKIT_ERR_NONE if successful, otherwise an error code.
+///
+livekit_err_t livekit_room_data_stream_write(livekit_room_handle_t handle, livekit_data_stream_handle_t stream, const uint8_t *data, size_t size);
+
+/// Closes an open outgoing data stream.
+///
+/// Sends the stream trailer and releases the stream slot.
+///
+/// @param handle[in] Room handle.
+/// @param stream[in] Stream handle from @ref livekit_room_data_stream_open.
+/// @return @ref LIVEKIT_ERR_NONE if successful, otherwise an error code.
+///
+livekit_err_t livekit_room_data_stream_close(livekit_room_handle_t handle, livekit_data_stream_handle_t stream);
 
 /// @}
 

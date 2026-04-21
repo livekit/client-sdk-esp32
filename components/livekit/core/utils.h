@@ -26,6 +26,10 @@ extern "C" {
 
 int64_t get_unix_time_ms(void);
 
+/// Generates a random UUID v4 string.
+/// @param[out] out Buffer of at least 37 bytes (36 chars + null terminator).
+void generate_uuid(char out[37]);
+
 /// Returns the backoff time in milliseconds for the given attempt number.
 ///
 /// Uses an exponential function with a random jitter to calculate the backoff time
