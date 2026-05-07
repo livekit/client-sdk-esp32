@@ -1,0 +1,6 @@
+# CODEOWNERS for client-sdk-esp32
+# These owners will be requested for review on all PRs
+* @ladvoc
+
+/components/livekit/core/data_stream_* @pham-tuan-binh
+/components/livekit/examples/custom_hardware/ @yepher
