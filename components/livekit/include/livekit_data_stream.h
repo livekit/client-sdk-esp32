@@ -110,6 +110,15 @@ typedef struct {
     const livekit_data_stream_attribute_t* attributes;
     /// Number of entries in @c attributes.
     size_t attributes_count;
+    /// Optional list of participant identities to deliver the stream to.
+    /// If NULL or empty, the stream is broadcast to every participant.
+    /// The array and the strings it references must remain valid only
+    /// until @ref livekit_room_data_stream_open returns; the writer
+    /// deep-copies them so subsequent write/close calls do not need
+    /// the caller to keep them alive.
+    char** destination_identities;
+    /// Number of entries in @c destination_identities.
+    size_t destination_identities_count;
 } livekit_data_stream_options_t;
 
 /// Handler for incoming data streams on a topic.

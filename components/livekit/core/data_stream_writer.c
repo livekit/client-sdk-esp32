@@ -78,7 +78,57 @@ typedef struct {
     char *topic;
     char stream_id[37];
     uint64_t chunk_index;
+    /// Deep-owned copies of the destination identities. NULL when the stream
+    /// is broadcast to all participants.
+    char **destination_identities;
+    size_t destination_identities_count;
 } data_stream_writer_descriptor_t;
+
+/// Free a deep-copied destination identities array. Safe to call on a
+/// partially-populated array as long as the unused tail is NULL-filled.
+static void free_destinations(char **list, size_t count)
+{
+    if (list == NULL) {
+        return;
+    }
+    for (size_t i = 0; i < count; i++) {
+        free(list[i]);
+    }
+    free(list);
+}
+
+/// Deep-copy `count` identity strings from `src` into a freshly allocated
+/// array suitable for storing on a writer descriptor. Returns NULL on
+/// allocation failure (freeing anything it partially allocated first).
+static char **dup_destinations(char *const *src, size_t count)
+{
+    if (src == NULL || count == 0) {
+        return NULL;
+    }
+    char **out = calloc(count, sizeof(*out));
+    if (out == NULL) {
+        return NULL;
+    }
+    for (size_t i = 0; i < count; i++) {
+        if (src[i] == NULL) {
+            continue;
+        }
+        out[i] = strdup(src[i]);
+        if (out[i] == NULL) {
+            free_destinations(out, i);
+            return NULL;
+        }
+    }
+    return out;
+}
+
+/// Stamp a packet with the destinations recorded on the stream descriptor.
+static void set_packet_destinations(livekit_pb_data_packet_t *packet,
+                                    const data_stream_writer_descriptor_t *desc)
+{
+    packet->destination_identities = desc->destination_identities;
+    packet->destination_identities_count = (pb_size_t)desc->destination_identities_count;
+}
 
 typedef struct {
     data_stream_writer_descriptor_t streams[CONFIG_LK_MAX_DATA_STREAM_WRITERS];
@@ -127,6 +177,7 @@ static data_stream_writer_err_t send_header(data_stream_writer_t *w, data_stream
     livekit_pb_data_packet_t packet = LIVEKIT_PB_DATA_PACKET_INIT_ZERO;
     packet.which_value = LIVEKIT_PB_DATA_PACKET_STREAM_HEADER_TAG;
     packet.value.stream_header = &pb_header;
+    set_packet_destinations(&packet, desc);
 
     if (!send_packet(w, &packet)) {
         return DATA_STREAM_WRITER_ERR_SEND;
@@ -151,6 +202,7 @@ static data_stream_writer_err_t send_chunk(data_stream_writer_t *w, data_stream_
     livekit_pb_data_packet_t packet = LIVEKIT_PB_DATA_PACKET_INIT_ZERO;
     packet.which_value = LIVEKIT_PB_DATA_PACKET_STREAM_CHUNK_TAG;
     packet.value.stream_chunk = &pb_chunk;
+    set_packet_destinations(&packet, desc);
 
     bool ok = send_packet(w, &packet);
     free(content);
@@ -171,6 +223,7 @@ static data_stream_writer_err_t send_trailer(data_stream_writer_t *w, data_strea
     livekit_pb_data_packet_t packet = LIVEKIT_PB_DATA_PACKET_INIT_ZERO;
     packet.which_value = LIVEKIT_PB_DATA_PACKET_STREAM_TRAILER_TAG;
     packet.value.stream_trailer = &pb_trailer;
+    set_packet_destinations(&packet, desc);
 
     if (!send_packet(w, &packet)) {
         return DATA_STREAM_WRITER_ERR_SEND;
@@ -200,6 +253,8 @@ data_stream_writer_err_t data_stream_writer_destroy(data_stream_writer_handle_t 
     data_stream_writer_t *w = (data_stream_writer_t *)handle;
     for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAM_WRITERS; i++) {
         free(w->streams[i].topic);
+        free_destinations(w->streams[i].destination_identities,
+                          w->streams[i].destination_identities_count);
     }
     free(w);
     return DATA_STREAM_WRITER_ERR_NONE;
@@ -222,6 +277,17 @@ data_stream_writer_err_t data_stream_writer_open(data_stream_writer_handle_t han
     if (slot->topic == NULL) {
         return DATA_STREAM_WRITER_ERR_NO_MEM;
     }
+    if (options->destination_identities != NULL && options->destination_identities_count > 0) {
+        slot->destination_identities = dup_destinations(
+            options->destination_identities,
+            options->destination_identities_count);
+        if (slot->destination_identities == NULL) {
+            free(slot->topic);
+            slot->topic = NULL;
+            return DATA_STREAM_WRITER_ERR_NO_MEM;
+        }
+        slot->destination_identities_count = options->destination_identities_count;
+    }
     slot->active = true;
     slot->is_text = options->is_text;
     slot->chunk_index = 0;
@@ -231,6 +297,10 @@ data_stream_writer_err_t data_stream_writer_open(data_stream_writer_handle_t han
     if (err != DATA_STREAM_WRITER_ERR_NONE) {
         free(slot->topic);
         slot->topic = NULL;
+        free_destinations(slot->destination_identities,
+                          slot->destination_identities_count);
+        slot->destination_identities = NULL;
+        slot->destination_identities_count = 0;
         slot->active = false;
         return err;
     }
@@ -289,6 +359,9 @@ data_stream_writer_err_t data_stream_writer_close(data_stream_writer_handle_t ha
     desc->active = false;
     free(desc->topic);
     desc->topic = NULL;
+    free_destinations(desc->destination_identities, desc->destination_identities_count);
+    desc->destination_identities = NULL;
+    desc->destination_identities_count = 0;
     desc->stream_id[0] = '\0';
     desc->chunk_index = 0;
     return err;
