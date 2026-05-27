@@ -176,8 +176,12 @@ message ParticipantInfo {
   map<string, string> attributes = 15;
   DisconnectReason disconnect_reason = 16;
   repeated KindDetail kind_details = 18;
+  // client-to-client protocol version supported by this participant's SDK,
+  // used to negotiate peer-to-peer features (e.g. RPC v2). Distinct from
+  // the signaling protocol version on ClientInfo / ServerInfo.
+  int32 client_protocol = 19;
 
-  // NEXT_ID: 19
+  // NEXT_ID: 20
 }
 
 enum TrackType {
