@@ -17,12 +17,60 @@
 #include <stdlib.h>
 #include <string.h>
 #include <esp_log.h>
+#include "pb_encode.h"
 #include "data_stream_writer.h"
 #include "utils.h"
 
 static const char* TAG = "livekit_data_stream_writer";
 
 #define CHUNK_SIZE LIVEKIT_DATA_STREAM_CHUNK_SIZE
+
+typedef struct {
+    const livekit_data_stream_attribute_t *items;
+    size_t count;
+} attributes_encode_ctx_t;
+
+/// Encode a single NUL-terminated string referenced via *arg as the
+/// length-delimited value of the current field.
+static bool encode_string_field(pb_ostream_t *stream, const pb_field_t *field, void *const *arg)
+{
+    const char *str = (const char *)*arg;
+    if (str == NULL) {
+        return true; // emit nothing for absent strings
+    }
+    if (!pb_encode_tag_for_field(stream, field)) {
+        return false;
+    }
+    return pb_encode_string(stream, (const uint8_t *)str, strlen(str));
+}
+
+/// Encode every entry in the attributes list as a repeated
+/// DataStream.Header.AttributesEntry submessage.
+static bool encode_header_attributes(pb_ostream_t *stream, const pb_field_t *field, void *const *arg)
+{
+    const attributes_encode_ctx_t *ctx = (const attributes_encode_ctx_t *)*arg;
+    if (ctx == NULL || ctx->items == NULL) {
+        return true;
+    }
+    for (size_t i = 0; i < ctx->count; i++) {
+        livekit_pb_data_stream_header_attributes_entry_t entry =
+            LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_INIT_ZERO;
+        entry.key.funcs.encode = encode_string_field;
+        entry.key.arg = (void *)ctx->items[i].key;
+        entry.value.funcs.encode = encode_string_field;
+        entry.value.arg = (void *)ctx->items[i].value;
+
+        if (!pb_encode_tag_for_field(stream, field)) {
+            return false;
+        }
+        if (!pb_encode_submessage(stream,
+                                  &livekit_pb_data_stream_header_attributes_entry_t_msg,
+                                  &entry)) {
+            return false;
+        }
+    }
+    return true;
+}
 
 typedef struct {
     bool active;
@@ -60,6 +108,15 @@ static data_stream_writer_err_t send_header(data_stream_writer_t *w, data_stream
     pb_header.topic = (char *)options->topic;
     pb_header.has_total_length = options->has_total_length;
     pb_header.total_length = options->total_length;
+
+    attributes_encode_ctx_t attrs_ctx = {
+        .items = options->attributes,
+        .count = options->attributes_count,
+    };
+    if (options->attributes != NULL && options->attributes_count > 0) {
+        pb_header.attributes.funcs.encode = encode_header_attributes;
+        pb_header.attributes.arg = &attrs_ctx;
+    }
 
     if (options->is_text) {
         pb_header.which_content_header = LIVEKIT_PB_DATA_STREAM_HEADER_TEXT_HEADER_TAG;

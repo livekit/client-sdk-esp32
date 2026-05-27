@@ -62,7 +62,7 @@ livekit_pb.DataStream.Header.stream_id max_length:36
 livekit_pb.DataStream.Header.topic type:FT_POINTER
 livekit_pb.DataStream.Header.mime_type type:FT_IGNORE
 livekit_pb.DataStream.Header.encryption_type type:FT_IGNORE
-livekit_pb.DataStream.Header.attributes type:FT_IGNORE
+livekit_pb.DataStream.Header.attributes type:FT_CALLBACK
 
 livekit_pb.DataStream.TextHeader.operation_type type:FT_IGNORE
 livekit_pb.DataStream.TextHeader.version type:FT_IGNORE
@@ -78,7 +78,7 @@ livekit_pb.DataStream.Chunk.iv type:FT_IGNORE
 
 livekit_pb.DataStream.Trailer.stream_id max_length:36
 livekit_pb.DataStream.Trailer.reason max_length:15
-livekit_pb.DataStream.Trailer.attributes type:FT_IGNORE
+livekit_pb.DataStream.Trailer.attributes type:FT_CALLBACK
 
 livekit_pb.SipDTMF.digit max_length:1
 

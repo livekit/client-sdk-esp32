@@ -604,12 +604,18 @@ typedef struct livekit_pb_data_stream_header {
     char *topic;
     bool has_total_length;
     uint64_t total_length; /* only populated for finite streams, if it's a stream of unknown size this stays empty */
+    pb_callback_t attributes; /* user defined attributes map; encoded as repeated AttributesEntry submsg via callback */
     pb_size_t which_content_header;
     union {
         livekit_pb_data_stream_text_header_t text_header;
         livekit_pb_data_stream_byte_header_t byte_header;
     } content_header;
 } livekit_pb_data_stream_header_t;
+
+typedef struct livekit_pb_data_stream_header_attributes_entry {
+    pb_callback_t key;
+    pb_callback_t value;
+} livekit_pb_data_stream_header_attributes_entry_t;
 
 typedef struct livekit_pb_data_stream_chunk {
     char stream_id[37]; /* unique identifier for this data stream to map it to the correct header */
@@ -621,7 +627,13 @@ typedef struct livekit_pb_data_stream_chunk {
 typedef struct livekit_pb_data_stream_trailer {
     char stream_id[37]; /* unique identifier for this data stream */
     char reason[16]; /* reason why the stream was closed (could contain "error" / "interrupted" / empty for expected end) */
+    pb_callback_t attributes; /* user defined attributes map; encoded as repeated AttributesEntry submsg via callback */
 } livekit_pb_data_stream_trailer_t;
+
+typedef struct livekit_pb_data_stream_trailer_attributes_entry {
+    pb_callback_t key;
+    pb_callback_t value;
+} livekit_pb_data_stream_trailer_attributes_entry_t;
 
 typedef struct livekit_pb_encrypted_packet_payload {
     pb_size_t which_value;
@@ -852,9 +864,11 @@ extern "C" {
 #define LIVEKIT_PB_DATA_STREAM_INIT_DEFAULT      {0}
 #define LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_INIT_DEFAULT {0}
 #define LIVEKIT_PB_DATA_STREAM_BYTE_HEADER_INIT_DEFAULT {0}
-#define LIVEKIT_PB_DATA_STREAM_HEADER_INIT_DEFAULT {"", 0, NULL, false, 0, 0, {LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_INIT_DEFAULT}}
+#define LIVEKIT_PB_DATA_STREAM_HEADER_INIT_DEFAULT {"", 0, NULL, false, 0, {{NULL}, NULL}, 0, {LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_INIT_DEFAULT}}
+#define LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_DATA_STREAM_CHUNK_INIT_DEFAULT {"", 0, NULL, 0}
-#define LIVEKIT_PB_DATA_STREAM_TRAILER_INIT_DEFAULT {"", ""}
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_INIT_DEFAULT {"", "", {{NULL}, NULL}}
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_INIT_DEFAULT {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_FILTER_PARAMS_INIT_DEFAULT    {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_WEBHOOK_CONFIG_INIT_DEFAULT   {{{NULL}, NULL}, {{NULL}, NULL}, false, LIVEKIT_PB_FILTER_PARAMS_INIT_DEFAULT}
 #define LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_INIT_DEFAULT {{{NULL}, NULL}, 0}
@@ -900,9 +914,11 @@ extern "C" {
 #define LIVEKIT_PB_DATA_STREAM_INIT_ZERO         {0}
 #define LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_INIT_ZERO {0}
 #define LIVEKIT_PB_DATA_STREAM_BYTE_HEADER_INIT_ZERO {0}
-#define LIVEKIT_PB_DATA_STREAM_HEADER_INIT_ZERO  {"", 0, NULL, false, 0, 0, {LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_INIT_ZERO}}
+#define LIVEKIT_PB_DATA_STREAM_HEADER_INIT_ZERO  {"", 0, NULL, false, 0, {{NULL}, NULL}, 0, {LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_INIT_ZERO}}
+#define LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_DATA_STREAM_CHUNK_INIT_ZERO   {"", 0, NULL, 0}
-#define LIVEKIT_PB_DATA_STREAM_TRAILER_INIT_ZERO {"", ""}
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_INIT_ZERO {"", "", {{NULL}, NULL}}
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_INIT_ZERO {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_FILTER_PARAMS_INIT_ZERO       {{{NULL}, NULL}, {{NULL}, NULL}}
 #define LIVEKIT_PB_WEBHOOK_CONFIG_INIT_ZERO      {{{NULL}, NULL}, {{NULL}, NULL}, false, LIVEKIT_PB_FILTER_PARAMS_INIT_ZERO}
 #define LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_INIT_ZERO {{{NULL}, NULL}, 0}
@@ -1110,14 +1126,20 @@ extern "C" {
 #define LIVEKIT_PB_DATA_STREAM_HEADER_TIMESTAMP_TAG 2
 #define LIVEKIT_PB_DATA_STREAM_HEADER_TOPIC_TAG  3
 #define LIVEKIT_PB_DATA_STREAM_HEADER_TOTAL_LENGTH_TAG 5
+#define LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_TAG 8
 #define LIVEKIT_PB_DATA_STREAM_HEADER_TEXT_HEADER_TAG 9
 #define LIVEKIT_PB_DATA_STREAM_HEADER_BYTE_HEADER_TAG 10
+#define LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_KEY_TAG 1
+#define LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_VALUE_TAG 2
 #define LIVEKIT_PB_DATA_STREAM_CHUNK_STREAM_ID_TAG 1
 #define LIVEKIT_PB_DATA_STREAM_CHUNK_CHUNK_INDEX_TAG 2
 #define LIVEKIT_PB_DATA_STREAM_CHUNK_CONTENT_TAG 3
 #define LIVEKIT_PB_DATA_STREAM_CHUNK_VERSION_TAG 4
 #define LIVEKIT_PB_DATA_STREAM_TRAILER_STREAM_ID_TAG 1
 #define LIVEKIT_PB_DATA_STREAM_TRAILER_REASON_TAG 2
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_ATTRIBUTES_TAG 3
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_KEY_TAG 1
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_VALUE_TAG 2
 #define LIVEKIT_PB_ENCRYPTED_PACKET_PAYLOAD_USER_TAG 1
 #define LIVEKIT_PB_ENCRYPTED_PACKET_PAYLOAD_CHAT_MESSAGE_TAG 3
 #define LIVEKIT_PB_ENCRYPTED_PACKET_PAYLOAD_RPC_REQUEST_TAG 4
@@ -1556,12 +1578,20 @@ X(a, STATIC,   SINGULAR, STRING,   stream_id,         1) \
 X(a, STATIC,   SINGULAR, INT64,    timestamp,         2) \
 X(a, POINTER,  SINGULAR, STRING,   topic,             3) \
 X(a, STATIC,   OPTIONAL, UINT64,   total_length,      5) \
+X(a, CALLBACK, REPEATED, MESSAGE,  attributes,        8) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (content_header,text_header,content_header.text_header),   9) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (content_header,byte_header,content_header.byte_header),  10)
-#define LIVEKIT_PB_DATA_STREAM_HEADER_CALLBACK NULL
+#define LIVEKIT_PB_DATA_STREAM_HEADER_CALLBACK pb_default_field_callback
 #define LIVEKIT_PB_DATA_STREAM_HEADER_DEFAULT NULL
+#define livekit_pb_data_stream_header_t_attributes_MSGTYPE livekit_pb_data_stream_header_attributes_entry_t
 #define livekit_pb_data_stream_header_t_content_header_text_header_MSGTYPE livekit_pb_data_stream_text_header_t
 #define livekit_pb_data_stream_header_t_content_header_byte_header_MSGTYPE livekit_pb_data_stream_byte_header_t
+
+#define LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_FIELDLIST(X, a) \
+X(a, CALLBACK, SINGULAR, STRING,   key,               1) \
+X(a, CALLBACK, SINGULAR, STRING,   value,             2)
+#define LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_DEFAULT NULL
 
 #define LIVEKIT_PB_DATA_STREAM_CHUNK_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, STRING,   stream_id,         1) \
@@ -1573,9 +1603,17 @@ X(a, STATIC,   SINGULAR, INT32,    version,           4)
 
 #define LIVEKIT_PB_DATA_STREAM_TRAILER_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, STRING,   stream_id,         1) \
-X(a, STATIC,   SINGULAR, STRING,   reason,            2)
-#define LIVEKIT_PB_DATA_STREAM_TRAILER_CALLBACK NULL
+X(a, STATIC,   SINGULAR, STRING,   reason,            2) \
+X(a, CALLBACK, REPEATED, MESSAGE,  attributes,        3)
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_CALLBACK pb_default_field_callback
 #define LIVEKIT_PB_DATA_STREAM_TRAILER_DEFAULT NULL
+#define livekit_pb_data_stream_trailer_t_attributes_MSGTYPE livekit_pb_data_stream_trailer_attributes_entry_t
+
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_FIELDLIST(X, a) \
+X(a, CALLBACK, SINGULAR, STRING,   key,               1) \
+X(a, CALLBACK, SINGULAR, STRING,   value,             2)
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_CALLBACK pb_default_field_callback
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_DEFAULT NULL
 
 #define LIVEKIT_PB_FILTER_PARAMS_FIELDLIST(X, a) \
 X(a, CALLBACK, REPEATED, STRING,   include_events,    1) \
@@ -1640,8 +1678,10 @@ extern const pb_msgdesc_t livekit_pb_data_stream_t_msg;
 extern const pb_msgdesc_t livekit_pb_data_stream_text_header_t_msg;
 extern const pb_msgdesc_t livekit_pb_data_stream_byte_header_t_msg;
 extern const pb_msgdesc_t livekit_pb_data_stream_header_t_msg;
+extern const pb_msgdesc_t livekit_pb_data_stream_header_attributes_entry_t_msg;
 extern const pb_msgdesc_t livekit_pb_data_stream_chunk_t_msg;
 extern const pb_msgdesc_t livekit_pb_data_stream_trailer_t_msg;
+extern const pb_msgdesc_t livekit_pb_data_stream_trailer_attributes_entry_t_msg;
 extern const pb_msgdesc_t livekit_pb_filter_params_t_msg;
 extern const pb_msgdesc_t livekit_pb_webhook_config_t_msg;
 extern const pb_msgdesc_t livekit_pb_subscribed_audio_codec_t_msg;
@@ -1690,8 +1730,10 @@ extern const pb_msgdesc_t livekit_pb_subscribed_audio_codec_t_msg;
 #define LIVEKIT_PB_DATA_STREAM_TEXT_HEADER_FIELDS &livekit_pb_data_stream_text_header_t_msg
 #define LIVEKIT_PB_DATA_STREAM_BYTE_HEADER_FIELDS &livekit_pb_data_stream_byte_header_t_msg
 #define LIVEKIT_PB_DATA_STREAM_HEADER_FIELDS &livekit_pb_data_stream_header_t_msg
+#define LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_ENTRY_FIELDS &livekit_pb_data_stream_header_attributes_entry_t_msg
 #define LIVEKIT_PB_DATA_STREAM_CHUNK_FIELDS &livekit_pb_data_stream_chunk_t_msg
 #define LIVEKIT_PB_DATA_STREAM_TRAILER_FIELDS &livekit_pb_data_stream_trailer_t_msg
+#define LIVEKIT_PB_DATA_STREAM_TRAILER_ATTRIBUTES_ENTRY_FIELDS &livekit_pb_data_stream_trailer_attributes_entry_t_msg
 #define LIVEKIT_PB_FILTER_PARAMS_FIELDS &livekit_pb_filter_params_t_msg
 #define LIVEKIT_PB_WEBHOOK_CONFIG_FIELDS &livekit_pb_webhook_config_t_msg
 #define LIVEKIT_PB_SUBSCRIBED_AUDIO_CODEC_FIELDS &livekit_pb_subscribed_audio_codec_t_msg
