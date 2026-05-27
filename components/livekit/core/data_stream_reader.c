@@ -161,7 +161,7 @@ data_stream_reader_err_t data_stream_reader_unregister(data_stream_reader_handle
     return DATA_STREAM_READER_ERR_INVALID_ARG;
 }
 
-data_stream_reader_err_t data_stream_reader_handle_header(data_stream_reader_handle_t handle, const livekit_pb_data_stream_header_t* header, const char* sender_identity)
+data_stream_reader_err_t data_stream_reader_handle_header(data_stream_reader_handle_t handle, const livekit_pb_data_stream_header_t* header, const char* sender_identity, const uint8_t *raw, size_t raw_len)
 {
     if (handle == NULL || header == NULL) {
         return DATA_STREAM_READER_ERR_INVALID_ARG;
@@ -189,6 +189,20 @@ data_stream_reader_err_t data_stream_reader_handle_header(data_stream_reader_han
     slot->has_total_length = header->has_total_length;
 
     if (slot->handler.on_open != NULL) {
+        livekit_data_stream_attribute_t *attrs = NULL;
+        size_t attrs_count = 0;
+        if (raw != NULL && raw_len > 0) {
+            if (!protocol_data_packet_extract_attributes(
+                    raw, raw_len,
+                    LIVEKIT_PB_DATA_PACKET_STREAM_HEADER_TAG,
+                    LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_TAG,
+                    &attrs, &attrs_count)) {
+                ESP_LOGW(TAG, "Failed to extract attributes for stream %s",
+                         header->stream_id);
+                attrs = NULL;
+                attrs_count = 0;
+            }
+        }
         livekit_data_stream_header_t info = {
             .stream_id = header->stream_id,
             .topic = header->topic,
@@ -197,8 +211,11 @@ data_stream_reader_err_t data_stream_reader_handle_header(data_stream_reader_han
             .total_length = header->total_length,
             .has_total_length = header->has_total_length,
             .is_text = header->which_content_header == LIVEKIT_PB_DATA_STREAM_HEADER_TEXT_HEADER_TAG,
+            .attributes = attrs,
+            .attributes_count = attrs_count,
         };
         slot->handler.on_open(&info, slot->handler.ctx);
+        protocol_data_packet_attributes_free(attrs, attrs_count);
     }
 
     return DATA_STREAM_READER_ERR_NONE;

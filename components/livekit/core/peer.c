@@ -247,7 +247,10 @@ static int on_data(esp_peer_data_frame_t *frame, void *ctx)
         protocol_data_packet_free(&packet);
         return -1;
     }
-    if (!peer->options.on_data_packet(&packet, peer->options.ctx)) {
+    if (!peer->options.on_data_packet(&packet,
+                                      (const uint8_t *)frame->data,
+                                      (size_t)frame->size,
+                                      peer->options.ctx)) {
         // Ownership was not taken.
         protocol_data_packet_free(&packet);
     }

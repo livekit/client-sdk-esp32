@@ -208,7 +208,8 @@ static void on_eng_state_changed(livekit_connection_state_t state, void *ctx)
     }
 }
 
-static void on_eng_data_packet(livekit_pb_data_packet_t* packet, void *ctx)
+static void on_eng_data_packet(livekit_pb_data_packet_t* packet,
+                               const uint8_t *raw, size_t raw_len, void *ctx)
 {
     livekit_room_t *room = (livekit_room_t *)ctx;
     switch (packet->which_value) {
@@ -222,7 +223,8 @@ static void on_eng_data_packet(livekit_pb_data_packet_t* packet, void *ctx)
             break;
         case LIVEKIT_PB_DATA_PACKET_STREAM_HEADER_TAG:
             data_stream_reader_handle_header(room->data_stream_reader,
-                packet->value.stream_header, packet->participant_identity);
+                packet->value.stream_header, packet->participant_identity,
+                raw, raw_len);
             break;
         case LIVEKIT_PB_DATA_PACKET_STREAM_CHUNK_TAG:
             data_stream_reader_handle_chunk(room->data_stream_reader,
