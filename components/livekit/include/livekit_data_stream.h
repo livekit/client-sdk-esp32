@@ -48,6 +48,8 @@ typedef struct {
 /// @ingroup DataStreams
 typedef struct {
     const char* stream_id;
+    /// Identity of the participant who sent the stream this chunk belongs to.
+    const char* sender_identity;
     uint64_t chunk_index;
     const uint8_t* content;
     size_t content_size;
@@ -57,6 +59,8 @@ typedef struct {
 /// @ingroup DataStreams
 typedef struct {
     const char* stream_id;
+    /// Identity of the participant who sent the stream.
+    const char* sender_identity;
     /// Empty string for normal closure, non-empty for abnormal end.
     const char* reason;
 } livekit_data_stream_trailer_t;
