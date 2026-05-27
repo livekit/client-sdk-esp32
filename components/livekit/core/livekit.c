@@ -15,7 +15,9 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 #include <esp_log.h>
+#include <khash.h>
 #include "esp_peer.h"
 #include "engine.h"
 #include "rpc_manager.h"
@@ -26,6 +28,9 @@
 
 static const char *TAG = "livekit";
 
+// Map from participant identity (heap-owned key) -> client_protocol value.
+KHASH_MAP_INIT_STR(participant_protocols, int)
+
 typedef struct {
     rpc_manager_handle_t rpc_manager;
     data_stream_reader_handle_t data_stream_reader;
@@ -33,7 +38,82 @@ typedef struct {
     engine_handle_t engine;
     livekit_room_options_t options;
     livekit_connection_state_t state;
+
+    // Tracks each known participant's advertised client_protocol so we can
+    // pick the right RPC transport per-peer. Keys are strdup'd on insert.
+    khash_t(participant_protocols) *participant_protocols;
+
+    // Strdup'd identity of the local participant, set on join and cleared
+    // on disconnect.
+    char *local_identity;
 } livekit_room_t;
+
+/// Insert or update the registry entry for `identity`.
+static void participant_registry_set(livekit_room_t *room, const char *identity, int client_protocol)
+{
+    if (room->participant_protocols == NULL || identity == NULL) {
+        return;
+    }
+    khiter_t k = kh_get(participant_protocols, room->participant_protocols, identity);
+    if (k == kh_end(room->participant_protocols)) {
+        char *owned = strdup(identity);
+        if (owned == NULL) {
+            return;
+        }
+        int put_flag;
+        k = kh_put(participant_protocols, room->participant_protocols, owned, &put_flag);
+        if (put_flag < 0) {
+            free(owned);
+            return;
+        }
+    }
+    kh_value(room->participant_protocols, k) = client_protocol;
+}
+
+/// Drop the registry entry for `identity`, freeing the owned key.
+static void participant_registry_remove(livekit_room_t *room, const char *identity)
+{
+    if (room->participant_protocols == NULL || identity == NULL) {
+        return;
+    }
+    khiter_t k = kh_get(participant_protocols, room->participant_protocols, identity);
+    if (k == kh_end(room->participant_protocols)) {
+        return;
+    }
+    const char *key = kh_key(room->participant_protocols, k);
+    kh_del(participant_protocols, room->participant_protocols, k);
+    free((void *)key);
+}
+
+/// Look up `identity`'s client_protocol, falling back to DEFAULT for unknown
+/// or unregistered participants.
+static int participant_registry_get(livekit_room_t *room, const char *identity)
+{
+    if (room->participant_protocols == NULL || identity == NULL) {
+        return LIVEKIT_CLIENT_PROTOCOL_DEFAULT;
+    }
+    khiter_t k = kh_get(participant_protocols, room->participant_protocols, identity);
+    if (k == kh_end(room->participant_protocols)) {
+        return LIVEKIT_CLIENT_PROTOCOL_DEFAULT;
+    }
+    return kh_value(room->participant_protocols, k);
+}
+
+/// Free every entry plus the map itself.
+static void participant_registry_destroy(livekit_room_t *room)
+{
+    if (room->participant_protocols == NULL) {
+        return;
+    }
+    for (khiter_t k = kh_begin(room->participant_protocols);
+         k != kh_end(room->participant_protocols); ++k) {
+        if (kh_exist(room->participant_protocols, k)) {
+            free((void *)kh_key(room->participant_protocols, k));
+        }
+    }
+    kh_destroy(participant_protocols, room->participant_protocols);
+    room->participant_protocols = NULL;
+}
 
 static bool send_reliable_packet(const livekit_pb_data_packet_t* packet, void *ctx)
 {
@@ -176,6 +256,29 @@ static void on_eng_room_info(const livekit_pb_room_t* info, void *ctx)
 static void on_eng_participant_info(const livekit_pb_participant_info_t* info, bool is_local, void *ctx)
 {
     livekit_room_t *room = (livekit_room_t *)ctx;
+
+    // Maintain the participant registry first so any user-facing callback
+    // below already sees the up-to-date state if it queries us.
+    if (info->identity != NULL) {
+        if (info->state == LIVEKIT_PB_PARTICIPANT_INFO_STATE_DISCONNECTED) {
+            participant_registry_remove(room, info->identity);
+            if (is_local) {
+                free(room->local_identity);
+                room->local_identity = NULL;
+            }
+        } else {
+            // Only DEFAULT (0) and DATA_STREAM_RPC (1) are recognized; everything
+            // else is treated as DEFAULT per the RPC v2 spec.
+            int proto = info->client_protocol == LIVEKIT_CLIENT_PROTOCOL_DATA_STREAM_RPC
+                ? LIVEKIT_CLIENT_PROTOCOL_DATA_STREAM_RPC
+                : LIVEKIT_CLIENT_PROTOCOL_DEFAULT;
+            participant_registry_set(room, info->identity, proto);
+            if (is_local && room->local_identity == NULL) {
+                room->local_identity = strdup(info->identity);
+            }
+        }
+    }
+
     if (room->options.on_participant_info == NULL) {
         return;
     }
@@ -244,6 +347,12 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_r
 
     int ret = LIVEKIT_ERR_OTHER;
     do {
+        room->participant_protocols = kh_init(participant_protocols);
+        if (room->participant_protocols == NULL) {
+            ESP_LOGE(TAG, "Failed to allocate participant registry");
+            ret = LIVEKIT_ERR_NO_MEM;
+            break;
+        }
         room->engine = engine_init(&eng_options);
         if (room->engine == NULL) {
             ESP_LOGE(TAG, "Failed to create engine");
@@ -278,6 +387,8 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_r
         return LIVEKIT_ERR_NONE;
     } while (0);
 
+    participant_registry_destroy(room);
+    free(room->local_identity);
     free(room);
     return ret;
 }
@@ -292,6 +403,8 @@ livekit_err_t livekit_room_destroy(livekit_room_handle_t handle)
     engine_destroy(room->engine);
     data_stream_reader_destroy(room->data_stream_reader);
     data_stream_writer_destroy(room->data_stream_writer);
+    participant_registry_destroy(room);
+    free(room->local_identity);
     free(room);
     return LIVEKIT_ERR_NONE;
 }
