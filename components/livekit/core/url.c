@@ -24,10 +24,13 @@
 
 static const char *TAG = "livekit_url";
 
-#define URL_PARAM_SDK      "esp32"
-#define URL_PARAM_VERSION  LIVEKIT_SDK_VERSION
-#define URL_PARAM_OS       "idf"
-#define URL_PARAM_PROTOCOL "1"
+#define URL_PARAM_SDK             "esp32"
+#define URL_PARAM_VERSION         LIVEKIT_SDK_VERSION
+#define URL_PARAM_OS              "idf"
+#define URL_PARAM_PROTOCOL        "1"
+// Advertises support for RPC v2 (data-stream-backed request/response payloads).
+// The server propagates this into the ParticipantInfo other peers see.
+#define URL_PARAM_CLIENT_PROTOCOL "1"
 
 // TODO: For now, we use a protocol version that does not support subscriber primary.
 // This is to get around a limitation with re-negotiation.
@@ -39,7 +42,8 @@ static const char *TAG = "livekit_url";
     "&os_version=%s" \
     "&device_model=%d" \
     "&auto_subscribe=false" \
-    "&protocol=" URL_PARAM_PROTOCOL
+    "&protocol=" URL_PARAM_PROTOCOL \
+    "&client_protocol=" URL_PARAM_CLIENT_PROTOCOL
 
 bool url_build(const url_build_options *options, char **out_url)
 {
