@@ -17,6 +17,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -115,6 +116,26 @@ typedef struct {
     /// Payload returned to the caller.
     char* payload;
 } livekit_rpc_result_t;
+
+/// Options for invoking an RPC method on a remote participant.
+/// @ingroup RPC
+typedef struct {
+    /// Identity of the participant whose method should be invoked. Required.
+    const char* destination_identity;
+
+    /// Name of the method to invoke. Required.
+    const char* method;
+
+    /// Request payload as a NUL-terminated UTF-8 string. Required.
+    /// For v1 peers, the payload is capped at @ref LIVEKIT_RPC_MAX_PAYLOAD_BYTES;
+    /// oversized payloads are rejected synchronously with
+    /// @ref LIVEKIT_RPC_RESULT_REQUEST_PAYLOAD_TOO_LARGE.
+    const char* payload;
+
+    /// Maximum time the handler has to send a response, in milliseconds.
+    /// Pass 0 to use a sensible SDK default.
+    uint32_t response_timeout_ms;
+} livekit_rpc_invoke_options_t;
 
 /// Details about an RPC method invocation.
 typedef struct {

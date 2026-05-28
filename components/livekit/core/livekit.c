@@ -21,6 +21,7 @@
 #include "esp_peer.h"
 #include "engine.h"
 #include "rpc_server_manager.h"
+#include "rpc_client_manager.h"
 #include "data_stream_reader.h"
 #include "data_stream_writer.h"
 #include "system.h"
@@ -33,6 +34,7 @@ KHASH_MAP_INIT_STR(participant_protocols, int)
 
 typedef struct {
     rpc_server_manager_handle_t rpc_server;
+    rpc_client_manager_handle_t rpc_client;
     data_stream_reader_handle_t data_stream_reader;
     data_stream_writer_handle_t data_stream_writer;
     engine_handle_t engine;
@@ -129,6 +131,12 @@ static void on_rpc_result(const livekit_rpc_result_t* result, void* ctx)
     }
 }
 
+static int get_peer_client_protocol(const char *identity, void *ctx)
+{
+    livekit_room_t *room = (livekit_room_t *)ctx;
+    return participant_registry_get(room, identity);
+}
+
 static void on_user_packet(const livekit_pb_user_packet_t* packet, const char* sender_identity, void* ctx)
 {
     livekit_room_t *room = (livekit_room_t *)ctx;
@@ -217,9 +225,11 @@ static void on_eng_data_packet(livekit_pb_data_packet_t* packet,
             on_user_packet(&packet->value.user, packet->participant_identity, ctx);
             break;
         case LIVEKIT_PB_DATA_PACKET_RPC_REQUEST_TAG:
+            rpc_server_manager_handle_packet(room->rpc_server, packet);
+            break;
         case LIVEKIT_PB_DATA_PACKET_RPC_ACK_TAG:
         case LIVEKIT_PB_DATA_PACKET_RPC_RESPONSE_TAG:
-            rpc_server_manager_handle_packet(room->rpc_server, packet);
+            rpc_client_manager_handle_packet(room->rpc_client, packet);
             break;
         case LIVEKIT_PB_DATA_PACKET_STREAM_HEADER_TAG:
             data_stream_reader_handle_header(room->data_stream_reader,
@@ -264,6 +274,11 @@ static void on_eng_participant_info(const livekit_pb_participant_info_t* info, b
     if (info->identity != NULL) {
         if (info->state == LIVEKIT_PB_PARTICIPANT_INFO_STATE_DISCONNECTED) {
             participant_registry_remove(room, info->identity);
+            // Fail any pending RPC requests targeted at this identity.
+            if (room->rpc_client != NULL) {
+                rpc_client_manager_on_participant_disconnect(room->rpc_client,
+                                                             info->identity);
+            }
             if (is_local) {
                 free(room->local_identity);
                 room->local_identity = NULL;
@@ -371,6 +386,17 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_r
             ret = LIVEKIT_ERR_OTHER;
             break;
         }
+        rpc_client_manager_options_t rpc_client_options = {
+            .send_packet = send_reliable_packet,
+            .get_peer_protocol = get_peer_client_protocol,
+            .on_result = on_rpc_result,
+            .ctx = room,
+        };
+        if (rpc_client_manager_create(&room->rpc_client, &rpc_client_options) != RPC_CLIENT_MANAGER_ERR_NONE) {
+            ESP_LOGE(TAG, "Failed to create RPC client manager");
+            ret = LIVEKIT_ERR_OTHER;
+            break;
+        }
         if (data_stream_reader_create(&room->data_stream_reader) != DATA_STREAM_READER_ERR_NONE) {
             ESP_LOGE(TAG, "Failed to create data stream reader");
             ret = LIVEKIT_ERR_OTHER;
@@ -403,6 +429,9 @@ livekit_err_t livekit_room_destroy(livekit_room_handle_t handle)
     }
     livekit_room_close(handle);
     engine_destroy(room->engine);
+    if (room->rpc_client != NULL) {
+        rpc_client_manager_destroy(room->rpc_client);
+    }
     data_stream_reader_destroy(room->data_stream_reader);
     data_stream_writer_destroy(room->data_stream_writer);
     participant_registry_destroy(room);
@@ -555,6 +584,26 @@ livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const ch
         return LIVEKIT_ERR_INVALID_STATE;
     }
     return LIVEKIT_ERR_NONE;
+}
+
+livekit_err_t livekit_room_rpc_invoke(livekit_room_handle_t handle,
+                                      const livekit_rpc_invoke_options_t *options)
+{
+    if (handle == NULL || options == NULL ||
+        options->destination_identity == NULL ||
+        options->method == NULL ||
+        options->payload == NULL) {
+        return LIVEKIT_ERR_INVALID_ARG;
+    }
+    livekit_room_t *room = (livekit_room_t *)handle;
+    rpc_client_manager_err_t err = rpc_client_manager_invoke(room->rpc_client, options);
+    switch (err) {
+        case RPC_CLIENT_MANAGER_ERR_NONE:        return LIVEKIT_ERR_NONE;
+        case RPC_CLIENT_MANAGER_ERR_INVALID_ARG: return LIVEKIT_ERR_INVALID_ARG;
+        case RPC_CLIENT_MANAGER_ERR_NO_MEM:      return LIVEKIT_ERR_NO_MEM;
+        case RPC_CLIENT_MANAGER_ERR_SEND_FAILED: return LIVEKIT_ERR_ENGINE;
+        default:                                 return LIVEKIT_ERR_OTHER;
+    }
 }
 
 livekit_err_t livekit_room_data_stream_topic_register(livekit_room_handle_t handle, const char* topic, const livekit_data_stream_handler_t* handler)
