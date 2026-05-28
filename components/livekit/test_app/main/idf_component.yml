@@ -1,4 +1,5 @@
 dependencies:
   idf: ">=5.4"
   livekit: { path: ../../ }
+  livekit/nanopb: ~0.4.9
   tempotian/codec_board: ~1.0.0
