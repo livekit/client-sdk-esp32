@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <esp_log.h>
@@ -31,6 +32,14 @@ static const char* TAG = "livekit_rpc_client";
 
 /// Time we are willing to wait for a timer-service command to be queued.
 #define TIMER_CMD_TICKS pdMS_TO_TICKS(100)
+
+#define LK_RPC_REQUEST_TOPIC                 "lk.rpc_request"
+#define LK_RPC_RESPONSE_TOPIC                "lk.rpc_response"
+#define LK_RPC_ATTR_REQUEST_ID               "lk.rpc_request_id"
+#define LK_RPC_ATTR_METHOD                   "lk.rpc_request_method"
+#define LK_RPC_ATTR_RESPONSE_TIMEOUT_MS      "lk.rpc_request_response_timeout_ms"
+#define LK_RPC_ATTR_VERSION                  "lk.rpc_request_version"
+#define LK_RPC_VERSION_V2                    "2"
 
 typedef struct rpc_client_manager rpc_client_manager_t;
 typedef struct pending_request pending_request_t;
@@ -52,6 +61,18 @@ struct pending_request {
     timeout_arg_t *ack_arg;
     timeout_arg_t *response_arg;
     bool ack_received;
+    /// True if the request was sent via the v2 data-stream transport.
+    /// When set, the manager looks for the response on the
+    /// "lk.rpc_response" data stream rather than as an RpcResponse packet.
+    bool is_v2;
+    /// Stream id of the bound response data stream (empty until the
+    /// stream's header arrives and is matched to this entry). Used to
+    /// route subsequent chunks/trailer.
+    char response_stream_id[37];
+    /// Heap-allocated accumulator for the v2 response payload.
+    uint8_t *response_buf;
+    size_t response_buf_size;
+    size_t response_buf_cap;
 };
 
 KHASH_MAP_INIT_STR(pending, pending_request_t *)
@@ -96,6 +117,7 @@ static void free_pending(pending_request_t *entry)
     free(entry->ack_arg);
     free(entry->response_arg);
     free(entry->destination_identity);
+    free(entry->response_buf);
     free(entry);
 }
 
@@ -271,30 +293,15 @@ rpc_client_manager_err_t rpc_client_manager_invoke(
 
     int peer_protocol = mgr->options.get_peer_protocol(
         options->destination_identity, mgr->options.ctx);
+    bool use_v2 = (peer_protocol == LIVEKIT_CLIENT_PROTOCOL_DATA_STREAM_RPC)
+                  && (mgr->options.writer != NULL);
 
-    if (peer_protocol == LIVEKIT_CLIENT_PROTOCOL_DEFAULT) {
-        // v1 transport: enforce the 15 KB payload limit before allocating
-        // anything else.
-        if (strlen(options->payload) >= LIVEKIT_RPC_MAX_PAYLOAD_BYTES) {
-            ESP_LOGW(TAG, "request payload too large for v1 peer (%zu bytes)",
-                     strlen(options->payload));
-            deliver_result(mgr, request_id,
-                           LIVEKIT_RPC_RESULT_REQUEST_PAYLOAD_TOO_LARGE, NULL, NULL);
-            return RPC_CLIENT_MANAGER_ERR_NONE;
-        }
-    } else {
-        // v2 data-stream transport is wired up in a follow-up commit. For
-        // now, treat any non-default peer as if it were v1 so the rest of
-        // the plumbing is exercised.
-        ESP_LOGD(TAG, "peer client_protocol=%d not yet supported by client; falling back to v1",
-                 peer_protocol);
-        if (strlen(options->payload) >= LIVEKIT_RPC_MAX_PAYLOAD_BYTES) {
-            ESP_LOGW(TAG, "request payload too large (%zu bytes) on v1 fallback",
-                     strlen(options->payload));
-            deliver_result(mgr, request_id,
-                           LIVEKIT_RPC_RESULT_REQUEST_PAYLOAD_TOO_LARGE, NULL, NULL);
-            return RPC_CLIENT_MANAGER_ERR_NONE;
-        }
+    if (!use_v2 && strlen(options->payload) >= LIVEKIT_RPC_MAX_PAYLOAD_BYTES) {
+        ESP_LOGW(TAG, "request payload too large for v1 peer (%zu bytes)",
+                 strlen(options->payload));
+        deliver_result(mgr, request_id,
+                       LIVEKIT_RPC_RESULT_REQUEST_PAYLOAD_TOO_LARGE, NULL, NULL);
+        return RPC_CLIENT_MANAGER_ERR_NONE;
     }
 
     // Allocate the pending entry up front; ownership is tracked carefully
@@ -304,6 +311,7 @@ rpc_client_manager_err_t rpc_client_manager_invoke(
         return RPC_CLIENT_MANAGER_ERR_NO_MEM;
     }
     strlcpy(entry->request_id, request_id, sizeof(entry->request_id));
+    entry->is_v2 = use_v2;
     entry->destination_identity = strdup(options->destination_identity);
     if (entry->destination_identity == NULL) {
         free(entry);
@@ -344,21 +352,62 @@ rpc_client_manager_err_t rpc_client_manager_invoke(
     xTimerStart(entry->response_timer, TIMER_CMD_TICKS);
     xSemaphoreGive(mgr->mutex);
 
-    // Build and send the v1 RpcRequest packet.
-    livekit_pb_data_packet_t packet = LIVEKIT_PB_DATA_PACKET_INIT_ZERO;
-    packet.which_value = LIVEKIT_PB_DATA_PACKET_RPC_REQUEST_TAG;
-    strlcpy(packet.value.rpc_request.id, request_id,
-            sizeof(packet.value.rpc_request.id));
-    packet.value.rpc_request.method = (char *)options->method;
-    packet.value.rpc_request.payload = (char *)options->payload;
-    packet.value.rpc_request.response_timeout_ms = response_timeout_ms;
-    packet.value.rpc_request.version = 1;
+    bool sent = false;
+    if (use_v2) {
+        // v2 transport: write request payload to a text data stream on
+        // topic "lk.rpc_request" with RPC metadata in attributes. The
+        // handler side still sends an RpcAck packet, so the ack timer
+        // logic above is unchanged.
+        char timeout_buf[16];
+        snprintf(timeout_buf, sizeof(timeout_buf), "%u",
+                 (unsigned int)response_timeout_ms);
+        const livekit_data_stream_attribute_t attrs[] = {
+            { .key = LK_RPC_ATTR_REQUEST_ID,          .value = request_id },
+            { .key = LK_RPC_ATTR_METHOD,              .value = options->method },
+            { .key = LK_RPC_ATTR_RESPONSE_TIMEOUT_MS, .value = timeout_buf },
+            { .key = LK_RPC_ATTR_VERSION,             .value = LK_RPC_VERSION_V2 },
+        };
+        char *destinations[1] = { (char *)options->destination_identity };
+        size_t payload_len = strlen(options->payload);
+        livekit_data_stream_options_t stream_opts = {
+            .topic = LK_RPC_REQUEST_TOPIC,
+            .is_text = true,
+            .total_length = payload_len,
+            .has_total_length = true,
+            .attributes = attrs,
+            .attributes_count = sizeof(attrs) / sizeof(attrs[0]),
+            .destination_identities = destinations,
+            .destination_identities_count = 1,
+        };
+        livekit_data_stream_handle_t stream = NULL;
+        if (data_stream_writer_open(mgr->options.writer, &stream_opts, &stream)
+                == DATA_STREAM_WRITER_ERR_NONE) {
+            if (data_stream_writer_write(mgr->options.writer, stream,
+                                         (const uint8_t *)options->payload, payload_len)
+                    == DATA_STREAM_WRITER_ERR_NONE &&
+                data_stream_writer_close(mgr->options.writer, stream)
+                    == DATA_STREAM_WRITER_ERR_NONE) {
+                sent = true;
+            }
+        }
+    } else {
+        // Build and send the v1 RpcRequest packet.
+        livekit_pb_data_packet_t packet = LIVEKIT_PB_DATA_PACKET_INIT_ZERO;
+        packet.which_value = LIVEKIT_PB_DATA_PACKET_RPC_REQUEST_TAG;
+        strlcpy(packet.value.rpc_request.id, request_id,
+                sizeof(packet.value.rpc_request.id));
+        packet.value.rpc_request.method = (char *)options->method;
+        packet.value.rpc_request.payload = (char *)options->payload;
+        packet.value.rpc_request.response_timeout_ms = response_timeout_ms;
+        packet.value.rpc_request.version = 1;
 
-    char *destinations[1] = { (char *)options->destination_identity };
-    packet.destination_identities = destinations;
-    packet.destination_identities_count = 1;
+        char *destinations[1] = { (char *)options->destination_identity };
+        packet.destination_identities = destinations;
+        packet.destination_identities_count = 1;
 
-    bool sent = mgr->options.send_packet(&packet, mgr->options.ctx);
+        sent = mgr->options.send_packet(&packet, mgr->options.ctx);
+    }
+
     if (sent) {
         return RPC_CLIENT_MANAGER_ERR_NONE;
     }
@@ -450,6 +499,198 @@ void rpc_client_manager_handle_packet(rpc_client_manager_handle_t handle,
         default:
             break;
     }
+}
+
+static const char *find_attribute_value(const livekit_data_stream_header_t *header,
+                                        const char *key)
+{
+    if (header == NULL || header->attributes == NULL || key == NULL) {
+        return NULL;
+    }
+    for (size_t i = 0; i < header->attributes_count; i++) {
+        const char *k = header->attributes[i].key;
+        if (k != NULL && strcmp(k, key) == 0) {
+            return header->attributes[i].value;
+        }
+    }
+    return NULL;
+}
+
+/// Linear-scan the pending map for an entry whose bound response stream
+/// id matches @p stream_id. Caller must hold the mutex.
+static pending_request_t *find_pending_by_stream_id_locked(rpc_client_manager_t *mgr,
+                                                           const char *stream_id)
+{
+    if (stream_id == NULL || stream_id[0] == '\0') {
+        return NULL;
+    }
+    for (khiter_t k = kh_begin(mgr->pending); k != kh_end(mgr->pending); ++k) {
+        if (!kh_exist(mgr->pending, k)) {
+            continue;
+        }
+        pending_request_t *entry = kh_value(mgr->pending, k);
+        if (entry->response_stream_id[0] != '\0' &&
+            strcmp(entry->response_stream_id, stream_id) == 0) {
+            return entry;
+        }
+    }
+    return NULL;
+}
+
+/// Take ownership of the pending entry whose bound response stream id
+/// matches @p stream_id, removing it from the map.
+static pending_request_t *take_pending_by_stream_id_locked(rpc_client_manager_t *mgr,
+                                                           const char *stream_id)
+{
+    if (stream_id == NULL || stream_id[0] == '\0') {
+        return NULL;
+    }
+    for (khiter_t k = kh_begin(mgr->pending); k != kh_end(mgr->pending); ++k) {
+        if (!kh_exist(mgr->pending, k)) {
+            continue;
+        }
+        pending_request_t *entry = kh_value(mgr->pending, k);
+        if (entry->response_stream_id[0] != '\0' &&
+            strcmp(entry->response_stream_id, stream_id) == 0) {
+            const char *key = kh_key(mgr->pending, k);
+            kh_del(pending, mgr->pending, k);
+            free((void *)key);
+            return entry;
+        }
+    }
+    return NULL;
+}
+
+static bool append_response_bytes(pending_request_t *entry,
+                                  const uint8_t *data, size_t size)
+{
+    if (size == 0) {
+        return true;
+    }
+    size_t needed = entry->response_buf_size + size;
+    if (needed > entry->response_buf_cap) {
+        size_t new_cap = entry->response_buf_cap == 0 ? 256 : entry->response_buf_cap * 2;
+        while (new_cap < needed) {
+            new_cap *= 2;
+        }
+        uint8_t *grown = realloc(entry->response_buf, new_cap);
+        if (grown == NULL) {
+            return false;
+        }
+        entry->response_buf = grown;
+        entry->response_buf_cap = new_cap;
+    }
+    memcpy(entry->response_buf + entry->response_buf_size, data, size);
+    entry->response_buf_size += size;
+    return true;
+}
+
+void rpc_client_manager_on_response_stream_open(rpc_client_manager_handle_t handle,
+                                                const livekit_data_stream_header_t *header)
+{
+    if (handle == NULL || header == NULL) {
+        return;
+    }
+    rpc_client_manager_t *mgr = (rpc_client_manager_t *)handle;
+    const char *request_id = find_attribute_value(header, LK_RPC_ATTR_REQUEST_ID);
+    if (request_id == NULL) {
+        ESP_LOGD(TAG, "response stream %s missing %s attribute",
+                 header->stream_id, LK_RPC_ATTR_REQUEST_ID);
+        return;
+    }
+    if (xSemaphoreTake(mgr->mutex, portMAX_DELAY) != pdTRUE) {
+        return;
+    }
+    khiter_t k = kh_get(pending, mgr->pending, request_id);
+    if (k == kh_end(mgr->pending)) {
+        xSemaphoreGive(mgr->mutex);
+        ESP_LOGD(TAG, "response stream %s for unknown request %s",
+                 header->stream_id, request_id);
+        return;
+    }
+    pending_request_t *entry = kh_value(mgr->pending, k);
+    // Enforce spec test 14: sender identity must match the request's
+    // destination identity. A mismatched stream is ignored: we do NOT
+    // bind it, so subsequent chunks for that stream id will look up
+    // nothing and be dropped silently.
+    if (entry->destination_identity == NULL ||
+        header->sender_identity == NULL ||
+        strcmp(entry->destination_identity, header->sender_identity) != 0) {
+        xSemaphoreGive(mgr->mutex);
+        ESP_LOGW(TAG, "ignoring response stream for request %s from unexpected sender %s",
+                 request_id,
+                 header->sender_identity ? header->sender_identity : "(null)");
+        return;
+    }
+    if (!entry->is_v2) {
+        xSemaphoreGive(mgr->mutex);
+        ESP_LOGW(TAG, "ignoring v2 response stream for v1 request %s", request_id);
+        return;
+    }
+    strlcpy(entry->response_stream_id, header->stream_id, sizeof(entry->response_stream_id));
+    // Header arrival implies the handler received the request, so the
+    // ack timer no longer needs to fire even if the actual RpcAck packet
+    // got lost or hasn't been processed yet.
+    entry->ack_received = true;
+    if (entry->ack_timer != NULL) {
+        xTimerStop(entry->ack_timer, TIMER_CMD_TICKS);
+    }
+    xSemaphoreGive(mgr->mutex);
+}
+
+void rpc_client_manager_on_response_stream_chunk(rpc_client_manager_handle_t handle,
+                                                 const livekit_data_stream_chunk_t *chunk)
+{
+    if (handle == NULL || chunk == NULL) {
+        return;
+    }
+    rpc_client_manager_t *mgr = (rpc_client_manager_t *)handle;
+    if (xSemaphoreTake(mgr->mutex, portMAX_DELAY) != pdTRUE) {
+        return;
+    }
+    pending_request_t *entry = find_pending_by_stream_id_locked(mgr, chunk->stream_id);
+    if (entry != NULL && chunk->content != NULL && chunk->content_size > 0) {
+        if (!append_response_bytes(entry, chunk->content, chunk->content_size)) {
+            ESP_LOGE(TAG, "out of memory accumulating response for request %s",
+                     entry->request_id);
+        }
+    }
+    xSemaphoreGive(mgr->mutex);
+}
+
+void rpc_client_manager_on_response_stream_close(rpc_client_manager_handle_t handle,
+                                                 const livekit_data_stream_trailer_t *trailer)
+{
+    if (handle == NULL || trailer == NULL) {
+        return;
+    }
+    rpc_client_manager_t *mgr = (rpc_client_manager_t *)handle;
+    pending_request_t *entry = NULL;
+    if (xSemaphoreTake(mgr->mutex, portMAX_DELAY) == pdTRUE) {
+        entry = take_pending_by_stream_id_locked(mgr, trailer->stream_id);
+        xSemaphoreGive(mgr->mutex);
+    }
+    if (entry == NULL) {
+        return;
+    }
+    // Materialize a NUL-terminated copy of the accumulated payload for
+    // the on_result callback. Doing it outside the mutex avoids holding
+    // the lock across the user callback.
+    char *payload = malloc(entry->response_buf_size + 1);
+    if (payload == NULL) {
+        deliver_result(mgr, entry->request_id,
+                       LIVEKIT_RPC_RESULT_APPLICATION, NULL,
+                       "out of memory");
+    } else {
+        if (entry->response_buf_size > 0 && entry->response_buf != NULL) {
+            memcpy(payload, entry->response_buf, entry->response_buf_size);
+        }
+        payload[entry->response_buf_size] = '\0';
+        deliver_result(mgr, entry->request_id, LIVEKIT_RPC_RESULT_OK,
+                       payload, NULL);
+        free(payload);
+    }
+    free_pending(entry);
 }
 
 void rpc_client_manager_on_participant_disconnect(rpc_client_manager_handle_t handle,

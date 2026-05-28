@@ -17,7 +17,9 @@
 #pragma once
 
 #include "livekit_rpc.h"
+#include "livekit_data_stream.h"
 #include "protocol.h"
+#include "data_stream_writer.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,6 +46,11 @@ typedef struct {
 
     /// Deliver an RPC invocation result back to the user.
     void (*on_result)(const livekit_rpc_result_t *result, void *ctx);
+
+    /// Data stream writer the manager uses to send v2 requests on
+    /// topic "lk.rpc_request". May be NULL to disable v2 transport
+    /// (every peer is then treated as v1).
+    data_stream_writer_handle_t writer;
 
     /// Context pointer forwarded to every callback above.
     void *ctx;
@@ -79,6 +86,27 @@ void rpc_client_manager_handle_packet(
 void rpc_client_manager_on_participant_disconnect(
     rpc_client_manager_handle_t handle,
     const char *identity);
+
+/// Forward an incoming response data stream (topic "lk.rpc_response")
+/// header to the manager. The manager reads the request_id attribute,
+/// validates the sender, and binds the stream to the matching pending
+/// request so its chunks accumulate the response payload.
+void rpc_client_manager_on_response_stream_open(
+    rpc_client_manager_handle_t handle,
+    const livekit_data_stream_header_t *header);
+
+/// Forward an incoming response stream chunk. The manager looks up
+/// the bound pending request by stream id and appends the bytes.
+void rpc_client_manager_on_response_stream_chunk(
+    rpc_client_manager_handle_t handle,
+    const livekit_data_stream_chunk_t *chunk);
+
+/// Forward an incoming response stream close. The manager looks up
+/// the bound pending request by stream id, delivers the accumulated
+/// payload as a success result, and frees the entry.
+void rpc_client_manager_on_response_stream_close(
+    rpc_client_manager_handle_t handle,
+    const livekit_data_stream_trailer_t *trailer);
 
 #ifdef __cplusplus
 }
