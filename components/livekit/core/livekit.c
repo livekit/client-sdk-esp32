@@ -155,6 +155,24 @@ static void on_rpc_response_stream_close(const livekit_data_stream_trailer_t *tr
     rpc_client_manager_on_response_stream_close(room->rpc_client, trailer);
 }
 
+static void on_rpc_request_stream_open(const livekit_data_stream_header_t *header, void *ctx)
+{
+    livekit_room_t *room = (livekit_room_t *)ctx;
+    rpc_server_manager_on_request_stream_open(room->rpc_server, header);
+}
+
+static void on_rpc_request_stream_chunk(const livekit_data_stream_chunk_t *chunk, void *ctx)
+{
+    livekit_room_t *room = (livekit_room_t *)ctx;
+    rpc_server_manager_on_request_stream_chunk(room->rpc_server, chunk);
+}
+
+static void on_rpc_request_stream_close(const livekit_data_stream_trailer_t *trailer, void *ctx)
+{
+    livekit_room_t *room = (livekit_room_t *)ctx;
+    rpc_server_manager_on_request_stream_close(room->rpc_server, trailer);
+}
+
 static void on_user_packet(const livekit_pb_user_packet_t* packet, const char* sender_identity, void* ctx)
 {
     livekit_room_t *room = (livekit_room_t *)ctx;
@@ -411,6 +429,7 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_r
         rpc_server_manager_options_t rpc_server_options = {
             .on_result = on_rpc_result,
             .send_packet = send_reliable_packet,
+            .writer = room->data_stream_writer,
             .ctx = room
         };
         if (rpc_server_manager_create(&room->rpc_server, &rpc_server_options) != RPC_SERVER_MANAGER_ERR_NONE) {
@@ -442,6 +461,21 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_r
                                         "lk.rpc_response",
                                         &rpc_response_handler) != DATA_STREAM_READER_ERR_NONE) {
             ESP_LOGE(TAG, "Failed to register lk.rpc_response handler");
+            ret = LIVEKIT_ERR_OTHER;
+            break;
+        }
+        // Register the request data stream handler so v2 requests land
+        // in the server manager.
+        livekit_data_stream_handler_t rpc_request_handler = {
+            .on_open  = on_rpc_request_stream_open,
+            .on_recv  = on_rpc_request_stream_chunk,
+            .on_close = on_rpc_request_stream_close,
+            .ctx      = room,
+        };
+        if (data_stream_reader_register(room->data_stream_reader,
+                                        "lk.rpc_request",
+                                        &rpc_request_handler) != DATA_STREAM_READER_ERR_NONE) {
+            ESP_LOGE(TAG, "Failed to register lk.rpc_request handler");
             ret = LIVEKIT_ERR_OTHER;
             break;
         }

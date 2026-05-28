@@ -17,7 +17,9 @@
 #pragma once
 
 #include "livekit_rpc.h"
+#include "livekit_data_stream.h"
 #include "protocol.h"
+#include "data_stream_writer.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,6 +39,12 @@ typedef enum {
 typedef struct {
     void (*on_result)(const livekit_rpc_result_t* result, void* ctx);
     bool (*send_packet)(const livekit_pb_data_packet_t* packet, void *ctx);
+
+    /// Data stream writer the manager uses to send v2 success responses
+    /// on topic "lk.rpc_response". May be NULL to disable v2 transport
+    /// (every response is then sent as a v1 RpcResponse packet).
+    data_stream_writer_handle_t writer;
+
     void* ctx;
 } rpc_server_manager_options_t;
 
@@ -54,6 +62,28 @@ rpc_server_manager_err_t rpc_server_manager_unregister(rpc_server_manager_handle
 
 /// Handles an incoming RPC packet.
 rpc_server_manager_err_t rpc_server_manager_handle_packet(rpc_server_manager_handle_t handle, const livekit_pb_data_packet_t* packet);
+
+/// Forward an incoming request data stream (topic "lk.rpc_request") header.
+/// The manager extracts the request_id / method / version / timeout from
+/// the header's attributes, immediately sends a RpcAck packet, and binds
+/// the stream so its chunks accumulate the request payload.
+void rpc_server_manager_on_request_stream_open(
+    rpc_server_manager_handle_t handle,
+    const livekit_data_stream_header_t *header);
+
+/// Forward an incoming request stream chunk. The manager looks up the
+/// bound in-flight request by stream id and appends the bytes.
+void rpc_server_manager_on_request_stream_chunk(
+    rpc_server_manager_handle_t handle,
+    const livekit_data_stream_chunk_t *chunk);
+
+/// Forward an incoming request stream close. The manager looks up the
+/// bound in-flight request by stream id, dispatches to the registered
+/// method handler, and arranges for the response to be sent as either a
+/// v2 data stream (success) or a v1 RpcResponse packet (error).
+void rpc_server_manager_on_request_stream_close(
+    rpc_server_manager_handle_t handle,
+    const livekit_data_stream_trailer_t *trailer);
 
 #ifdef __cplusplus
 }
