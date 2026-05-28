@@ -20,7 +20,7 @@
 #include <khash.h>
 #include "esp_peer.h"
 #include "engine.h"
-#include "rpc_manager.h"
+#include "rpc_server_manager.h"
 #include "data_stream_reader.h"
 #include "data_stream_writer.h"
 #include "system.h"
@@ -32,7 +32,7 @@ static const char *TAG = "livekit";
 KHASH_MAP_INIT_STR(participant_protocols, int)
 
 typedef struct {
-    rpc_manager_handle_t rpc_manager;
+    rpc_server_manager_handle_t rpc_server;
     data_stream_reader_handle_t data_stream_reader;
     data_stream_writer_handle_t data_stream_writer;
     engine_handle_t engine;
@@ -219,7 +219,7 @@ static void on_eng_data_packet(livekit_pb_data_packet_t* packet,
         case LIVEKIT_PB_DATA_PACKET_RPC_REQUEST_TAG:
         case LIVEKIT_PB_DATA_PACKET_RPC_ACK_TAG:
         case LIVEKIT_PB_DATA_PACKET_RPC_RESPONSE_TAG:
-            rpc_manager_handle_packet(room->rpc_manager, packet);
+            rpc_server_manager_handle_packet(room->rpc_server, packet);
             break;
         case LIVEKIT_PB_DATA_PACKET_STREAM_HEADER_TAG:
             data_stream_reader_handle_header(room->data_stream_reader,
@@ -361,13 +361,13 @@ livekit_err_t livekit_room_create(livekit_room_handle_t *handle, const livekit_r
             ret = LIVEKIT_ERR_ENGINE;
             break;
         }
-        rpc_manager_options_t rpc_manager_options = {
+        rpc_server_manager_options_t rpc_server_options = {
             .on_result = on_rpc_result,
             .send_packet = send_reliable_packet,
             .ctx = room
         };
-        if (rpc_manager_create(&room->rpc_manager, &rpc_manager_options) != RPC_MANAGER_ERR_NONE) {
-            ESP_LOGE(TAG, "Failed to create RPC manager");
+        if (rpc_server_manager_create(&room->rpc_server, &rpc_server_options) != RPC_SERVER_MANAGER_ERR_NONE) {
+            ESP_LOGE(TAG, "Failed to create RPC server manager");
             ret = LIVEKIT_ERR_OTHER;
             break;
         }
@@ -536,7 +536,7 @@ livekit_err_t livekit_room_rpc_register(livekit_room_handle_t handle, const char
     }
     livekit_room_t *room = (livekit_room_t *)handle;
 
-    if (rpc_manager_register(room->rpc_manager, method, handler) != RPC_MANAGER_ERR_NONE) {
+    if (rpc_server_manager_register(room->rpc_server, method, handler) != RPC_SERVER_MANAGER_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to register RPC method '%s'", method);
         return LIVEKIT_ERR_INVALID_STATE;
     }
@@ -550,7 +550,7 @@ livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const ch
     }
     livekit_room_t *room = (livekit_room_t *)handle;
 
-    if (rpc_manager_unregister(room->rpc_manager, method) != RPC_MANAGER_ERR_NONE) {
+    if (rpc_server_manager_unregister(room->rpc_server, method) != RPC_SERVER_MANAGER_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to unregister RPC method '%s'", method);
         return LIVEKIT_ERR_INVALID_STATE;
     }
