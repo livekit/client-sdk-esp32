@@ -20,6 +20,7 @@
 #include "livekit_models.pb.h"
 #include "livekit_metrics.pb.h"
 #include "timestamp.pb.h"
+#include "livekit_data_stream.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,6 +48,33 @@ size_t protocol_data_packet_encoded_size(const livekit_pb_data_packet_t *packet)
 
 /// Encodes a data packet into the provided buffer.
 bool protocol_data_packet_encode(const livekit_pb_data_packet_t *packet, uint8_t *dest, size_t encoded_size);
+
+/// Extract the attribute map from a DataStream.Header or DataStream.Trailer
+/// nested inside a DataPacket. Walks the raw DataPacket wire bytes since
+/// nanopb's auto-allocated submessages can't have decode callbacks set
+/// externally.
+///
+/// @param buf            Raw DataPacket bytes.
+/// @param len            Length of @p buf.
+/// @param submsg_tag     DataPacket field tag to descend into
+///                       (LIVEKIT_PB_DATA_PACKET_STREAM_HEADER_TAG = 13 or
+///                        LIVEKIT_PB_DATA_PACKET_STREAM_TRAILER_TAG = 15).
+/// @param attrs_tag      Attributes field tag inside that submessage (8 for
+///                       Header, 3 for Trailer).
+/// @param out_items[out] Set to a malloc'd array of attribute entries; key
+///                       and value strings are independently malloc'd. NULL
+///                       if no attributes were present.
+/// @param out_count[out] Number of entries in @p out_items.
+/// @return true on success (including when no attributes are present);
+///         false on malformed input or allocation failure.
+bool protocol_data_packet_extract_attributes(
+    const uint8_t *buf, size_t len,
+    uint32_t submsg_tag, uint32_t attrs_tag,
+    livekit_data_stream_attribute_t **out_items, size_t *out_count);
+
+/// Free the array returned by @ref protocol_data_packet_extract_attributes.
+void protocol_data_packet_attributes_free(
+    livekit_data_stream_attribute_t *items, size_t count);
 
 // MARK: - Signal response
 

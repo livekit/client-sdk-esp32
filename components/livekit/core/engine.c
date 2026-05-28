@@ -408,12 +408,13 @@ static void on_peer_sdp(const char *sdp, peer_role_t role, void *ctx)
 }
 
 
-static bool on_peer_data_packet(livekit_pb_data_packet_t* packet, void *ctx)
+static bool on_peer_data_packet(livekit_pb_data_packet_t* packet,
+                                const uint8_t *raw, size_t raw_len, void *ctx)
 {
     engine_t *eng = (engine_t *)ctx;
     // TODO: Implement buffering for incoming data packets
     if (eng->options.on_data_packet) {
-        eng->options.on_data_packet(packet, eng->options.ctx);
+        eng->options.on_data_packet(packet, raw, raw_len, eng->options.ctx);
     }
     return false;
 }

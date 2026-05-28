@@ -31,6 +31,13 @@ extern "C" {
 /// @ingroup DataStreams
 typedef void *livekit_data_stream_handle_t;
 
+/// A single key/value pair on a data stream's attributes map.
+/// @ingroup DataStreams
+typedef struct {
+    const char* key;
+    const char* value;
+} livekit_data_stream_attribute_t;
+
 /// Header information about a data stream.
 /// @ingroup DataStreams
 typedef struct {
@@ -42,12 +49,20 @@ typedef struct {
     bool has_total_length;
     /// True if this is a text stream (UTF-8 chunks), false if byte stream (raw binary).
     bool is_text;
+    /// Attributes attached to the stream, or NULL if none were sent.
+    /// The pointer and the strings it references are only valid for the
+    /// duration of the on_open callback.
+    const livekit_data_stream_attribute_t* attributes;
+    /// Number of entries in @c attributes.
+    size_t attributes_count;
 } livekit_data_stream_header_t;
 
 /// A received chunk of data stream content.
 /// @ingroup DataStreams
 typedef struct {
     const char* stream_id;
+    /// Identity of the participant who sent the stream this chunk belongs to.
+    const char* sender_identity;
     uint64_t chunk_index;
     const uint8_t* content;
     size_t content_size;
@@ -57,6 +72,8 @@ typedef struct {
 /// @ingroup DataStreams
 typedef struct {
     const char* stream_id;
+    /// Identity of the participant who sent the stream.
+    const char* sender_identity;
     /// Empty string for normal closure, non-empty for abnormal end.
     const char* reason;
 } livekit_data_stream_trailer_t;
@@ -87,6 +104,21 @@ typedef struct {
     uint64_t total_length;
     /// Whether total_length is set.
     bool has_total_length;
+    /// Optional attributes to attach to the stream header.
+    /// The array and the strings it references must remain valid until
+    /// @ref livekit_room_data_stream_open returns.
+    const livekit_data_stream_attribute_t* attributes;
+    /// Number of entries in @c attributes.
+    size_t attributes_count;
+    /// Optional list of participant identities to deliver the stream to.
+    /// If NULL or empty, the stream is broadcast to every participant.
+    /// The array and the strings it references must remain valid only
+    /// until @ref livekit_room_data_stream_open returns; the writer
+    /// deep-copies them so subsequent write/close calls do not need
+    /// the caller to keep them alive.
+    char** destination_identities;
+    /// Number of entries in @c destination_identities.
+    size_t destination_identities_count;
 } livekit_data_stream_options_t;
 
 /// Handler for incoming data streams on a topic.

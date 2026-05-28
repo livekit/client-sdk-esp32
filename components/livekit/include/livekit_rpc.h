@@ -17,14 +17,50 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/// Maximum payload size for RPC messages.
+/// Maximum payload size for an RPC v1 message.
+///
+/// This limit applies when communicating with peers that do not advertise
+/// support for RPC v2 (see @ref LIVEKIT_CLIENT_PROTOCOL_DATA_STREAM_RPC).
+/// Between two v2-capable peers, request and response payloads are sent over
+/// data streams and have no enforced size limit.
+///
 /// @ingroup RPC
 #define LIVEKIT_RPC_MAX_PAYLOAD_BYTES 15360 // 15 KB
+
+/// Maximum expected round-trip time for an RPC ack, in milliseconds.
+///
+/// If no @c RpcAck is received from the handler within this window, the
+/// caller aborts the request with @ref LIVEKIT_RPC_RESULT_CONNECTION_TIMEOUT.
+///
+/// @ingroup RPC
+#define LIVEKIT_RPC_MAX_ROUND_TRIP_MS 7000
+
+/// Client-to-client protocol version advertised by a participant.
+///
+/// Each participant advertises a @c client_protocol value via
+/// @c ParticipantInfo. Other participants in the room read it to negotiate
+/// peer-to-peer features such as the transport used for RPC requests and
+/// responses.
+///
+/// @note This is distinct from the signaling protocol version negotiated at
+/// connection time with the LiveKit server.
+///
+/// @ingroup RPC
+typedef enum {
+    /// Legacy client. Only supports RPC v1 (inline packet payloads,
+    /// 15 KB request/response limit).
+    LIVEKIT_CLIENT_PROTOCOL_DEFAULT = 0,
+
+    /// Client supports RPC v2: request and response payloads are sent over
+    /// data streams, removing the 15 KB size limit.
+    LIVEKIT_CLIENT_PROTOCOL_DATA_STREAM_RPC = 1
+} livekit_client_protocol_t;
 
 /// Built-in RPC error codes.
 typedef enum {
@@ -80,6 +116,26 @@ typedef struct {
     /// Payload returned to the caller.
     char* payload;
 } livekit_rpc_result_t;
+
+/// Options for invoking an RPC method on a remote participant.
+/// @ingroup RPC
+typedef struct {
+    /// Identity of the participant whose method should be invoked. Required.
+    const char* destination_identity;
+
+    /// Name of the method to invoke. Required.
+    const char* method;
+
+    /// Request payload as a NUL-terminated UTF-8 string. Required.
+    /// For v1 peers, the payload is capped at @ref LIVEKIT_RPC_MAX_PAYLOAD_BYTES;
+    /// oversized payloads are rejected synchronously with
+    /// @ref LIVEKIT_RPC_RESULT_REQUEST_PAYLOAD_TOO_LARGE.
+    const char* payload;
+
+    /// Maximum time the handler has to send a response, in milliseconds.
+    /// Pass 0 to use a sensible SDK default.
+    uint32_t response_timeout_ms;
+} livekit_rpc_invoke_options_t;
 
 /// Details about an RPC method invocation.
 typedef struct {

@@ -453,6 +453,25 @@ livekit_err_t livekit_room_rpc_register(livekit_room_handle_t handle, const char
 ///
 livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const char* method);
 
+/// Invokes an RPC method on a remote participant.
+///
+/// The call is asynchronous: this function returns as soon as the request
+/// has been queued for transmission. The result (success or failure)
+/// arrives later via @ref livekit_room_options_t::on_rpc_result with the
+/// same @c id as was assigned to the invocation.
+///
+/// The SDK picks between RPC v1 (packet-based) and RPC v2 (data-stream-based)
+/// transparently based on the remote peer's advertised client_protocol.
+///
+/// @param handle[in]  Room handle.
+/// @param options[in] Invocation options (destination, method, payload, timeout).
+/// @return @ref LIVEKIT_ERR_NONE if the invocation was accepted; an error
+///         code if arguments are invalid or the SDK is not connected.
+///         Result errors (timeout, recipient disconnected, handler error)
+///         are reported through the on_rpc_result callback.
+livekit_err_t livekit_room_rpc_invoke(livekit_room_handle_t handle,
+                                      const livekit_rpc_invoke_options_t *options);
+
 /// @}
 
 /// @defgroup DataStreams Data Streams

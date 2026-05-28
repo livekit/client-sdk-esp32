@@ -27,6 +27,10 @@ typedef struct {
     char* topic;
     livekit_data_stream_handler_t handler;
     char stream_id[37];
+    /// Heap-owned copy of the sender identity from the stream's header. Kept
+    /// for the lifetime of the stream so it can be passed to chunk and
+    /// trailer callbacks too.
+    char* sender_identity;
     uint64_t next_chunk_index;
     uint64_t bytes_processed;
     uint64_t total_length;
@@ -40,6 +44,7 @@ typedef struct {
 static void clear_descriptor(data_stream_reader_descriptor_t *desc)
 {
     free(desc->topic);
+    free(desc->sender_identity);
     memset(desc, 0, sizeof(data_stream_reader_descriptor_t));
 }
 
@@ -47,6 +52,8 @@ static void reset_stream_state(data_stream_reader_descriptor_t *desc)
 {
     desc->active = false;
     desc->stream_id[0] = '\0';
+    free(desc->sender_identity);
+    desc->sender_identity = NULL;
     desc->next_chunk_index = 0;
     desc->bytes_processed = 0;
     desc->total_length = 0;
@@ -110,6 +117,7 @@ data_stream_reader_err_t data_stream_reader_destroy(data_stream_reader_handle_t 
     data_stream_reader_t *mgr = (data_stream_reader_t *)handle;
     for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAM_READERS; i++) {
         free(mgr->streams[i].topic);
+        free(mgr->streams[i].sender_identity);
     }
     free(mgr);
     return DATA_STREAM_READER_ERR_NONE;
@@ -153,7 +161,7 @@ data_stream_reader_err_t data_stream_reader_unregister(data_stream_reader_handle
     return DATA_STREAM_READER_ERR_INVALID_ARG;
 }
 
-data_stream_reader_err_t data_stream_reader_handle_header(data_stream_reader_handle_t handle, const livekit_pb_data_stream_header_t* header, const char* sender_identity)
+data_stream_reader_err_t data_stream_reader_handle_header(data_stream_reader_handle_t handle, const livekit_pb_data_stream_header_t* header, const char* sender_identity, const uint8_t *raw, size_t raw_len)
 {
     if (handle == NULL || header == NULL) {
         return DATA_STREAM_READER_ERR_INVALID_ARG;
@@ -173,12 +181,28 @@ data_stream_reader_err_t data_stream_reader_handle_header(data_stream_reader_han
 
     slot->active = true;
     strlcpy(slot->stream_id, header->stream_id, sizeof(slot->stream_id));
+    free(slot->sender_identity);
+    slot->sender_identity = sender_identity != NULL ? strdup(sender_identity) : NULL;
     slot->next_chunk_index = 0;
     slot->bytes_processed = 0;
     slot->total_length = header->total_length;
     slot->has_total_length = header->has_total_length;
 
     if (slot->handler.on_open != NULL) {
+        livekit_data_stream_attribute_t *attrs = NULL;
+        size_t attrs_count = 0;
+        if (raw != NULL && raw_len > 0) {
+            if (!protocol_data_packet_extract_attributes(
+                    raw, raw_len,
+                    LIVEKIT_PB_DATA_PACKET_STREAM_HEADER_TAG,
+                    LIVEKIT_PB_DATA_STREAM_HEADER_ATTRIBUTES_TAG,
+                    &attrs, &attrs_count)) {
+                ESP_LOGW(TAG, "Failed to extract attributes for stream %s",
+                         header->stream_id);
+                attrs = NULL;
+                attrs_count = 0;
+            }
+        }
         livekit_data_stream_header_t info = {
             .stream_id = header->stream_id,
             .topic = header->topic,
@@ -187,8 +211,11 @@ data_stream_reader_err_t data_stream_reader_handle_header(data_stream_reader_han
             .total_length = header->total_length,
             .has_total_length = header->has_total_length,
             .is_text = header->which_content_header == LIVEKIT_PB_DATA_STREAM_HEADER_TEXT_HEADER_TAG,
+            .attributes = attrs,
+            .attributes_count = attrs_count,
         };
         slot->handler.on_open(&info, slot->handler.ctx);
+        protocol_data_packet_attributes_free(attrs, attrs_count);
     }
 
     return DATA_STREAM_READER_ERR_NONE;
@@ -224,6 +251,7 @@ data_stream_reader_err_t data_stream_reader_handle_chunk(data_stream_reader_hand
 
     livekit_data_stream_chunk_t chunk_info = {
         .stream_id = chunk->stream_id,
+        .sender_identity = desc->sender_identity,
         .chunk_index = chunk->chunk_index,
         .content = chunk->content != NULL ? chunk->content->bytes : NULL,
         .content_size = content_size,
@@ -253,6 +281,7 @@ data_stream_reader_err_t data_stream_reader_handle_trailer(data_stream_reader_ha
     if (desc->handler.on_close != NULL) {
         livekit_data_stream_trailer_t trailer_info = {
             .stream_id = trailer->stream_id,
+            .sender_identity = desc->sender_identity,
             .reason = trailer->reason,
         };
         desc->handler.on_close(&trailer_info, desc->handler.ctx);

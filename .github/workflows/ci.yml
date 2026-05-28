@@ -14,6 +14,9 @@ jobs:
   build:
     name: Build
     uses: ./.github/workflows/build.yml
+  host-test:
+    name: Host Tests
+    uses: ./.github/workflows/host_test.yml
   license-check:
     name: License Check
     uses: ./.github/workflows/license_check.yml

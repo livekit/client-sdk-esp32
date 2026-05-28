@@ -45,7 +45,11 @@ data_stream_reader_err_t data_stream_reader_register(data_stream_reader_handle_t
 data_stream_reader_err_t data_stream_reader_unregister(data_stream_reader_handle_t handle, const char* topic);
 
 /// Handles an incoming stream header.
-data_stream_reader_err_t data_stream_reader_handle_header(data_stream_reader_handle_t handle, const livekit_pb_data_stream_header_t* header, const char* sender_identity);
+///
+/// @p raw and @p raw_len point to the on-wire bytes of the enclosing
+/// DataPacket. They are used to extract the header's attributes map, which
+/// nanopb auto-skips on decode. Pass NULL/0 to skip attribute extraction.
+data_stream_reader_err_t data_stream_reader_handle_header(data_stream_reader_handle_t handle, const livekit_pb_data_stream_header_t* header, const char* sender_identity, const uint8_t *raw, size_t raw_len);
 
 /// Handles an incoming stream chunk.
 data_stream_reader_err_t data_stream_reader_handle_chunk(data_stream_reader_handle_t handle, const livekit_pb_data_stream_chunk_t* chunk);

@@ -61,11 +61,17 @@ typedef struct {
 
     /// Invoked when a data packet is received over the data channel.
     ///
+    /// @p raw and @p raw_len point to the on-wire bytes of the packet,
+    /// valid for the duration of the callback. They are needed for
+    /// second-pass parsing of nested fields (e.g. DataStream attributes)
+    /// that nanopb is configured to skip.
+    ///
     /// The receiver returns true to take ownership of the packet. If
     /// ownership is not taken (false), the packet will be freed with
     /// `protocol_data_packet_free` internally.
     ///
-    bool (*on_data_packet)(livekit_pb_data_packet_t* packet, void *ctx);
+    bool (*on_data_packet)(livekit_pb_data_packet_t* packet,
+                           const uint8_t *raw, size_t raw_len, void *ctx);
 
     /// Invoked when an SDP message is available. This can be either
     /// an offer or answer depending on target configuration.

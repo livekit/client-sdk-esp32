@@ -50,7 +50,8 @@ typedef struct {
 typedef struct {
     void *ctx;
     void (*on_state_changed)(livekit_connection_state_t state, void *ctx);
-    void (*on_data_packet)(livekit_pb_data_packet_t* packet, void *ctx);
+    void (*on_data_packet)(livekit_pb_data_packet_t* packet,
+                           const uint8_t *raw, size_t raw_len, void *ctx);
     void (*on_room_info)(const livekit_pb_room_t* info, void *ctx);
     void (*on_participant_info)(const livekit_pb_participant_info_t* info, bool is_local, void *ctx);
     engine_media_options_t media;
