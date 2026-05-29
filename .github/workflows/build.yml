@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         target: [esp32s3, esp32p4]
-        idf_version: [release-v5.4, release-v5.5]
+        idf_version: [v5.4.4, v5.5.3]
     permissions:
       contents: read
     steps:
