@@ -18,6 +18,9 @@ jobs:
     name: Build Documentation
     uses: ./.github/workflows/docs.yml
     with: { deploy: false }
+  cspell:
+    name: Spell Check
+    uses: ./.github/workflows/cspell.yml
   license-check:
     name: License Check
     uses: ./.github/workflows/license_check.yml
