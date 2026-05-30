@@ -1,0 +1,85 @@
+---
+$schema: https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json
+version: "0.2"
+useGitignore: true
+ignorePaths:
+  - docs/customization
+  - components/third_party
+  - components/livekit/protocol/protobufs
+  - components/livekit/protocol/*.pb.{c,h}
+dictionaries:
+  - cpp
+  - python
+words:
+  - addopts
+  - adduser
+  - adec
+  - alwaysinternal
+  - appuser
+  - autobreif
+  - autobrief
+  - bclk
+  - bldo
+  - colorstyle
+  - ctlr
+  - defconfig
+  - discon
+  - dotenv
+  - doxygenlayout
+  - endchoice
+  - endmenu
+  - espressif
+  - esptoolpy
+  - flashfreq
+  - flashmode
+  - flashsize
+  - flashsize
+  - gcode
+  - jtag
+  - kconfig
+  - khash
+  - khiter
+  - korvo
+  - livekit
+  - logd
+  - loge
+  - logi
+  - logv
+  - logw
+  - lwip
+  - mbedtls
+  - mclk
+  - mdfile
+  - menuconfig
+  - mipi
+  - muxer
+  - nanopb
+  - navindex
+  - netif
+  - norecursedirs
+  - pcbs
+  - pclk
+  - pcma
+  - pcmu
+  - pingpong
+  - projbuild
+  - protoc
+  - psram
+  - pwdn
+  - pwdn
+  - pythonunbuffered
+  - recvmbox
+  - retx
+  - sccb
+  - scrs
+  - sdkconfig
+  - sntp
+  - spiram
+  - srcs
+  - srtc
+  - srtp
+  - tempotian
+  - watchpoint
+  - waveshare
+  - wconversion
+  - xclk
