@@ -195,6 +195,9 @@ rpc_manager_err_t rpc_manager_destroy(rpc_manager_handle_t handle)
         return RPC_MANAGER_ERR_INVALID_ARG;
     }
     rpc_manager_t *rpc = (rpc_manager_t *)handle;
+    if (rpc->handlers != NULL) {
+        kh_destroy(handlers, rpc->handlers);
+    }
     free(rpc);
     return RPC_MANAGER_ERR_NONE;
 }

@@ -290,6 +290,7 @@ livekit_err_t livekit_room_destroy(livekit_room_handle_t handle)
     }
     livekit_room_close(handle);
     engine_destroy(room->engine);
+    rpc_manager_destroy(room->rpc_manager);
     data_stream_reader_destroy(room->data_stream_reader);
     data_stream_writer_destroy(room->data_stream_writer);
     free(room);
