@@ -1214,10 +1214,9 @@ engine_err_t engine_destroy(engine_handle_t handle)
         xTimerDelete(eng->timer, portMAX_DELAY);
         eng->timer = NULL;
     }
-    if (eng->event_queue != NULL) {
-        vQueueDelete(eng->event_queue);
-        eng->event_queue = NULL;
-    }
+
+    media_stream_end(eng);
+
     if (eng->signal_handle != NULL) {
         signal_destroy(eng->signal_handle);
         eng->signal_handle = NULL;
@@ -1229,6 +1228,12 @@ engine_err_t engine_destroy(engine_handle_t handle)
     if (eng->sub_peer_handle != NULL) {
         peer_destroy(eng->sub_peer_handle);
         eng->sub_peer_handle = NULL;
+    }
+
+    if (eng->event_queue != NULL) {
+        flush_event_queue(eng);
+        vQueueDelete(eng->event_queue);
+        eng->event_queue = NULL;
     }
     SAFE_FREE(eng->server_url);
     SAFE_FREE(eng->token);
