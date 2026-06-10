@@ -1,3 +1,8 @@
+#include <inttypes.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "driver/usb_serial_jtag.h"
+#include "esp_system.h"
 #include "esp_log.h"
 #include "livekit.h"
 #include "livekit_sandbox.h"
@@ -20,7 +25,7 @@ static void on_state_changed(livekit_connection_state_t state, void* ctx)
     }
 }
 
-void join_room()
+void create_room()
 {
     if (room_handle != NULL) {
         ESP_LOGE(TAG, "Room already created");
@@ -45,6 +50,16 @@ void join_room()
     };
     if (livekit_room_create(&room_handle, &room_options) != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to create room");
+    }
+}
+
+void connect_room()
+{
+    // Create the room on demand so connecting after a destroy recreates it.
+    if (room_handle == NULL) {
+        create_room();
+    }
+    if (room_handle == NULL) {
         return;
     }
 
@@ -76,18 +91,74 @@ void join_room()
     }
 }
 
-void leave_room()
+void disconnect_room()
 {
     if (room_handle == NULL) {
         ESP_LOGE(TAG, "Room not created");
         return;
     }
     if (livekit_room_close(room_handle) != LIVEKIT_ERR_NONE) {
-        ESP_LOGE(TAG, "Failed to leave room");
+        ESP_LOGE(TAG, "Failed to disconnect from room");
+    }
+}
+
+void destroy_room()
+{
+    if (room_handle == NULL) {
+        ESP_LOGE(TAG, "Room not created");
+        return;
     }
     if (livekit_room_destroy(room_handle) != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to destroy room");
         return;
     }
     room_handle = NULL;
+}
+
+/// Reads single keypresses from the console to drive the room lifecycle.
+///
+/// Press 'c' to connect, 'd' to disconnect, and 'r' to destroy the room.
+/// Connecting recreates the room if it was destroyed, so this exercises the
+/// full connect / disconnect / destroy / reconnect cycle on demand.
+///
+/// Reads directly from the USB-Serial-JTAG peripheral so input works when the
+/// board is connected via its native USB port (the default secondary console).
+///
+static void serial_control_task(void *arg)
+{
+    usb_serial_jtag_driver_config_t cfg = USB_SERIAL_JTAG_DRIVER_CONFIG_DEFAULT();
+    if (usb_serial_jtag_driver_install(&cfg) != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to install USB Serial JTAG driver");
+        vTaskDelete(NULL);
+        return;
+    }
+    ESP_LOGI(TAG, "Press 'c' to connect, 'd' to disconnect, 'r' to destroy");
+    uint8_t ch;
+    while (true) {
+        if (usb_serial_jtag_read_bytes(&ch, 1, portMAX_DELAY) <= 0) {
+            continue;
+        }
+        switch (ch) {
+            case 'c':
+                ESP_LOGW(TAG, "Connecting (free heap: %" PRIu32 ")", esp_get_free_heap_size());
+                connect_room();
+                break;
+            case 'd':
+                ESP_LOGW(TAG, "Disconnecting (free heap: %" PRIu32 ")", esp_get_free_heap_size());
+                disconnect_room();
+                break;
+            case 'r':
+                ESP_LOGW(TAG, "Destroying room (free heap before: %" PRIu32 ")", esp_get_free_heap_size());
+                destroy_room();
+                ESP_LOGW(TAG, "Room destroyed (free heap after: %" PRIu32 ")", esp_get_free_heap_size());
+                break;
+            default:
+                break;
+        }
+    }
+}
+
+void start_serial_control()
+{
+    xTaskCreate(serial_control_task, "serial_ctrl", 6144, NULL, 5, NULL);
 }

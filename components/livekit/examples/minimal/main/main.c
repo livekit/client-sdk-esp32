@@ -19,6 +19,7 @@ void app_main(void)
     esp_netif_sntp_init(&sntp_config);
 
     if (lk_example_network_connect()) {
-        join_room(); // See example.c
+        create_room();          // Create the room but don't connect yet. See example.c
+        start_serial_control(); // Press 'c' to connect, 'd' to disconnect
     }
 }

@@ -5,8 +5,11 @@
 extern "C" {
 #endif
 
-void join_room();
-void leave_room();
+void create_room();
+void connect_room();
+void disconnect_room();
+void destroy_room();
+void start_serial_control();
 
 #ifdef __cplusplus
 }
