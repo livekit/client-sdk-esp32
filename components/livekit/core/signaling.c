@@ -285,6 +285,10 @@ signal_err_t signal_destroy(signal_handle_t handle)
         return SIGNAL_ERR_INVALID_ARG;
     }
     signal_t *sg = (signal_t *)handle;
+
+    if (sg->ws != NULL) {
+        esp_websocket_client_stop(sg->ws);
+    }
     if (sg->ping_interval_timer != NULL) {
         xTimerDelete(sg->ping_interval_timer, portMAX_DELAY);
     }
