@@ -415,14 +415,14 @@ livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_da
     return LIVEKIT_ERR_NONE;
 }
 
-livekit_err_t livekit_room_rpc_register(livekit_room_handle_t handle, const char* method, livekit_rpc_handler_t handler)
+livekit_err_t livekit_room_rpc_register(livekit_room_handle_t handle, const char* method, livekit_rpc_handler_t handler, void* ctx)
 {
     if (handle == NULL || method == NULL || handler == NULL) {
         return LIVEKIT_ERR_INVALID_ARG;
     }
     livekit_room_t *room = (livekit_room_t *)handle;
 
-    if (rpc_manager_register(room->rpc_manager, method, handler) != RPC_MANAGER_ERR_NONE) {
+    if (rpc_manager_register(room->rpc_manager, method, handler, ctx) != RPC_MANAGER_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to register RPC method '%s'", method);
         return LIVEKIT_ERR_INVALID_STATE;
     }

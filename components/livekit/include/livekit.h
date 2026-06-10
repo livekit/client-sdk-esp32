@@ -440,10 +440,11 @@ livekit_err_t livekit_room_publish_data(livekit_room_handle_t handle, livekit_da
 /// @param handle[in] Room handle.
 /// @param method[in] Name of the method to register.
 /// @param handler[in] Handler function to call when the method is invoked by a remote participant.
+/// @param ctx[in] User context pointer passed to the handler on each invocation, or NULL.
 /// @exception If a handler for the method is already registered, an error is returned.
 /// @return @ref LIVEKIT_ERR_NONE if successful, otherwise an error code.
 ///
-livekit_err_t livekit_room_rpc_register(livekit_room_handle_t handle, const char* method, livekit_rpc_handler_t handler);
+livekit_err_t livekit_room_rpc_register(livekit_room_handle_t handle, const char* method, livekit_rpc_handler_t handler, void* ctx);
 
 /// Unregisters a handler for an RPC method.
 ///

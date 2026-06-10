@@ -133,8 +133,8 @@ void join_room()
     }
 
     // Register RPC handlers so they can be invoked by remote participants.
-    livekit_room_rpc_register(room_handle, "set_led_state", set_led_state);
-    livekit_room_rpc_register(room_handle, "get_cpu_temp", get_cpu_temp);
+    livekit_room_rpc_register(room_handle, "set_led_state", set_led_state, NULL);
+    livekit_room_rpc_register(room_handle, "get_cpu_temp", get_cpu_temp, NULL);
 
     livekit_err_t connect_res;
 #ifdef CONFIG_LK_EXAMPLE_USE_SANDBOX

@@ -107,6 +107,8 @@ typedef struct {
 } livekit_rpc_invocation_t;
 
 /// Handler for an RPC invocation.
+/// @param invocation Details about the invocation.
+/// @param ctx User context provided when the handler was registered, or NULL.
 /// @ingroup RPC
 typedef void (*livekit_rpc_handler_t)(const livekit_rpc_invocation_t* invocation, void* ctx);
 

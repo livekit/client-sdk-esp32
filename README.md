@@ -164,7 +164,7 @@ static void get_cpu_temp(const livekit_rpc_invocation_t* invocation, void* ctx)
 Register the handler on the room to allow it to be invoked by remote participants:
 
 ```c
-livekit_room_rpc_register(room_handle, "get_cpu_temp", get_cpu_temp);
+livekit_room_rpc_register(room_handle, "get_cpu_temp", get_cpu_temp, NULL);
 ```
 
 > [!TIP]

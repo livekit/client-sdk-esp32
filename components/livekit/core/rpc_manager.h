@@ -47,7 +47,7 @@ rpc_manager_err_t rpc_manager_create(rpc_manager_handle_t *handle, const rpc_man
 rpc_manager_err_t rpc_manager_destroy(rpc_manager_handle_t handle);
 
 /// Registers a handler for an RPC method.
-rpc_manager_err_t rpc_manager_register(rpc_manager_handle_t handle, const char* method, livekit_rpc_handler_t handler);
+rpc_manager_err_t rpc_manager_register(rpc_manager_handle_t handle, const char* method, livekit_rpc_handler_t handler, void* ctx);
 
 /// Unregisters a handler for an RPC method.
 rpc_manager_err_t rpc_manager_unregister(rpc_manager_handle_t handle, const char* method);

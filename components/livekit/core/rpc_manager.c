@@ -22,7 +22,12 @@
 
 static const char* TAG = "livekit_rpc";
 
-KHASH_MAP_INIT_STR(handlers, livekit_rpc_handler_t)
+typedef struct {
+    livekit_rpc_handler_t handler;
+    void *ctx;
+} handler_entry_t;
+
+KHASH_MAP_INIT_STR(handlers, handler_entry_t)
 
 typedef struct {
     rpc_manager_options_t options;
@@ -129,7 +134,7 @@ static rpc_manager_err_t handle_request_packet(rpc_manager_t *manager, const liv
         }
         return RPC_MANAGER_ERR_NONE;
     }
-    livekit_rpc_handler_t handler = kh_value(manager->handlers, key);
+    handler_entry_t entry = kh_value(manager->handlers, key);
 
     livekit_rpc_invocation_t invocation = {
         .id = (char *)request->id,
@@ -140,10 +145,8 @@ static rpc_manager_err_t handle_request_packet(rpc_manager_t *manager, const liv
         .ctx = manager
     };
 
-    // TODO: Pass through context
-
     int64_t start_time = esp_timer_get_time();
-    handler(&invocation, NULL);
+    entry.handler(&invocation, entry.ctx);
 
     int64_t exec_duration = esp_timer_get_time() - start_time;
     ESP_LOGD(TAG, "Handler for method '%s' took %" PRIu64 "us", request->method, exec_duration / 1000);
@@ -202,7 +205,7 @@ rpc_manager_err_t rpc_manager_destroy(rpc_manager_handle_t handle)
     return RPC_MANAGER_ERR_NONE;
 }
 
-rpc_manager_err_t rpc_manager_register(rpc_manager_handle_t handle, const char* method, livekit_rpc_handler_t handler)
+rpc_manager_err_t rpc_manager_register(rpc_manager_handle_t handle, const char* method, livekit_rpc_handler_t handler, void* ctx)
 {
     if (handle == NULL || method == NULL || handler == NULL) {
         return RPC_MANAGER_ERR_INVALID_ARG;
@@ -214,7 +217,10 @@ rpc_manager_err_t rpc_manager_register(rpc_manager_handle_t handle, const char* 
     if (put_flag != 1) {
         return RPC_MANAGER_ERR_INVALID_STATE;
     }
-    kh_value(manager->handlers, key) = handler;
+    kh_value(manager->handlers, key) = (handler_entry_t){
+        .handler = handler,
+        .ctx = ctx
+    };
 
     return RPC_MANAGER_ERR_NONE;
 }
