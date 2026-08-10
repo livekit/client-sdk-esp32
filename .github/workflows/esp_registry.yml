@@ -21,7 +21,7 @@ jobs:
         nanopb:./components/third_party/nanopb
         khash:./components/third_party/khash
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { submodules: recursive }
       - name: Upload Components (Dry Run)
         uses: espressif/upload-components-ci-action@2ce17d73e35473317c1419dbd4f007aacb593040 # v2.2.1
