@@ -15,6 +15,6 @@ dependencies:
   espressif/esp_peer: ~1.4.2
   espressif/esp_websocket_client: ~1.7.0
   livekit/khash: ~0.2.8
-  livekit/nanopb: ~0.4.9
+  livekit/nanopb: ~0.4.9~2
 files:
   use_gitignore: true
