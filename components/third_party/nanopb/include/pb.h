@@ -28,9 +28,6 @@
 /* Disable support for error messages in order to save some code space. */
 /* #define PB_NO_ERRMSG 1 */
 
-/* Disable checks to ensure sub-message encoded size is consistent when re-run. */
-/* #define PB_NO_ENCODE_SIZE_CHECK 1 */
-
 /* Disable support for custom streams (support only memory buffers). */
 /* #define PB_BUFFER_ONLY 1 */
 
@@ -60,6 +57,9 @@
 /* #define PB_C99_STATIC_ASSERT 1 */
 /* #define PB_NO_STATIC_ASSERT 1 */
 
+/* Limit for depth of recursive message structure */
+/* #define PB_MESSAGE_NESTING_MAX 10 */
+
 /******************************************************************
  * You usually don't need to change anything below this line.     *
  * Feel free to look around and use the defined macros, though.   *
@@ -68,7 +68,7 @@
 
 /* Version of the nanopb library. Just in case you want to check it in
  * your own program. */
-#define NANOPB_VERSION "nanopb-1.0.0-dev"
+#define NANOPB_VERSION "nanopb-0.4.9.2"
 
 /* Include all the system headers needed by nanopb. You will need the
  * definitions of the following:
@@ -127,19 +127,6 @@ extern "C" {
 #   define PB_PACKED_STRUCT_START
 #   define PB_PACKED_STRUCT_END
 #   define pb_packed
-#endif
-
-/* Define for explicitly not inlining a given function */
-#if defined(__GNUC__) || defined(__clang__)
-    /* For GCC and clang */
-#   define pb_noinline __attribute__((noinline))
-#elif defined(__ICCARM__) || defined(__CC_ARM)
-    /* For IAR ARM and Keil MDK-ARM compilers */
-#   define pb_noinline
-#elif defined(_MSC_VER) && (_MSC_VER >= 1500)
-#   define pb_noinline __declspec(noinline)
-#else
-#   define pb_noinline
 #endif
 
 /* Detect endianness */
