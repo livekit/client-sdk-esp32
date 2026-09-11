@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "esp-component-registry": {
+      "type": "http",
+      "url": "https://components.espressif.com/mcp"
+    },
+    "espressif-documentation": {
+      "type": "http",
+      "url": "https://mcp.espressif.com/docs"
+    },
+    "livekit-docs": {
+      "type": "http",
+      "url": "https://docs.livekit.io/mcp"
+    }
+  }
+}
