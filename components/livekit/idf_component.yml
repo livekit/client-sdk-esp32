@@ -13,7 +13,7 @@ dependencies:
   tempotian/av_render: { version: ~0.9.1, public: true }
   tempotian/media_lib_sal: ~0.9.1
   espressif/esp_peer: ~1.5.5
-  espressif/esp_websocket_client: ~1.7.0
+  espressif/esp_websocket_client: ~1.8.0
   livekit/khash: ~0.2.8
   livekit/nanopb: ~0.4.9~2
 files:
