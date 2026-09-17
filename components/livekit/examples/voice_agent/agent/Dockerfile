@@ -1,27 +1,27 @@
-# This is an example Dockerfile that builds a minimal container for running LK Agents
-# For more information on the build process, see https://docs.livekit.io/agents/ops/deployment/builds/
 # syntax=docker/dockerfile:1
 
-# Use the official UV Python base image with Python 3.13 on Debian Bookworm
+# Use the official UV Python base image with Python 3.14 on Debian Bookworm
 # UV is a fast Python package manager that provides better performance than pip
 # We use the slim variant to keep the image size smaller while still having essential tools
-ARG PYTHON_VERSION=3.13
+ARG PYTHON_VERSION=3.14
 FROM ghcr.io/astral-sh/uv:python${PYTHON_VERSION}-bookworm-slim AS base
 
 # Keeps Python from buffering stdout and stderr to avoid situations where
 # the application crashes without emitting any logs due to buffering.
 ENV PYTHONUNBUFFERED=1
 
-# Create a non-privileged user that the app will run under.
-# See https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#user
-ARG UID=10001
-RUN adduser \
-    --disabled-password \
-    --gecos "" \
-    --home "/app" \
-    --shell "/sbin/nologin" \
-    --uid "${UID}" \
-    appuser
+# Compile Python source to bytecode (.pyc) during install so the first import
+# doesn't pay the compilation cost. This reduces agent cold-start time at the
+# expense of a slightly longer build.
+ENV UV_COMPILE_BYTECODE=1
+
+# Ensure local models are downloaded to a shared directory accessible by all stages.
+ENV HF_HOME=/app/.cache/huggingface
+ENV TORCH_HOME=/app/.cache/torch
+
+# --- Build stage ---
+# Install dependencies, build native extensions, and prepare the application
+FROM base AS build
 
 # Install build dependencies required for Python packages with native extensions
 # gcc: C compiler needed for building Python packages with C extensions
@@ -40,7 +40,6 @@ WORKDIR /app
 
 # Copy just the dependency files first, for more efficient layer caching
 COPY pyproject.toml uv.lock ./
-RUN mkdir -p src
 
 # Install Python dependencies using UV's lock file
 # --locked ensures we use exact versions from uv.lock for reproducible builds
@@ -48,25 +47,43 @@ RUN mkdir -p src
 # Ensure your uv.lock file is checked in for consistency across environments
 RUN uv sync --locked
 
+# Pre-download any ML models or files the agent needs
+# This runs before COPY . . so the download layer is cached across code-only changes.
+# The module-level command discovers installed livekit-plugins-* packages without
+# loading your agent code.
+RUN uv run --module livekit.agents download-files
+
 # Copy all remaining application files into the container
 # This includes source code, configuration files, and dependency specifications
 # (Excludes files specified in .dockerignore)
 COPY . .
 
-# Change ownership of all app files to the non-privileged user
-# This ensures the application can read/write files as needed
-RUN chown -R appuser:appuser /app
+# --- Production stage ---
+# Build tools (gcc, g++, python3-dev) are not included in the final image
+FROM base
+
+# Create a non-privileged user that the app will run under.
+# See https://docs.docker.com/build/building/best-practices/#user
+ARG UID=10001
+RUN adduser \
+    --disabled-password \
+    --gecos "" \
+    --home "/app" \
+    --shell "/sbin/nologin" \
+    --uid "${UID}" \
+    appuser
+
+# Copy the application and virtual environment with correct ownership in a single layer
+# This avoids expensive recursive chown and excludes build tools from the final image
+COPY --from=build --chown=appuser:appuser /app /app
+
+WORKDIR /app
 
 # Switch to the non-privileged user for all subsequent operations
 # This improves security by not running as root
 USER appuser
 
-# Pre-download any ML models or files the agent needs
-# This ensures the container is ready to run immediately without downloading
-# dependencies at runtime, which improves startup time and reliability
-RUN uv run "agent.py" download-files
-
-# Run the application using UV
+# Run the AgentServer using UV
 # UV will activate the virtual environment and run the agent.
-# The "start" command tells the worker to connect to LiveKit and begin waiting for jobs.
+# The "start" command tells the AgentServer to connect to LiveKit and begin waiting for jobs.
 CMD ["uv", "run", "agent.py", "start"]

@@ -1,102 +1,141 @@
 import json
+import textwrap
 from enum import Enum
+
 from dotenv import load_dotenv
-from livekit import agents
 from livekit.agents import (
-    AgentSession,
     Agent,
+    AgentServer,
+    AgentSession,
+    JobContext,
     RunContext,
-    RoomInputOptions,
-    function_tool,
-    get_job_context,
     ToolError,
+    TurnHandlingOptions,
+    cli,
+    function_tool,
+    inference,
+    mock_tools,
+    room_io,
 )
-from livekit.plugins import (
-    openai,
-    noise_cancellation
-)
+from livekit.plugins import noise_cancellation
 
-# If enabled, RPC calls will not be performed.
-TEST_MODE = False
+load_dotenv(".env.local")
 
-load_dotenv()
 
 class LEDColor(str, Enum):
     RED = "red"
     BLUE = "blue"
 
+
+async def call_board(context: RunContext, method: str, payload: str = "") -> str:
+    """Invoke an RPC method registered by the ESP32 board."""
+    room_io = context.session.room_io
+    board = room_io.linked_participant
+    if board is None:
+        raise RuntimeError("no participant linked to the session")
+    return await room_io.room.local_participant.perform_rpc(
+        destination_identity=board.identity,
+        method=method,
+        payload=payload,
+        response_timeout=10,
+    )
+
+
 class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(
-            instructions="""You are a helpful voice AI assistant running on an ESP32 dev board.
-            You answer user's questions about the hardware state and control the hardware based on their requests.
-            The board has discrete LEDs that can be controlled independently. Each LED has a static color
-            that cannot be changed. While you are able to set the state of the LEDs, you are not able to read the
-            state which could be changed without your knowledge. No markdown is allowed in your responses.
-            """
+            instructions=textwrap.dedent(
+                """\
+                You are a helpful voice AI assistant running on an ESP32 dev board.
+                You answer user's questions about the hardware state and control the hardware based on their requests.
+                The board has discrete LEDs that can be controlled independently. Each LED has a static color
+                that cannot be changed. While you are able to set the state of the LEDs, you are not able to read the
+                state which could be changed without your knowledge. No markdown is allowed in your responses.
+                """
+            )
+        )
+
+    async def on_enter(self) -> None:
+        self.session.generate_reply(
+            instructions="Greet the user and briefly say what you can do with the board."
         )
 
     @function_tool()
-    async def set_led_state(self, _: RunContext, led: LEDColor, state: bool) -> None:
+    async def set_led_state(
+        self, context: RunContext, led: LEDColor, state: bool
+    ) -> None:
         """Set the state of an on-board LED.
 
         Args:
             led: Which LED to set the state of.
             state: The state to set the LED to (i.e. on or off).
         """
-        if TEST_MODE: return
         try:
-            room = get_job_context().room
-            participant_identity = next(iter(room.remote_participants))
-            await room.local_participant.perform_rpc(
-                destination_identity=participant_identity,
-                method="set_led_state",
-                payload=json.dumps({ "color": led.value, "state": state })
+            await call_board(
+                context,
+                "set_led_state",
+                json.dumps({"color": led.value, "state": state}),
             )
         except Exception:
-            raise ToolError("Unable to set LED state")
+            raise ToolError("Unable to set LED state") from None
 
     @function_tool()
-    async def get_cpu_temp(self, _: RunContext) -> float:
+    async def get_cpu_temp(self, context: RunContext) -> float:
         """Get the current temperature of the CPU.
 
         Returns:
             The temperature reading in degrees Celsius.
         """
-        if TEST_MODE: return 25.0
         try:
-            room = get_job_context().room
-            participant_identity = next(iter(room.remote_participants))
-            response = await room.local_participant.perform_rpc(
-                destination_identity=participant_identity,
-                method="get_cpu_temp",
-                response_timeout=10,
-                payload=""
-            )
-            if isinstance(response, str):
-                try:
-                    response = float(response)
-                except ValueError:
-                    raise ToolError("Received invalid temperature value")
-            return response
+            return float(await call_board(context, "get_cpu_temp"))
         except Exception:
-            raise ToolError("Unable to retrieve CPU temperature")
+            raise ToolError("Unable to retrieve CPU temperature") from None
 
-async def entrypoint(ctx: agents.JobContext):
+
+server = AgentServer()
+
+
+@server.rtc_session()
+async def entrypoint(ctx: JobContext):
+    ctx.log_context_fields = {"room": ctx.room.name}
+
+    # STT-LLM-TTS pipeline served by LiveKit Inference; no provider API keys needed.
+    # See https://docs.livekit.io/agents/models/ for available models.
     session = AgentSession(
-        llm=openai.realtime.RealtimeModel(
-            voice="echo",
-            model="gpt-4o-mini-realtime-preview-2024-12-17"
-        )
+        stt=inference.STT(model="assemblyai/universal-3-5-pro", language="en"),
+        llm=inference.LLM(model="google/gemma-4-31b-it"),
+        tts=inference.TTS(
+            model="fishaudio/s2.1-pro", voice="fa4c9eb3dccc4806b382b40d61c6b10a"
+        ),
+        turn_handling=TurnHandlingOptions(
+            turn_detection=inference.TurnDetector(),
+            interruption={"mode": "adaptive"},
+            preemptive_generation={"enabled": True},
+        ),
+        expressive=True,
     )
+    if ctx.is_fake_job():
+        # Console mode has no board to call, so stub the hardware tools.
+        mock_tools(
+            Assistant,
+            {"get_cpu_temp": lambda: 25.0, "set_led_state": lambda: None},
+            session=session,
+        )
+
     await session.start(
         room=ctx.room,
         agent=Assistant(),
-        room_input_options=RoomInputOptions(
-            noise_cancellation=noise_cancellation.BVC()
-        )
+        room_options=room_io.RoomOptions(
+            audio_input=room_io.AudioInputOptions(
+                noise_cancellation=noise_cancellation.BVC(),
+            ),
+            # The board renders no text, so skip streaming transcriptions to it.
+            text_output=False,
+        ),
     )
+
     await ctx.connect()
 
+
 if __name__ == "__main__":
-    agents.cli.run_app(agents.WorkerOptions(entrypoint_fnc=entrypoint))
+    cli.run_app(server)
