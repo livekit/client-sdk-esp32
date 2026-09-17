@@ -4,5 +4,6 @@ cache = true
 max_cache_age = "1d"
 exclude = [
     "https://docs.livekit.io/mcp", # Returns 405
-    "https://livekit.io/join-slack" # Returns 403
+    "https://livekit.io/join-slack", # Returns 403
+    "https://x.com/livekit" # Returns 403
 ]
