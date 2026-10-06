@@ -9,11 +9,19 @@ detect memory leaks.
 - Suitable development board connected via USB
     - ESP32-S3: [ESP32-S3-BOX-3](https://www.espressif.com/en/news/ESP32-S3-BOX-3)
     - ESP32-P4: [ESP32-P4-Function-EV-Board](https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32p4/esp32-p4-function-ev-board/index.html)
+    - ESP32-S31: [ESP32-S31-Function-CoreBoard-1](https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s31/esp32-s31-function-coreboard-1/user_guide.html) (requires IDF v6.1)
 
 ## Build & Run
 
 ```sh
 idf.py set-target esp32[s3|p4]
+idf.py build
+```
+
+For ESP32-S31 (preview target):
+
+```sh
+idf.py --preview set-target esp32s31
 idf.py build
 pytest
 ```

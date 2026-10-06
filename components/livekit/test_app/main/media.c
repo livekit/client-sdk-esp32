@@ -50,8 +50,14 @@ static int build_capturer_system(void)
 
     esp_capture_audio_aec_src_cfg_t codec_cfg = {
         .record_handle = record_handle,
+#if CONFIG_IDF_TARGET_ESP32S31
+        // ES8311 only: mic on the first channel, DAC reference on the second
+        .channel = 2,
+        .channel_mask = 0
+#else
         .channel = 4,
         .channel_mask = 1 | 2
+#endif
     };
     capturer_system.audio_source = esp_capture_new_audio_aec_src(&codec_cfg);
     NULL_CHECK(capturer_system.audio_source, "Failed to create audio source");

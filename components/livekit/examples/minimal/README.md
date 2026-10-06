@@ -48,6 +48,20 @@ This example uses the Espressif [*codec_board*](https://components.espressif.com
 CONFIG_LK_EXAMPLE_CODEC_BOARD_TYPE="ESP32_S3_BOX_3"
 ```
 
+The following boards are not included in *codec_board* but are defined by this example in *board.c*:
+
+| Board | `CONFIG_LK_EXAMPLE_CODEC_BOARD_TYPE` |
+| --- | --- |
+| [ESP32-S31-Function-CoreBoard-1](https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s31/esp32-s31-function-coreboard-1/user_guide.html) | `ESP32_S31_FUNCTION_COREBOARD_1` |
+
+### ESP32-S31
+
+ESP32-S31 is a preview target available starting with ESP-IDF v6.1. Defaults for the ESP32-S31-Function-CoreBoard-1 are applied automatically from *sdkconfig.defaults.esp32s31* when the target is set as follows:
+
+```sh
+idf.py --preview set-target esp32s31
+```
+
 ## Build & Flash
 
 Navigate to this directory in your terminal. Run the following command to build your application, flash it to your board, and monitor serial output:

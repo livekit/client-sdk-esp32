@@ -9,5 +9,8 @@ dependencies:
   livekit/example_utils:
     version: ~0.2.0
     override_path: ../../../../example_utils
-  tempotian/codec_board: ~1.0.0
-  espressif/esp32_s3_korvo_2: "4.1.0"
+  tempotian/codec_board: ~2.0.2
+  espressif/esp32_s3_korvo_2: "4.1.2"
+  espressif/cjson:
+    version: "^1.7.19"
+    rules: [{if: "idf_version >=6.0"}] # No longer bundled with IDF as of v6.0

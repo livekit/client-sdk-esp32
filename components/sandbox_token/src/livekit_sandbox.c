@@ -25,7 +25,7 @@
 #include "livekit_sandbox.h"
 
 static const char *TAG = "livekit_sandbox";
-static const char *SANDBOX_URL = "http://cloud-api.livekit.io/api/sandbox/connection-details";
+static const char *SANDBOX_URL = "https://cloud-api.livekit.io/api/sandbox/connection-details";
 
 #define MAX_HTTP_OUTPUT_BUFFER 2048
 

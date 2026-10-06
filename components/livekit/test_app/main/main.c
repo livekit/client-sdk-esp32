@@ -27,12 +27,19 @@
 void app_main(void) {
     livekit_system_init();
 
+    codec_init_cfg_t cfg = { .reuse_dev = false };
     #if CONFIG_IDF_TARGET_ESP32P4
     set_codec_board_type("ESP32_P4_DEV_V14");
+    #elif CONFIG_IDF_TARGET_ESP32S31
+    // ESP32-S31-Function-CoreBoard-1 is not included in codec_board's board_cfg.txt;
+    // pin assignments are taken from the board schematic.
+    codec_board_parse_all_config(
+        "i2c: {sda: 51, scl: 50}\n"
+        "i2s: {mclk: 52, bclk: 53, ws: 55, dout: 56, din: 54}\n"
+        "in_out: {codec: ES8311, pa: 57, pa_gain: 6}\n");
     #else
     set_codec_board_type("ESP32_S3_BOX_3");
     #endif
-    codec_init_cfg_t cfg = { .reuse_dev = false };
     init_codec(&cfg);
     media_init();
 

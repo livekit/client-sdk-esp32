@@ -31,7 +31,7 @@ static void media_lib_scheduler(const char *name, media_lib_thread_cfg_t *cfg)
     // livekit: lk_peer_sub, lk_peer_pub, lk_eng_stream
 
     if (strcmp(name, "venc_0") == 0) {
-#if CONFIG_IDF_TARGET_ESP32S3
+#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32S31
         // Large stack size required for H264 when not using a hardware encoder
         cfg->stack_size = 20 * 1024;
 #endif

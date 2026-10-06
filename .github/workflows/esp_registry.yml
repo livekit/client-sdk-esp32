@@ -24,14 +24,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { submodules: recursive }
       - name: Upload Components (Dry Run)
-        uses: espressif/upload-components-ci-action@2ce17d73e35473317c1419dbd4f007aacb593040 # v2.2.1
+        uses: espressif/upload-components-ci-action@355b0bb4d41e94edbec03d08c0ba0c11bbc4834d # main 2026-04-01 (component manager 3.x, knows esp32s31)
         if: ${{ inputs.dry_run }}
         with:
           components: ${{ env.COMPONENTS }}
           namespace: livekit
           dry_run: true
       - name: Upload Components
-        uses: espressif/upload-components-ci-action@2ce17d73e35473317c1419dbd4f007aacb593040 # v2.2.1
+        uses: espressif/upload-components-ci-action@355b0bb4d41e94edbec03d08c0ba0c11bbc4834d # main 2026-04-01 (component manager 3.x, knows esp32s31)
         if: ${{ !inputs.dry_run }}
         with:
           components: ${{ env.COMPONENTS }}

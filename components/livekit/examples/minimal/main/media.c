@@ -1,6 +1,7 @@
 #include "esp_check.h"
 #include "esp_log.h"
 #include "codec_init.h"
+#include "board.h"
 #include "av_render_default.h"
 #include "esp_audio_dec_default.h"
 #include "esp_audio_enc_default.h"
@@ -32,10 +33,11 @@ static int build_capturer_system(void)
     esp_codec_dev_handle_t record_handle = get_record_handle();
     NULL_CHECK(record_handle, "Failed to get record handle");
 
+    board_capture_layout_t layout = board_get_capture_layout();
     esp_capture_audio_aec_src_cfg_t codec_cfg = {
         .record_handle = record_handle,
-        .channel = 4,
-        .channel_mask = 1 | 2
+        .channel = layout.channel,
+        .channel_mask = layout.channel_mask
     };
     capturer_system.audio_source = esp_capture_new_audio_aec_src(&codec_cfg);
     NULL_CHECK(capturer_system.audio_source, "Failed to create audio source");
