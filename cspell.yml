@@ -25,6 +25,7 @@ words:
   - defconfig
   - discon
   - dotenv
+  - dout
   - doxygenlayout
   - endchoice
   - endmenu
@@ -35,6 +36,7 @@ words:
   - flashsize
   - flashsize
   - gcode
+  - gmic
   - jtag
   - kconfig
   - khash
@@ -80,7 +82,9 @@ words:
   - srtc
   - srtp
   - tempotian
+  - toymd
   - watchpoint
   - waveshare
   - wconversion
   - xclk
+  - zfygmic
