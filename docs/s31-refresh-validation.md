@@ -34,6 +34,15 @@ rooms verified empty after testing.
 
 ## Limits
 
+A final pre-submission review on 2026-10-06 repeated the renderer and AEC
+host suites, offline agent checks, lint/format, spelling and local component
+packaging. Firmware and agent source remain unchanged from the hardware
+candidate above. All three proposals merge cleanly into upstream `d492fa8`;
+upstream has two subsequent Python lockfile updates. The S31 registry
+workflow now pins an action with component manager 3.0.1, since the former
+2.4.0 manager does not recognize S31 in its standalone upload environment.
+The GitHub registry action has not been run on this proposal.
+
 These are combined-candidate smoke tests. They do not rerun the standalone
 S3/P4 ESP-IDF 5.4.4/5.5.3 CI matrix or the registry dry-run action. Runtime
 tests used pregenerated tokens; Sandbox HTTPS and subscriber-primary paths
