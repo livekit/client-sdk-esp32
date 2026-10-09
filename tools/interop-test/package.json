@@ -1,0 +1,11 @@
+{
+  "name": "livekit-esp32-interop-test",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node interop-test.mjs"
+  },
+  "dependencies": {
+    "@livekit/rtc-node": "0.13.34"
+  }
+}

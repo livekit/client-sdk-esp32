@@ -6,7 +6,18 @@ WARN_IF_UNDOCUMENTED   = YES
 INPUT                  = ../README.md \
                          ../docs \
                          ../components/livekit/include \
-                         ../components/livekit_sandbox/include
+                         ../components/sandbox_token/include \
+                         ../components/s31_board/include
+INPUT                 += ../components/s31_board/README.md \
+                         ../components/livekit/examples/minimal/README.md \
+                         ../components/livekit/examples/minimal_video/README.md \
+                         ../components/livekit/examples/voice_agent/README.md \
+                         ../components/livekit/examples/custom_hardware/README.md \
+                         ../components/livekit/examples/custom_hardware_s31/README.md \
+                         ../tools/interop-test/README.md \
+                         ../tools/s31-audio-test/README.md
+# Keep linked README files as pages rather than implicit directory documentation.
+IMPLICIT_DIR_DOCS      = NO
 USE_MDFILE_AS_MAINPAGE = ./index.md
 FILE_PATTERNS          = *.h *.md
 EXTRACT_ALL            = YES

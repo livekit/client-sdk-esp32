@@ -5,7 +5,8 @@ menu "LiveKit Example"
         default "DUMMY_CODEC_BOARD"
         help
             The model of dev board you are using. See board_cfg.txt from the codec
-            board component for a list of supported boards.
+            board component for a list of supported boards. For ESP32-S31, use
+            ESP32_S31_KORVO_1 or ESP32_S31_FUNCTION_COREBOARD_1.
 
     choice LK_EXAMPLE_CONNECTION_METHOD
         prompt "Choose room connection method"
@@ -57,4 +58,14 @@ menu "LiveKit Example"
         range 0 100
         help
             Default playback volume for speaker output.
+
+    config LK_EXAMPLE_ENABLE_AEC
+        bool "Enable acoustic echo cancellation"
+        default n if IDF_TARGET_ESP32S31
+        default y
+        help
+            Use standalone esp-sr AEC on S31 with microphone/DAC-reference
+            resampling. Off by default on S31 because this example does not
+            drive a speaker while capturing; enable it for full-duplex use.
+            Other targets retain the AFE source.
 endmenu

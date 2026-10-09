@@ -1,0 +1,20 @@
+menu "LiveKit ESP32-S31 board support"
+    depends on IDF_TARGET_ESP32S31
+
+    config LK_S31_KORVO_MIC_GAIN_DB
+        int "Korvo-1 microphone gain (dB)"
+        default 30
+        range 0 42
+        help
+            Input gain applied by the Korvo-1 ES8389 audio adapter.
+            Reduce this value if loud input clips in the target enclosure.
+
+    config LK_S31_FUNCTION_CORE_MIC_GAIN_DB
+        int "Function-CoreBoard-1 microphone gain (dB)"
+        default 30
+        range 0 42
+        help
+            Input gain applied to the Function-CoreBoard-1 ES8311 microphone.
+            Reduce this value if loud input clips in the target enclosure.
+
+endmenu

@@ -1,0 +1,17 @@
+CONFIG_IDF_TARGET="esp32s31"
+# Increase UDP receive buffering to tolerate bursty audio delivery
+CONFIG_LWIP_UDP_RECVMBOX_SIZE=64
+CONFIG_LK_EXAMPLE_CODEC_BOARD_TYPE="ESP32_S31_KORVO_1"
+
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.esp32s31.csv"
+CONFIG_SPIRAM_SPEED_200M=y
+
+# ESP-IDF 6.1 marks S31 as a bring-up target and disables the flasher stub by
+# default. esptool 5.3.1 includes an S31 v2 stub, enabling fast downloads.
+# CONFIG_ESPTOOLPY_NO_STUB is not set
+
+# cloud-api.livekit.io serves a Google Trust Services cross-signed chain.
+
+# ESP-IDF 6.1 disables X.509 certificate creation by default; esp_peer needs
+# it to generate the self-signed DTLS-SRTP certificate.

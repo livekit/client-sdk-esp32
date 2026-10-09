@@ -97,6 +97,7 @@ typedef struct {
     bool is_subscriber_primary;
     livekit_pb_sid_t local_participant_sid;
     livekit_pb_sid_t sub_audio_track_sid;
+    livekit_pb_sid_t sub_audio_participant_sid;
 } session_state_t;
 
 typedef struct {
@@ -153,9 +154,13 @@ static inline void convert_dec_aud_info(esp_peer_audio_stream_info_t *info, av_r
     dec_info->bits_per_sample = 16;
 }
 
-static engine_err_t subscribe_tracks(engine_t *eng, livekit_pb_track_info_t *tracks, int count)
+static engine_err_t subscribe_tracks(
+    engine_t *eng,
+    const char *participant_sid,
+    livekit_pb_track_info_t *tracks,
+    int count)
 {
-    if (tracks == NULL || count <= 0) {
+    if (participant_sid == NULL || tracks == NULL || count <= 0) {
         return ENGINE_ERR_INVALID_ARG;
     }
     if (eng->session.sub_audio_track_sid[0] != '\0') {
@@ -170,6 +175,8 @@ static engine_err_t subscribe_tracks(engine_t *eng, livekit_pb_track_info_t *tra
         ESP_LOGI(TAG, "Subscribing to audio track: sid=%s", track->sid);
         signal_send_update_subscription(eng->signal_handle, track->sid, true);
         strlcpy(eng->session.sub_audio_track_sid, track->sid, sizeof(eng->session.sub_audio_track_sid));
+        strlcpy(eng->session.sub_audio_participant_sid, participant_sid,
+                sizeof(eng->session.sub_audio_participant_sid));
         break;
     }
     return ENGINE_ERR_NONE;
@@ -509,6 +516,7 @@ static bool establish_peer_connections(engine_t *eng, const livekit_pb_join_resp
     }
 
     peer_options_t options = {
+        .subscriber_primary = join->subscriber_primary,
         .force_relay      = join->client_configuration.force_relay
             == LIVEKIT_PB_CLIENT_CONFIG_SETTING_ENABLED,
         .media            = &eng->options.media,
@@ -700,6 +708,7 @@ static bool handle_join(engine_t *eng, const livekit_pb_join_response_t *join)
     for (pb_size_t i = 0; i < join->other_participants_count; i++) {
         engine_err_t ret = subscribe_tracks(
             eng,
+            join->other_participants[i].sid,
             join->other_participants[i].tracks,
             join->other_participants[i].tracks_count
         );
@@ -727,6 +736,34 @@ static void handle_room_update(engine_t *eng, const livekit_pb_room_update_t *ro
     }
 }
 
+static bool participant_has_track(
+    const livekit_pb_participant_info_t *participant,
+    const char *track_sid)
+{
+    for (pb_size_t i = 0; i < participant->tracks_count; i++) {
+        if (strcmp(participant->tracks[i].sid, track_sid) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static void reset_removed_audio_subscription(
+    engine_t *eng,
+    const livekit_pb_participant_info_t *participant)
+{
+    if (eng->session.sub_audio_track_sid[0] == '\0' ||
+        strcmp(participant->sid, eng->session.sub_audio_participant_sid) != 0 ||
+        participant_has_track(participant, eng->session.sub_audio_track_sid)) {
+        return;
+    }
+
+    ESP_LOGI(TAG, "Subscribed audio track unpublished: sid=%s",
+             eng->session.sub_audio_track_sid);
+    eng->session.sub_audio_track_sid[0] = '\0';
+    eng->session.sub_audio_participant_sid[0] = '\0';
+}
+
 static void handle_participant_update(engine_t *eng, const livekit_pb_participant_update_t *update)
 {
     bool found_local = false;
@@ -740,7 +777,20 @@ static void handle_participant_update(engine_t *eng, const livekit_pb_participan
         if (is_local) {
             found_local = true;
         } else {
-            subscribe_tracks(eng, participant->tracks, participant->tracks_count);
+            if (participant->state == LIVEKIT_PB_PARTICIPANT_INFO_STATE_DISCONNECTED &&
+                strcmp(participant->sid, eng->session.sub_audio_participant_sid) == 0) {
+                ESP_LOGI(TAG, "Subscribed audio participant disconnected: sid=%s",
+                         participant->sid);
+                eng->session.sub_audio_track_sid[0] = '\0';
+                eng->session.sub_audio_participant_sid[0] = '\0';
+            } else {
+                reset_removed_audio_subscription(eng, participant);
+                subscribe_tracks(
+                    eng,
+                    participant->sid,
+                    participant->tracks,
+                    participant->tracks_count);
+            }
         }
         if (eng->options.on_participant_info) {
             eng->options.on_participant_info(participant, is_local, eng->options.ctx);

@@ -1,11 +1,13 @@
 #include "esp_log.h"
 #include "cJSON.h"
-#include "bsp/esp-bsp.h"
 #include "livekit.h"
 #include "livekit_sandbox.h"
 #include "media.h"
 #include "board.h"
 #include "example.h"
+#if CONFIG_LK_EXAMPLE_ENABLE_INTEROP_TEST
+#include "interop_test.h"
+#endif
 
 static const char *TAG = "livekit_example";
 
@@ -68,19 +70,8 @@ static void set_led_state(const livekit_rpc_invocation_t* invocation, void* ctx)
 
         bool state = cJSON_IsTrue(state_entry);
 
-        bsp_led_t led;
-        if (strncmp(color, "red", 3) == 0) {
-            // TODO: there is a bug in the Korvo2 BSP which causes the LED pins to be swapped
-            // (i.e., blue is mapped to red and red is mapped to blue): https://github.com/espressif/esp-bsp/pull/632
-            led = BSP_LED_BLUE;
-        } else if (strncmp(color, "blue", 4) == 0) {
-            led = BSP_LED_RED;
-        } else {
-            error = "Unsupported color";
-            break;
-        }
-        if (bsp_led_set(led, state) != ESP_OK) {
-            error = "Failed to set LED state";
+        if (!board_set_led_state(color, state)) {
+            error = "Unsupported LED or board";
             break;
         }
     } while (0);
@@ -101,6 +92,14 @@ static void get_cpu_temp(const livekit_rpc_invocation_t* invocation, void* ctx)
     char temp_string[16];
     snprintf(temp_string, sizeof(temp_string), "%.2f", temp);
     livekit_rpc_return_ok(temp_string);
+}
+
+/// Invoked by a remote participant to discover the selected hardware profile.
+static void get_board_info(const livekit_rpc_invocation_t* invocation, void* ctx)
+{
+    // The RPC API does not mutate the payload but its result type predates
+    // const-correct payload pointers.
+    livekit_rpc_return_ok((char *)board_get_info_json());
 }
 
 void join_room()
@@ -125,7 +124,10 @@ void join_room()
             .renderer = media_get_renderer()
         },
         .on_state_changed = on_state_changed,
-        .on_participant_info = on_participant_info
+        .on_participant_info = on_participant_info,
+#if CONFIG_LK_EXAMPLE_ENABLE_INTEROP_TEST
+        .on_data_received = interop_test_on_data_received,
+#endif
     };
     if (livekit_room_create(&room_handle, &room_options) != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to create room");
@@ -135,6 +137,12 @@ void join_room()
     // Register RPC handlers so they can be invoked by remote participants.
     livekit_room_rpc_register(room_handle, "set_led_state", set_led_state);
     livekit_room_rpc_register(room_handle, "get_cpu_temp", get_cpu_temp);
+    livekit_room_rpc_register(room_handle, "get_board_info", get_board_info);
+#if CONFIG_LK_EXAMPLE_ENABLE_INTEROP_TEST
+    if (interop_test_start(room_handle) != LIVEKIT_ERR_NONE) {
+        ESP_LOGE(TAG, "Failed to register interoperability test endpoints");
+    }
+#endif
 
     livekit_err_t connect_res;
 #ifdef CONFIG_LK_EXAMPLE_USE_SANDBOX
@@ -170,6 +178,9 @@ void leave_room()
         ESP_LOGE(TAG, "Room not created");
         return;
     }
+#if CONFIG_LK_EXAMPLE_ENABLE_INTEROP_TEST
+    interop_test_stop();
+#endif
     if (livekit_room_close(room_handle) != LIVEKIT_ERR_NONE) {
         ESP_LOGE(TAG, "Failed to leave room");
     }

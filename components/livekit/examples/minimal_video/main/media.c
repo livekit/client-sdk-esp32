@@ -9,10 +9,23 @@
 #include "esp_video_device.h"
 #include "esp_video_enc_default.h"
 #include "esp_video_init.h"
+#if !CONFIG_IDF_TARGET_ESP32S31
 #include "codec_board.h"
 #include "codec_init.h"
+#else
+#include <string.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#endif
 
+#include "board.h"
 #include "media.h"
+#include "sdkconfig.h"
+#if CONFIG_IDF_TARGET_ESP32S31
+#include "livekit_s31_audio_render.h"
+#include "livekit_s31_board.h"
+#include "livekit_s31_aec.h"
+#endif
 
 static const char *TAG = "media";
 
@@ -34,8 +47,107 @@ typedef struct {
 static capture_system_t  capturer_system;
 static renderer_system_t renderer_system;
 
+#if CONFIG_IDF_TARGET_ESP32S31
+
+#define S31_CAMERA_WIDTH       240
+#define S31_CAMERA_HEIGHT      240
+#define S31_CAMERA_SOURCE_FPS  24
+
+static esp_capture_err_t (*s31_camera_source_start)(esp_capture_video_src_if_t *src);
+static esp_capture_err_t (*s31_camera_acquire_frame)(esp_capture_video_src_if_t *,
+                                                   esp_capture_stream_frame_t *);
+
+static esp_capture_err_t acquire_s31_camera_frame(esp_capture_video_src_if_t *src,
+                                                 esp_capture_stream_frame_t *frame)
+{
+    // A queued camera frame can make acquisition nonblocking while software
+    // H.264 keeps this pipeline continuously runnable. Block for one tick at
+    // each frame boundary so the idle task can run even under encoder load.
+    vTaskDelay(1);
+    return s31_camera_acquire_frame(src, frame);
+}
+
+static esp_capture_err_t start_s31_camera_source(esp_capture_video_src_if_t *src)
+{
+    esp_capture_err_t start_ret = s31_camera_source_start(src);
+    if (start_ret != ESP_CAPTURE_ERR_OK) {
+        return start_ret;
+    }
+
+    // The V4L2 source's start callback selects the sensor format before
+    // streaming. That selection resets orientation controls, so apply the
+    // fixed board rotation immediately after the original start completes.
+    esp_err_t ret = board_camera_apply_orientation();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Camera started, but board orientation failed: %s",
+                 esp_err_to_name(ret));
+        return ESP_CAPTURE_ERR_INTERNAL;
+    }
+    return ESP_CAPTURE_ERR_OK;
+}
+
+static void capture_thread_scheduler(const char *thread_name,
+                                     esp_capture_thread_schedule_cfg_t *schedule_cfg)
+{
+    if (strcmp(thread_name, "venc_0") == 0 || strcmp(thread_name, "venc_1") == 0) {
+        // The S31 uses the software H.264 encoder, which requires substantially
+        // more stack than ESP Capture's 4 KiB default. Match Espressif's video
+        // capture example and place the stack in PSRAM.
+        schedule_cfg->stack_size = 40 * 1024;
+        schedule_cfg->priority = 1;
+        schedule_cfg->stack_in_ext = true;
+#if CONFIG_LK_EXAMPLE_ENABLE_AEC
+        // AEC capture runs on core 0. Keep software video encoding on the
+        // other core so its low-priority task can progress during capture.
+        schedule_cfg->core_id = 1;
+#endif
+    } else if (strcmp(thread_name, "aenc_0") == 0) {
+        // The software Opus encoder has the same large-stack requirement in
+        // Espressif's capture scheduler example.
+        schedule_cfg->stack_size = 40 * 1024;
+        schedule_cfg->priority = 2;
+        schedule_cfg->core_id = 1;
+        schedule_cfg->stack_in_ext = true;
+    }
+}
+#endif
+
 static esp_capture_video_src_if_t* create_camera_source(void)
 {
+#if CONFIG_IDF_TARGET_ESP32S31
+    esp_err_t ret = board_camera_init();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Camera init failed with error %s", esp_err_to_name(ret));
+        return NULL;
+    }
+    esp_capture_video_v4l2_src_cfg_t v4l2_cfg = {
+        .dev_name = ESP_VIDEO_DVP_DEVICE_NAME,
+        .buf_count = 3,
+    };
+    esp_capture_video_src_if_t *source = esp_capture_new_video_v4l2_src(&v4l2_cfg);
+    if (source == NULL) {
+        return NULL;
+    }
+
+    // OV3660's selected sensor mode physically produces 24 frames/sec. Keep
+    // that source rate in negotiation so ESP Capture inserts its 24 -> 10 fps
+    // frame-drop element before the software H.264 encoder.
+    esp_capture_video_info_t fixed_caps = {
+        .format_id = ESP_CAPTURE_FMT_ID_RGB565_BE,
+        .width = S31_CAMERA_WIDTH,
+        .height = S31_CAMERA_HEIGHT,
+        .fps = S31_CAMERA_SOURCE_FPS,
+    };
+    if (source->set_fixed_caps(source, &fixed_caps) != ESP_CAPTURE_ERR_OK) {
+        ESP_LOGE(TAG, "Failed to set the S31 camera's physical source mode");
+        return NULL;
+    }
+    s31_camera_source_start = source->start;
+    source->start = start_s31_camera_source;
+    s31_camera_acquire_frame = source->acquire_frame;
+    source->acquire_frame = acquire_s31_camera_frame;
+    return source;
+#else
     camera_cfg_t cam_pin_cfg = {};
     int ret = get_camera_cfg(&cam_pin_cfg);
     if (ret != 0) {
@@ -103,14 +215,19 @@ static esp_capture_video_src_if_t* create_camera_source(void)
         return esp_capture_new_video_dvp_src(&dvp_config);
     }
 #endif
+#endif /* CONFIG_IDF_TARGET_ESP32S31 */
 }
 
 static int build_capturer_system(void)
 {
+#if CONFIG_IDF_TARGET_ESP32S31
+    esp_capture_set_thread_scheduler(capture_thread_scheduler);
+#endif
+
     capturer_system.video_source = create_camera_source();
     NULL_CHECK(capturer_system.video_source, "Failed to create camera source");
 
-    esp_codec_dev_handle_t record_handle = get_record_handle();
+    esp_codec_dev_handle_t record_handle = board_get_record_handle();
     NULL_CHECK(record_handle, "Failed to get record handle");
 
     // For supported boards, prefer using an acoustic echo cancellation (AEC) source
@@ -123,12 +240,25 @@ static int build_capturer_system(void)
     // };
     // capturer_system.audio_source = esp_capture_new_audio_aec_src(&codec_cfg);
 
+#if CONFIG_IDF_TARGET_ESP32S31 && CONFIG_LK_EXAMPLE_ENABLE_AEC
+    capturer_system.audio_source = livekit_s31_aec_source_new(record_handle,
+        livekit_s31_board_get_type() == LIVEKIT_S31_BOARD_KORVO ?
+        LIVEKIT_S31_AEC_ES8389 : LIVEKIT_S31_AEC_ES8311);
+#else
     esp_capture_audio_dev_src_cfg_t codec_cfg = {
         .record_handle = record_handle,
     };
     capturer_system.audio_source = esp_capture_new_audio_dev_src(&codec_cfg);
+#endif
 
     NULL_CHECK(capturer_system.audio_source, "Failed to create audio source");
+
+#if CONFIG_IDF_TARGET_ESP32S31 && !CONFIG_LK_EXAMPLE_ENABLE_AEC
+    bool use_aec = false;
+    ESP_RETURN_ON_FALSE(livekit_s31_board_configure_capture(
+                            capturer_system.audio_source, use_aec) == ESP_OK,
+                        -1, TAG, "Failed to configure S31 capture");
+#endif
 
     esp_capture_cfg_t cfg = {
         .sync_mode = ESP_CAPTURE_SYNC_MODE_AUDIO,
@@ -142,18 +272,23 @@ static int build_capturer_system(void)
 
 static int build_renderer_system(void)
 {
-    esp_codec_dev_handle_t render_device = get_playback_handle();
+    esp_codec_dev_handle_t render_device = board_get_playback_handle();
     NULL_CHECK(render_device, "Failed to get render device handle");
 
+#if CONFIG_IDF_TARGET_ESP32S31
+    renderer_system.audio_renderer = livekit_s31_audio_render_alloc(
+        render_device, CONFIG_LK_EXAMPLE_SPEAKER_VOLUME);
+#else
     i2s_render_cfg_t i2s_cfg = {
         .play_handle = render_device,
         .fixed_clock = true
     };
     renderer_system.audio_renderer = av_render_alloc_i2s_render(&i2s_cfg);
-    NULL_CHECK(renderer_system.audio_renderer, "Failed to create I2S renderer");
 
     // Set initial speaker volume
     esp_codec_dev_set_out_vol(i2s_cfg.play_handle, CONFIG_LK_EXAMPLE_SPEAKER_VOLUME);
+#endif
+    NULL_CHECK(renderer_system.audio_renderer, "Failed to create I2S renderer");
 
     av_render_cfg_t render_cfg = {
         .audio_render = renderer_system.audio_renderer,
@@ -166,8 +301,13 @@ static int build_renderer_system(void)
     NULL_CHECK(renderer_system.av_renderer_handle, "Failed to create AV renderer");
 
     av_render_audio_frame_info_t frame_info = {
-        .sample_rate = 16000,
+#if CONFIG_IDF_TARGET_ESP32S31
+        .sample_rate = 48000,
         .channel = 2,
+#else
+        .sample_rate = 16000,
+        .channel = board_get_playback_channels(),
+#endif
         .bits_per_sample = 16,
     };
     av_render_set_fixed_frame_info(renderer_system.av_renderer_handle, &frame_info);

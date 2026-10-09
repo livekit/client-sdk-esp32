@@ -1,0 +1,4 @@
+# cspell:words relpath projecticon projectlogo
+# Doxygen replaces these four template URLs while generating HTML.
+# Check the remaining source links normally.
+/docs/customization/\$relpath\^(\$projecticon|\$projectlogo|\$stylesheet|tabs\.css)$

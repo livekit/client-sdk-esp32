@@ -1,0 +1,19 @@
+version: "0.1.0"
+description: Audio, camera, and LED board support for LiveKit ESP32-S31 examples
+tags: [LiveKit, Audio, Camera, Board-Support]
+targets: [esp32s31]
+url: https://livekit.io/
+repository: https://github.com/livekit/client-sdk-esp32/
+issues: https://github.com/livekit/client-sdk-esp32/issues/
+license: Apache-2.0
+dependencies:
+  idf: ">=6.1"
+  espressif/esp-sr: ~2.5.2
+  espressif/esp_codec_dev: ~1.5
+  espressif/esp_capture: ~1.0.2
+  tempotian/av_render: ~1.0.0
+  espressif/media_lib_sal: ~0.9
+  espressif/esp_video: ~2.4.1
+  espressif/led_strip: ^3.0.3
+files:
+  use_gitignore: true

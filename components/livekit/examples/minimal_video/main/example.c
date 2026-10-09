@@ -9,6 +9,16 @@ static const char *TAG = "livekit_example";
 
 static livekit_room_handle_t room_handle;
 
+#if CONFIG_IDF_TARGET_ESP32S31
+#define EXAMPLE_VIDEO_WIDTH  240
+#define EXAMPLE_VIDEO_HEIGHT 240
+#define EXAMPLE_VIDEO_FPS    10
+#else
+#define EXAMPLE_VIDEO_WIDTH  1280
+#define EXAMPLE_VIDEO_HEIGHT 720
+#define EXAMPLE_VIDEO_FPS    30
+#endif
+
 /// Invoked when the room's connection state changes.
 static void on_state_changed(livekit_connection_state_t state, void* ctx)
 {
@@ -37,9 +47,9 @@ void join_room()
             },
             .video_encode = {
                 .codec = LIVEKIT_VIDEO_CODEC_H264,
-                .width = 1280,
-                .height = 720,
-                .fps = 30
+                .width = EXAMPLE_VIDEO_WIDTH,
+                .height = EXAMPLE_VIDEO_HEIGHT,
+                .fps = EXAMPLE_VIDEO_FPS
             },
             .capturer = media_get_capturer()
         },

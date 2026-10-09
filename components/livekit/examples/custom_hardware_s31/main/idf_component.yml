@@ -1,0 +1,15 @@
+dependencies:
+  idf: ">=6.1"
+  livekit/livekit:
+    version: "0.3.11"
+    override_path: ../../../
+  livekit/sandbox_token:
+    version: ~0.1.0
+    override_path: ../../../../sandbox_token
+  livekit/example_utils:
+    version: ~0.2.0
+    override_path: ../../../../example_utils
+  espressif/esp_codec_dev: ~1.5
+  livekit/s31_board:
+    version: ~0.1.0
+    override_path: ../../../../s31_board

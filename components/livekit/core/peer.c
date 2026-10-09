@@ -27,8 +27,9 @@ static const char *SUB_TAG = "livekit_peer.sub";
 static const char *PUB_TAG = "livekit_peer.pub";
 #define TAG(peer) (peer->options.role == PEER_ROLE_SUBSCRIBER ? SUB_TAG : PUB_TAG)
 
-#define RELIABLE_CHANNEL_LABEL "_reliable"
-#define LOSSY_CHANNEL_LABEL "_lossy"
+// esp_peer accepts mutable label pointers; provide storage with static lifetime.
+static char RELIABLE_CHANNEL_LABEL[] = "_reliable";
+static char LOSSY_CHANNEL_LABEL[] = "_lossy";
 #define STREAM_ID_INVALID 0xFFFF
 
 #define PC_EXIT_BIT      (1 << 0)
@@ -306,7 +307,13 @@ peer_err_t peer_create(peer_handle_t *handle, peer_options_t *options)
         .video_dir = video_dir,
         .audio_info = options->media->audio_info,
         .video_info = options->media->video_info,
-        .enable_data_channel = true,
+        // The client creates data channels on the publisher peer. When the
+        // server selects subscriber-primary mode it creates channels on the
+        // subscriber peer as well. Keep data-channel configuration aligned
+        // with the negotiated peer roles, even though esp_peer also guards
+        // against creating channels for SDP without an application section.
+        .enable_data_channel = options->role == PEER_ROLE_PUBLISHER ||
+            options->subscriber_primary,
         .manual_ch_create = true,
         .no_auto_reconnect = false,
         .extra_cfg = &default_peer_cfg,
