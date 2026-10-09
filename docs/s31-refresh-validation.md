@@ -41,9 +41,9 @@ candidate above. All three proposals merge cleanly into upstream `d492fa8`;
 upstream has two subsequent Python lockfile updates. The S31 registry
 workflow now pins an action with component manager 3.0.1, since the former
 2.4.0 manager does not recognize S31 in its standalone upload environment.
-The GitHub registry action has not been run on this proposal.
+At that time, the GitHub registry action had not been run on this proposal.
 
-These are combined-candidate smoke tests. They do not rerun the standalone
+Those were combined-candidate smoke tests. They did not rerun the standalone
 S3/P4 ESP-IDF 5.4.4/5.5.3 CI matrix or the registry dry-run action. Runtime
 tests used pregenerated tokens; Sandbox HTTPS and subscriber-primary paths
 remain unverified on this refresh. CoreBoard agent-restart recovery was not
@@ -55,3 +55,35 @@ not repeated. No heap/PSRAM trend was instrumented. Detailed overlap,
 adaptive interruptions and self-triggering behavior of the updated agent
 were not separately assessed. Earlier sustained AEC/listening results keep
 their original configuration and scope; these results do not replace them.
+
+## Compatibility correction validation on 2026-10-09
+
+The candidate carries the shared dependency and ESP-IDF compatibility
+corrections described in `dependency-validation.md` into the submitted S31
+branch at `b685133`. This branch already declares its JSON and temperature
+sensor dependencies explicitly, so their declarations need no further change.
+The S31 board drivers, audio renderer, AEC integration and agent behavior
+are unchanged by this correction.
+
+All 18 S3/P4 application/version/target combinations passed locally with
+IDF 5.4.4, 5.5.3 and 6.1 and in the separate [fork's six-job GitHub matrix](https://github.com/ibytergj/client-sdk-esp32/actions/runs/37927152386).
+The S31 component registry dry-run also passed, including `s31_board`.
+
+Seven fresh native S31 profiles passed with the documented IDF 6.1 toolchain
+patch: `custom_hardware_s31`, `minimal` and `voice_agent` on both Korvo-1
+and Function-CoreBoard-1, plus Korvo-1 `minimal_video`. Every image passed
+its partition-size check. Both certificate settings remain enabled in all
+seven generated configurations. Short local project paths were used to
+avoid Windows path and command-line limits; application sources, defaults
+and project CMake logic came from this candidate.
+
+The existing renderer and AEC host suites passed ten repetitions each in
+Docker, using capture 1.0.2 headers. The existing offline agent suite passed
+against its locked runtime on Python 3.13: discovery, invalid-payload and
+old-firmware fallback, linked-participant routing, RGB tools, real/console
+startup and voice override. Agent lint and format checks also passed.
+
+These results do not add new hardware or acoustic acceptance. No boards
+were flashed. The P4 Hosted change and S3 bootloader requirements retain
+the limits recorded in `dependency-validation.md`; the earlier attended
+hardware results retain their original configuration and scope.

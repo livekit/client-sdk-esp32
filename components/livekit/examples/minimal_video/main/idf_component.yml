@@ -21,7 +21,13 @@ dependencies:
   # the ESP32-P4-Function-EV-Board out-of-the-box.
   espressif/esp_hosted:
     version: ~2.0.13
+    # Newer Hosted releases declare the SDMMC driver dependency needed on IDF 6.
+    matches:
+      - if: "idf_version <6.1"
+      - if: "idf_version >=6.1"
+        version: "2.12.13"
     rules: [{if: "target in [esp32p4]"}]
   espressif/esp_wifi_remote:
     version: ~0.14.3
-    rules: [{if: "target in [esp32p4]"}]
+    # ESP-IDF 6.1 includes the remote Wi-Fi implementation in esp_wifi.
+    rules: [{if: "target in [esp32p4]"}, {if: "idf_version <6.1"}]
