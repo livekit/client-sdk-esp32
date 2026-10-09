@@ -11,6 +11,14 @@ dictionaries:
   - cpp
   - python
 words:
+  - riscv
+  - esac
+  - sdmmc
+  - sdio
+  - tsens
+  - asrc
+  - cjson
+  - werror
   - addopts
   - adduser
   - adec

@@ -9,6 +9,4 @@ dependencies:
   livekit/example_utils:
     version: ~0.2.0
     override_path: ../../../../example_utils
-  espressif/esp_codec_dev: "~1.4"
-  espressif/es8311: "*"
-  espressif/es7210: "*"
+  espressif/esp_codec_dev: "~1.5"

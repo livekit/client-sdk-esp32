@@ -9,9 +9,14 @@ discussion: https://community.livekit.io/c/robotics/
 license: Apache-2.0
 dependencies:
   idf: ">=5.4"
-  espressif/esp_capture: { version: ~0.7, public: true }
-  tempotian/av_render: { version: ~0.9.1, public: true }
-  tempotian/media_lib_sal: ~0.9.1
+  espressif/cjson:
+    version: ^1.7.19
+    rules:
+      - if: "idf_version >= 6.0"
+  # Exact: 1.0.3 requires an esp_codec_dev 2.0 pre-release that older component managers cannot resolve.
+  espressif/esp_capture: { version: "1.0.2", public: true }
+  tempotian/av_render: { version: ~1.0.0, public: true }
+  espressif/media_lib_sal: ~0.9.3
   espressif/esp_peer: ~1.5.5
   espressif/esp_websocket_client: ~1.8.0
   livekit/khash: ~0.2.8
