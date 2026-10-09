@@ -5,6 +5,18 @@ if(WIN32)
 endif()
 set(COMPONENTS main)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+
+# These mbedTLS options were introduced in ESP-IDF 6.
+if(IDF_VERSION_MAJOR GREATER_EQUAL 6)
+    if(NOT SDKCONFIG_DEFAULTS)
+        if(DEFINED ENV{SDKCONFIG_DEFAULTS} AND NOT "$ENV{SDKCONFIG_DEFAULTS}" STREQUAL "")
+            set(SDKCONFIG_DEFAULTS "$ENV{SDKCONFIG_DEFAULTS}")
+        else()
+            set(SDKCONFIG_DEFAULTS "sdkconfig.defaults")
+        endif()
+    endif()
+    list(APPEND SDKCONFIG_DEFAULTS "${CMAKE_CURRENT_LIST_DIR}/sdkconfig.defaults.idf6")
+endif()
 project(lk_custom_hardware)
 
 # esp_asrc 1.0.x logs a uint32_t with %d, which ESP-IDF 5.4 rejects under
