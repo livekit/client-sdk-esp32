@@ -1,3 +1,5 @@
 components/third_party/* linguist-vendored
 components/livekit/protocol/*.c linguist-generated
 components/livekit/protocol/*.h linguist-generated
+examples/**/main/images/*.c linguist-generated  # LVGL images
+examples/**/main/fonts/*.c linguist-generated  # LVGL fonts
