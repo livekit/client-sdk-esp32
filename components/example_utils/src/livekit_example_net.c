@@ -22,6 +22,7 @@
 #include <string.h>
 
 #if CONFIG_LK_EXAMPLE_USE_WIFI
+#include "esp_mac.h"
 #include "esp_wifi.h"
 #elif CONFIG_LK_EXAMPLE_USE_ETHERNET
 #include "esp_eth.h"
@@ -61,6 +62,23 @@ static void ip_event_handler(
     state.retry_attempt = 0;
     xEventGroupSetBits(state.event_group, NETWORK_EVENT_CONNECTED);
 }
+
+#if CONFIG_LK_EXAMPLE_USE_WIFI
+/// Pre-production chips (e.g. ESP32-S31 engineering samples) may not have a
+/// factory MAC address burned into eFuse, leaving the WiFi MAC all zeros and
+/// preventing association. Fall back to a locally administered address.
+static void ensure_base_mac(void)
+{
+    uint8_t mac[6] = {};
+    static const uint8_t zero[6] = {};
+    if (esp_efuse_mac_get_default(mac) != ESP_OK || memcmp(mac, zero, sizeof(mac)) != 0) {
+        return;
+    }
+    static const uint8_t fallback[6] = { 0x02, 0x4C, 0x4B, 0x00, 0x00, 0x01 };
+    ESP_LOGW(TAG, "No factory MAC address in eFuse, using locally administered address");
+    ESP_ERROR_CHECK(esp_base_mac_addr_set(fallback));
+}
+#endif
 
 static inline void init_common(void)
 {
@@ -132,6 +150,7 @@ static inline bool connect_wifi(void)
         ESP_LOGI(TAG, "WiFi password is empty");
     }
 
+    ensure_base_mac();
     esp_netif_create_default_wifi_sta();
 
     wifi_init_config_t wifi_init_config = WIFI_INIT_CONFIG_DEFAULT();

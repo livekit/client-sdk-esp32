@@ -16,16 +16,20 @@ words:
   - adec
   - alwaysinternal
   - appuser
+  - asrc
   - autobreif
   - autobrief
   - bclk
   - bldo
+  - cjson
   - colorstyle
+  - coreboard
   - ctlr
   - defconfig
   - discon
   - dotenv
   - doxygenlayout
+  - efuse
   - endchoice
   - endmenu
   - espressif
@@ -80,7 +84,10 @@ words:
   - srtc
   - srtp
   - tempotian
+  - tsens
   - watchpoint
   - waveshare
   - wconversion
+  - werror
+  - wroom
   - xclk

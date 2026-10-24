@@ -7,5 +7,8 @@ discussion: https://community.livekit.io/c/robotics/
 license: Apache-2.0
 dependencies:
   idf: ">=5.4"
+  espressif/cjson:
+    version: "^1.7.19"
+    rules: [{if: "idf_version >=6.0"}] # No longer bundled with IDF as of v6.0
 files:
   use_gitignore: true
