@@ -9,4 +9,10 @@ dependencies:
   livekit/example_utils:
     version: ~0.2.0
     override_path: ../../../../example_utils
-  tempotian/codec_board: ~1.0.0
+  livekit/s31_board:
+    version: ~0.1.0
+    override_path: ../../../../s31_board
+    rules: [{if: "target in [esp32s31]"}]
+  tempotian/codec_board:
+    version: ^2.0.2
+    rules: [{if: "target not in [esp32s31]"}]

@@ -1,0 +1,22 @@
+diff --git a/components/spi_flash/cache_utils.c b/components/spi_flash/cache_utils.c
+--- a/components/spi_flash/cache_utils.c
++++ b/components/spi_flash/cache_utils.c
+@@ -28,6 +28,7 @@
+ #include "esp_attr.h"
+ #include "esp_memory_utils.h"
+ #include "esp_intr_alloc.h"
++#include "esp_cpu.h"
+ #include "esp_private/esp_cache_private.h"
+ #include "esp_private/cache_utils.h"
+ #include "esp_private/spi_flash_os.h"
+@@ -86,6 +87,10 @@ void IRAM_ATTR spi_flash_op_block_func(void *arg)
+ #endif // #if ( ( CONFIG_FREERTOS_SMP ) && ( !CONFIG_FREERTOS_UNICORE ) )
+     // Restore interrupts that aren't located in IRAM
+     esp_intr_noniram_disable();
++#if SOC_BRANCH_PREDICTOR_SUPPORTED
++    // Prevent speculative external-memory fetches while this CPU waits.
++    esp_cpu_branch_prediction_disable();
++#endif
+     uint32_t cpuid = (uint32_t) arg;
+     // s_flash_op_complete flag is cleared on *this* CPU, otherwise the other
+     // CPU may reset the flag back to false before IPC task has a chance to check it

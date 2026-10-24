@@ -1,0 +1,94 @@
+menu "LiveKit Example"
+
+    choice LK_CUSTOM_S31_BOARD
+        prompt "ESP32-S31 development board"
+        default LK_CUSTOM_S31_BOARD_KORVO
+
+        config LK_CUSTOM_S31_BOARD_KORVO
+            bool "ESP32-S31-Korvo-1"
+
+        config LK_CUSTOM_S31_BOARD_FUNCTION_CORE
+            bool "ESP32-S31-Function-CoreBoard-1"
+    endchoice
+
+    config LK_CUSTOM_S31_FUNCTION_CORE_MIC_GAIN_DB
+        int "Function-CoreBoard-1 microphone gain (dB)"
+        depends on LK_CUSTOM_S31_BOARD_FUNCTION_CORE
+        default 30
+        range 0 42
+
+    choice LK_EXAMPLE_CONNECTION_METHOD
+        prompt "Choose room connection method"
+
+        config LK_EXAMPLE_USE_SANDBOX
+            bool "Sandbox token"
+
+        config LK_EXAMPLE_USE_PREGENERATED
+            bool "Pre-generated token"
+    endchoice
+
+    config LK_EXAMPLE_SERVER_URL
+        depends on LK_EXAMPLE_USE_PREGENERATED
+        string "Server URL"
+        default "ws://localhost:7880"
+
+    config LK_EXAMPLE_TOKEN
+        depends on LK_EXAMPLE_USE_PREGENERATED
+        string "Token"
+
+    config LK_EXAMPLE_SANDBOX_ID
+        depends on LK_EXAMPLE_USE_SANDBOX
+        string "Sandbox ID"
+
+    config LK_EXAMPLE_ROOM_NAME
+        depends on LK_EXAMPLE_USE_SANDBOX
+        string "Room name (optional)"
+
+    config LK_EXAMPLE_PARTICIPANT_NAME
+        depends on LK_EXAMPLE_USE_SANDBOX
+        string "Participant name (optional)"
+
+    config LK_EXAMPLE_SPEAKER_VOLUME
+        int "Default speaker volume (0-100%)"
+        default 85
+        range 0 100
+
+    config LK_CUSTOM_S31_SPEAKER_SELF_TEST
+        bool "Run speaker channel self-test at boot"
+        default n
+        help
+            Play a 180 Hz wiring diagnostic before networking starts. Korvo-1
+            plays left, right, then both channels. Function-CoreBoard-1 plays
+            one mono burst. Leave this disabled in normal firmware.
+
+    config LK_CUSTOM_S31_SELF_TEST_VOLUME
+        int "Audio self-test volume (0-100%)"
+        depends on LK_CUSTOM_S31_SPEAKER_SELF_TEST || LK_CUSTOM_S31_MIC_SELF_TEST
+        default 70
+        range 0 100
+
+    config LK_CUSTOM_S31_SELF_TEST_LEVEL
+        int "Audio self-test PCM level (1-100%)"
+        depends on LK_CUSTOM_S31_SPEAKER_SELF_TEST || LK_CUSTOM_S31_MIC_SELF_TEST
+        default 50
+        range 1 100
+        help
+            Peak amplitude of generated test tones as a percentage of the
+            signed 16-bit PCM range. This is independent of codec volume.
+
+    config LK_CUSTOM_S31_MIC_SELF_TEST
+        bool "Run microphone level self-test at boot"
+        default n
+        help
+            On Function-CoreBoard-1, capture five seconds and report peak and
+            RMS levels. Captured audio is not stored or transmitted. The test
+            is not currently implemented for Korvo-1.
+
+    config LK_EXAMPLE_ENABLE_AEC
+        bool "Enable acoustic echo cancellation"
+        default n
+        help
+            Use standalone esp-sr AEC with matched microphone and DAC-reference
+            resampling. Off by default; enable it when the application plays
+            audio through the speaker while capturing the microphone.
+endmenu

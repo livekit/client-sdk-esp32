@@ -1,0 +1,2 @@
+# mbedTLS settings available only on ESP-IDF 6 and later.
+CONFIG_MBEDTLS_X509_CREATE_C=y

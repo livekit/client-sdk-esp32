@@ -1,0 +1,22 @@
+CONFIG_IDF_TARGET="esp32s31"
+CONFIG_LK_EXAMPLE_CODEC_BOARD_TYPE="ESP32_S31_KORVO_1"
+
+# Korvo-1 onboard OV3660. Use the same RGB565 240x240 sensor mode as
+# Espressif's factory demo, then convert to YUV420 for software H.264.
+CONFIG_CAMERA_OV3660=y
+CONFIG_CAMERA_OV3660_DVP_RGB565_BE_240X240_24FPS=y
+CONFIG_CAMERA_OV3660_DVP_DEFAULT_FMT_RGB565_BE_240X240_24FPS=y
+CONFIG_ESP_VIDEO_ENABLE_DVP_VIDEO_DEVICE=y
+
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_SPEED_200M=y
+
+# ESP-IDF 6.1 marks S31 as a preview target and disables the flasher stub by
+# default. esptool 5.3.1 includes an S31 v2 stub.
+# CONFIG_ESPTOOLPY_NO_STUB is not set
+
+
+# ESP-IDF 6.1 disables X.509 certificate creation by default; esp_peer needs
+# it to generate the self-signed DTLS-SRTP certificate.
