@@ -9,13 +9,19 @@ dependencies:
   livekit/example_utils:
     version: ~0.2.0
     override_path: ../../../../example_utils
-  tempotian/codec_board: ~1.0.0
+  tempotian/codec_board: ^2.0.2
   # The following components are required to connect to WiFi for ESP32-P4-based
   # development board that supports WiFi. The versions here are known to work with
   # the ESP32-P4-Function-EV-Board out-of-the-box.
   espressif/esp_hosted:
     version: ~2.0.13
+    # Newer Hosted releases declare the SDMMC driver dependency needed on IDF 6.
+    matches:
+      - if: "idf_version <6.1"
+      - if: "idf_version >=6.1"
+        version: "2.12.13"
     rules: [{if: "target in [esp32p4]"}]
   espressif/esp_wifi_remote:
     version: ~0.14.3
-    rules: [{if: "target in [esp32p4]"}]
+    # ESP-IDF 6.1 includes the remote Wi-Fi implementation in esp_wifi.
+    rules: [{if: "target in [esp32p4]"}, {if: "idf_version <6.1"}]

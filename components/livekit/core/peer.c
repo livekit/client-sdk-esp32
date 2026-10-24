@@ -27,8 +27,9 @@ static const char *SUB_TAG = "livekit_peer.sub";
 static const char *PUB_TAG = "livekit_peer.pub";
 #define TAG(peer) (peer->options.role == PEER_ROLE_SUBSCRIBER ? SUB_TAG : PUB_TAG)
 
-#define RELIABLE_CHANNEL_LABEL "_reliable"
-#define LOSSY_CHANNEL_LABEL "_lossy"
+// esp_peer accepts mutable label pointers; provide storage with static lifetime.
+static char RELIABLE_CHANNEL_LABEL[] = "_reliable";
+static char LOSSY_CHANNEL_LABEL[] = "_lossy";
 #define STREAM_ID_INVALID 0xFFFF
 
 #define PC_EXIT_BIT      (1 << 0)

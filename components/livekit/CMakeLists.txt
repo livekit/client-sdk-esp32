@@ -1,3 +1,9 @@
+if(IDF_VERSION_MAJOR GREATER_EQUAL 6)
+    set(LK_JSON_COMPONENT espressif__cjson)
+else()
+    set(LK_JSON_COMPONENT json)
+endif()
+
 idf_component_register(
     SRC_DIRS ./core ./protocol
     PRIV_INCLUDE_DIRS ./core ./protocol
@@ -10,7 +16,7 @@ idf_component_register(
         esp_netif
         esp_peer
         esp_websocket_client
-        json
+        ${LK_JSON_COMPONENT}
         khash
         mbedtls
         nanopb
@@ -20,3 +26,12 @@ idf_component_get_property(LIVEKIT_SDK_VERSION ${COMPONENT_NAME} COMPONENT_VERSI
 target_compile_definitions(${COMPONENT_LIB} PUBLIC "LIVEKIT_SDK_VERSION=\"${LIVEKIT_SDK_VERSION}\"")
 
 target_compile_options(${COMPONENT_LIB} PRIVATE "-Wconversion")
+
+# IDF 6 RISC-V headers contain inline sign conversions diagnosed by GCC 15.
+# Treat those SDK headers as system headers, retaining -Wconversion for our code.
+if(IDF_VERSION_MAJOR GREATER_EQUAL 6 AND CONFIG_IDF_TARGET_ARCH_RISCV)
+    target_include_directories(${COMPONENT_LIB} SYSTEM PRIVATE
+        "${IDF_PATH}/components/riscv/include"
+        "${IDF_PATH}/components/esp_hw_support/include"
+    )
+endif()

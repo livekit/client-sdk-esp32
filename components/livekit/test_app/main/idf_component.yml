@@ -1,4 +1,4 @@
 dependencies:
   idf: ">=5.4"
   livekit: { path: ../../ }
-  tempotian/codec_board: ~1.0.0
+  tempotian/codec_board: ^2.0.2
