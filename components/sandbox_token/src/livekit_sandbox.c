@@ -17,6 +17,7 @@
 #include "cJSON.h"
 #include "esp_log.h"
 #include "esp_http_client.h"
+#include "esp_idf_version.h"
 #include <sys/param.h>
 #ifdef CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
 #include "esp_crt_bundle.h"
@@ -24,8 +25,15 @@
 
 #include "livekit_sandbox.h"
 
+#if !CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
+#error "sandbox_token requires CONFIG_MBEDTLS_CERTIFICATE_BUNDLE=y for HTTPS certificate verification"
+#endif
+#if ESP_IDF_VERSION_MAJOR >= 6 && !CONFIG_MBEDTLS_CERTIFICATE_BUNDLE_CROSS_SIGNED_VERIFY
+#error "sandbox_token on ESP-IDF 6 requires CONFIG_MBEDTLS_CERTIFICATE_BUNDLE_CROSS_SIGNED_VERIFY=y"
+#endif
+
 static const char *TAG = "livekit_sandbox";
-static const char *SANDBOX_URL = "http://cloud-api.livekit.io/api/sandbox/connection-details";
+static const char *SANDBOX_URL = "https://cloud-api.livekit.io/api/sandbox/connection-details";
 
 #define MAX_HTTP_OUTPUT_BUFFER 2048
 
