@@ -107,8 +107,8 @@ typedef struct {
 /// Payload containing a pointer to data and its size.
 /// @ingroup DataPackets
 typedef struct {
-    uint8_t *bytes;  ///< Pointer to data
-    size_t size;     ///< Size of the data
+    uint8_t *bytes;  ///< Pointer to data, or NULL for an empty payload
+    size_t size;     ///< Size of the data, zero for an empty payload
 } livekit_data_payload_t;
 
 /// Information about a data packet received from a remote participant
@@ -118,7 +118,7 @@ typedef struct {
     /// Received data.
     livekit_data_payload_t payload;
 
-    /// Topic the data was sent under if specified by the sender.
+    /// Topic the data was sent under, or NULL if the sender did not specify one.
     char* topic;
 
     /// Identity of the participant who sent the data.
