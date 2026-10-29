@@ -55,11 +55,13 @@ static void on_user_packet(const livekit_pb_user_packet_t* packet, const char* s
     if (room->options.on_data_received == NULL) {
         return;
     }
+    // An empty payload is encoded as a missing field, so nanopb leaves the
+    // bytes array pointer NULL. Guard against it rather than dereferencing.
     livekit_data_received_t data = {
         .topic = packet->topic,
         .payload = {
-            .bytes = packet->payload->bytes,
-            .size = packet->payload->size
+            .bytes = packet->payload != NULL ? packet->payload->bytes : NULL,
+            .size = packet->payload != NULL ? packet->payload->size : 0
         },
         .sender_identity = (char*)sender_identity
     };
