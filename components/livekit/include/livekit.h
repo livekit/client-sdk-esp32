@@ -467,6 +467,11 @@ livekit_err_t livekit_room_rpc_unregister(livekit_room_handle_t handle, const ch
 /// `CONFIG_LK_MAX_DATA_STREAM_READERS` and `CONFIG_LK_MAX_DATA_STREAM_WRITERS`
 /// in Kconfig (default 4 each).
 ///
+/// Each registered topic receives one stream at a time. An incoming stream that
+/// receives nothing for `CONFIG_LK_DATA_STREAM_IDLE_TIMEOUT_MS` (default 10000)
+/// is closed with the reason "Stream timed out" when the next stream arrives on
+/// the same topic.
+///
 /// ### Receiving
 ///
 /// Register a handler for a topic using @ref livekit_room_data_stream_topic_register.
