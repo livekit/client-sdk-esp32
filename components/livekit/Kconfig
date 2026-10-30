@@ -32,4 +32,14 @@ menu "LiveKit"
         int "Maximum concurrent outgoing data streams"
         range 1 32
         default 4
+    config LK_SIGNAL_MAX_MESSAGE_SIZE
+        int "Maximum size of a reassembled signaling message (bytes)"
+        default 262144
+        help
+            Signaling messages larger than the WebSocket receive buffer are
+            delivered in fragments and reassembled into a single buffer before
+            decoding. This is the upper bound on the reassembled size; messages
+            whose total length exceeds it are dropped to prevent unbounded heap
+            allocation. The reassembly buffer is allocated from PSRAM when
+            available.
 endmenu
