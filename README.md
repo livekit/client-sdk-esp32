@@ -22,7 +22,8 @@ Use this SDK to add realtime video, audio and data features to your ESP32 projec
 
 ## Features
 
-- **Supported chips**: ESP32-S3 and ESP32-P4
+- **Supported chips**: ESP32-S3 and ESP32-P4; initial ESP32-S31 support is
+  available with ESP-IDF 6.1 (preview target)
 - **Bidirectional audio**: Opus encoding, acoustic echo cancellation (AEC)
 - **Video publishing**: H.264 encoding, subscribing coming soon
 - **AI Agents**: interact with agents in the cloud built with [LiveKit Agents](https://docs.livekit.io/agents/)
@@ -32,6 +33,9 @@ Use this SDK to add realtime video, audio and data features to your ESP32 projec
 
 Before you begin, please ensure you have ESP IDF v5.4 or higher installed on your system (see installation guide for [macOS/Linux](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/get-started/linux-macos-setup.html) or [Windows](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/get-started/windows-setup.html)).
 
+ESP32-S31 requires ESP-IDF 6.1 and the preview-target form of the IDF commands.
+See the [ESP32-S31 port status and setup guide](./docs/esp32s31.md).
+
 ### Examples
 
 One of the best ways to get started with LiveKit is by reviewing the [examples](./components/livekit/examples/) and choosing one as a starting point for your project:
@@ -40,6 +44,7 @@ One of the best ways to get started with LiveKit is by reviewing the [examples](
 - [**Minimal**](./components/livekit/examples/minimal/README.md): Basic example of connecting to a LiveKit room with bidirectional audio.
 - [**Minimal Video**](./components/livekit/examples/minimal_video/README.md): Equivalent to the minimal example with video publishing.
 - [**Custom Hardware**](./components/livekit/examples/custom_hardware/README.md): Bidirectional audio on custom ESP32-S3 hardware with manual codec initialization (ES8311 + ES7210).
+- [**Custom Hardware S31**](./components/livekit/examples/custom_hardware_s31/README.md): Worked ESP32-S31 hardware port with manual ES8389 and ES8311 initialization for the Korvo-1 and Function-CoreBoard-1.
 
 Once you have chosen an example to be your starting point, create a fresh project from it locally using the following command:
 

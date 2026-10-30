@@ -1,3 +1,4 @@
+# cspell:words gtags GTAGS GRTAGS GPATH gcda gcno lycheecache
 .config
 *.o
 *.pyc
@@ -25,6 +26,7 @@ GPATH
 **/sdkconfig
 **/sdkconfig.old
 **/build
+**/build-*/
 **/managed_components
 **/dependencies.lock
 **/dist

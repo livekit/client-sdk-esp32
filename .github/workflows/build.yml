@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         target: [esp32s3, esp32p4]
-        idf_version: [v5.4.4, v5.5.3]
+        idf_version: [v5.4.4, v5.5.3, v6.1]
     permissions:
       contents: read
     steps:
@@ -22,5 +22,9 @@ jobs:
         with:
           esp_idf_version: ${{ matrix.idf_version }}
           command: |
-            pip install idf-build-apps
+            case "${{ matrix.idf_version }}" in
+              v6.*) lk_component_manager_version=3.1.2 ;;
+              *) lk_component_manager_version=2.4.11 ;;
+            esac
+            pip install "idf-build-apps==3.0.2" "idf-component-manager==$lk_component_manager_version"
             idf-build-apps build --recursive --target ${{ matrix.target }}

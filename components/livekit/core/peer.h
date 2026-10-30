@@ -44,6 +44,9 @@ typedef struct {
     /// Peer role (publisher or subscriber).
     peer_role_t role;
 
+    /// Whether the server selected the subscriber peer as the primary peer.
+    bool subscriber_primary;
+
     /// ICE server list.
     esp_peer_ice_server_cfg_t* server_list;
 

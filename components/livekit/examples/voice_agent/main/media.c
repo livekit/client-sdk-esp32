@@ -1,6 +1,5 @@
 #include "esp_check.h"
 #include "esp_log.h"
-#include "codec_init.h"
 #include "av_render_default.h"
 #include "esp_audio_dec_default.h"
 #include "esp_audio_enc_default.h"
@@ -8,6 +7,13 @@
 #include "esp_capture_sink.h"
 
 #include "media.h"
+#include "sdkconfig.h"
+#if CONFIG_IDF_TARGET_ESP32S31
+#include "livekit_s31_audio_render.h"
+#include "livekit_s31_board.h"
+#include "livekit_s31_aec.h"
+#endif
+#include "board.h"
 
 static const char *TAG = "media";
 
@@ -29,16 +35,33 @@ static renderer_system_t renderer_system;
 
 static int build_capturer_system(void)
 {
-    esp_codec_dev_handle_t record_handle = get_record_handle();
+    esp_codec_dev_handle_t record_handle = board_get_record_handle();
     NULL_CHECK(record_handle, "Failed to get record handle");
 
+#if CONFIG_IDF_TARGET_ESP32S31 && CONFIG_LK_EXAMPLE_ENABLE_AEC
+    capturer_system.audio_source = livekit_s31_aec_source_new(record_handle,
+        livekit_s31_board_get_type() == LIVEKIT_S31_BOARD_KORVO ?
+        LIVEKIT_S31_AEC_ES8389 : LIVEKIT_S31_AEC_ES8311);
+#elif CONFIG_LK_EXAMPLE_ENABLE_AEC
     esp_capture_audio_aec_src_cfg_t codec_cfg = {
         .record_handle = record_handle,
         .channel = 4,
         .channel_mask = 1 | 2
     };
     capturer_system.audio_source = esp_capture_new_audio_aec_src(&codec_cfg);
+#else
+    esp_capture_audio_dev_src_cfg_t codec_cfg = {
+        .record_handle = record_handle,
+    };
+    capturer_system.audio_source = esp_capture_new_audio_dev_src(&codec_cfg);
+#endif
     NULL_CHECK(capturer_system.audio_source, "Failed to create audio source");
+
+#if CONFIG_IDF_TARGET_ESP32S31 && !CONFIG_LK_EXAMPLE_ENABLE_AEC
+    ESP_RETURN_ON_FALSE(livekit_s31_board_configure_capture(
+                            capturer_system.audio_source, false) == ESP_OK,
+                        -1, TAG, "Failed to configure S31 capture");
+#endif
 
     esp_capture_cfg_t cfg = {
         .sync_mode = ESP_CAPTURE_SYNC_MODE_AUDIO,
@@ -51,17 +74,22 @@ static int build_capturer_system(void)
 
 static int build_renderer_system(void)
 {
-    esp_codec_dev_handle_t render_device = get_playback_handle();
+    esp_codec_dev_handle_t render_device = board_get_playback_handle();
     NULL_CHECK(render_device, "Failed to get render device handle");
 
+#if CONFIG_IDF_TARGET_ESP32S31
+    renderer_system.audio_renderer = livekit_s31_audio_render_alloc(
+        render_device, CONFIG_LK_EXAMPLE_SPEAKER_VOLUME);
+#else
     i2s_render_cfg_t i2s_cfg = {
         .play_handle = render_device
     };
     renderer_system.audio_renderer = av_render_alloc_i2s_render(&i2s_cfg);
-    NULL_CHECK(renderer_system.audio_renderer, "Failed to create I2S renderer");
 
     // Set initial speaker volume
     esp_codec_dev_set_out_vol(i2s_cfg.play_handle, CONFIG_LK_EXAMPLE_SPEAKER_VOLUME);
+#endif
+    NULL_CHECK(renderer_system.audio_renderer, "Failed to create I2S renderer");
 
     av_render_cfg_t render_cfg = {
         .audio_render = renderer_system.audio_renderer,
@@ -73,8 +101,13 @@ static int build_renderer_system(void)
     NULL_CHECK(renderer_system.av_renderer_handle, "Failed to create AV renderer");
 
     av_render_audio_frame_info_t frame_info = {
-        .sample_rate = 16000,
+#if CONFIG_IDF_TARGET_ESP32S31
+        .sample_rate = 48000,
         .channel = 2,
+#else
+        .sample_rate = 16000,
+        .channel = board_get_playback_channels(),
+#endif
         .bits_per_sample = 16,
     };
     av_render_set_fixed_frame_info(renderer_system.av_renderer_handle, &frame_info);
