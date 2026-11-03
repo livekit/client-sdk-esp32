@@ -1,0 +1,5 @@
+# Preserve the S3 example's 120 MHz flash configuration on ESP-IDF 6.
+# Build the bootloader with support for flash dummy-cycle changes after reset.
+CONFIG_SPI_FLASH_HPM_ENA=y
+CONFIG_BOOTLOADER_FLASH_DC_AWARE=y
+CONFIG_SPI_FLASH_HPM_DC_AUTO=y

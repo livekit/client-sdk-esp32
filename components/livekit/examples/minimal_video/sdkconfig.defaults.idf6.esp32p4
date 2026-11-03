@@ -1,0 +1,2 @@
+# Retain support for the pre-3.0 P4 revision used by this board example.
+CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y
