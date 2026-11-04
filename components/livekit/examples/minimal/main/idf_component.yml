@@ -9,4 +9,4 @@ dependencies:
   livekit/example_utils:
     version: ~0.2.0
     override_path: ../../../../example_utils
-  tempotian/codec_board: ~1.0.0
+  tempotian/codec_board: ~2.0.2
