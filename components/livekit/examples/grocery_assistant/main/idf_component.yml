@@ -1,0 +1,16 @@
+dependencies:
+  idf: ">=5.4"
+  livekit/livekit:
+    version: "0.3.3"
+    override_path: ../../../
+  livekit/sandbox_token:
+    version: ~0.1.0
+    override_path: ../../../../sandbox_token
+  livekit/example_utils:
+    version: ~0.1.0
+    override_path: ../../../../example_utils
+  m5stack_miniscale:
+    path: ../components/m5stack_miniscale
+  espressif/esp_hosted: ~2.0.13
+  espressif/esp_wifi_remote: ~0.14.3
+  tempotian/codec_board: ~1.0.0
