@@ -338,11 +338,10 @@ peer_err_t peer_destroy(peer_handle_t handle)
     if (handle == NULL) {
         return PEER_ERR_INVALID_ARG;
     }
-    peer_t *peer = (peer_t *)handle;
-    if (peer && peer->wait_event) {
-        media_lib_event_group_destroy(peer->wait_event);
-    }
-    free(peer);
+    // Stop the peer task and close the connection if the caller did not
+    // disconnect first; this is a no-op if already disconnected.
+    peer_disconnect(handle);
+    free(handle);
     return PEER_ERR_NONE;
 }
 
@@ -362,6 +361,7 @@ peer_err_t peer_connect(peer_handle_t handle)
         "lk_peer_sub" : "lk_peer_pub";
     if (media_lib_thread_create_from_scheduler(&thread, thread_name, peer_task, peer) != ESP_PEER_ERR_NONE) {
         ESP_LOGE(TAG(peer), "Failed to create thread");
+        peer->running = false;
         return PEER_ERR_RTC;
     }
 
