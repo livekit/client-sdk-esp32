@@ -1,0 +1,35 @@
+#:schema https://raw.githubusercontent.com/livekit/verwalter/main/schemas/v1.json
+
+# Vendored components in components/third_party are not managed here: their
+# versions follow upstream. See verwalter-adoption-summary.md.
+
+[versioning]
+files = [{ path = "idf_component.yml", regex = '(?m)^version: "(?<version>[^"]+)"' }]
+
+[release]
+tag = "{package}@v{version}"
+
+[publish]
+registry = "custom"
+exists_url = "https://components.espressif.com/components/livekit/{name}/versions/{version}"
+command = 'compote component upload --namespace livekit --name {package} --allow-existing --repository https://github.com/livekit/client-sdk-esp32 --commit-sha "$(git rev-parse HEAD)" --repository-path "$(git rev-parse --show-prefix | sed "s#/\$##")"'
+
+[packages.livekit]
+path = "components/livekit"
+release.tag = "v{version}"
+versioning.files = [
+    { path = "idf_component.yml", regex = '(?m)^version: "(?<version>[^"]+)"' },
+    { path = "examples/custom_hardware/main/idf_component.yml", regex = 'livekit/livekit:\n    version: "(?<version>[^"]+)"' },
+    { path = "examples/minimal/main/idf_component.yml", regex = 'livekit/livekit:\n    version: "(?<version>[^"]+)"' },
+    { path = "examples/minimal_video/main/idf_component.yml", regex = 'livekit/livekit:\n    version: "(?<version>[^"]+)"' },
+    { path = "examples/voice_agent/main/idf_component.yml", regex = 'livekit/livekit:\n    version: "(?<version>[^"]+)"' },
+    { path = "../../README.md", regex = 'livekit/livekit=(?<version>[0-9][^:"]*)' },
+    { path = "../../.github/ISSUE_TEMPLATE/bug_report.yml", regex = 'LiveKit SDK are you using\?\n\s*placeholder: "v(?<version>[^"]+)"' },
+    { path = "../../docs/Doxyfile", regex = 'PROJECT_NUMBER += v(?<version>\S+)' },
+]
+
+[packages.sandbox_token]
+path = "components/sandbox_token"
+
+[packages.example_utils]
+path = "components/example_utils"

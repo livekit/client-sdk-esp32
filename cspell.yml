@@ -25,6 +25,7 @@ words:
   - defconfig
   - discon
   - dotenv
+  - doxyfile
   - doxygenlayout
   - endchoice
   - endmenu
@@ -82,5 +83,6 @@ words:
   - tempotian
   - watchpoint
   - waveshare
+  - verwalter
   - wconversion
   - xclk

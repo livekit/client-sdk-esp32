@@ -1,16 +1,74 @@
+# After a release PR merges: tag and create the GitHub release, then upload
+# the components to the ESP Component Registry. The step that cannot be
+# undone comes last.
 name: Release
+
 on:
-  workflow_dispatch:
-  push:
+  pull_request:
+    types: [closed]
     branches: [main]
+  # Re-run by hand after a fix: `verwalter release` resumes from the current
+  # state and skips what is done. With `package`, that package is reported
+  # again even when complete, so the publish job runs for it.
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Only this package; always reported to the publish job.
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
 jobs:
-  registry-upload:
-    name: Registry Upload
-    uses: ./.github/workflows/esp_registry.yml
-    with: { dry_run: false }
-    secrets:
-      ESP_REGISTRY_TOKEN: ${{ secrets.ESP_REGISTRY_TOKEN }}
-  deploy-docs:
-    name: Deploy Documentation
-    uses: ./.github/workflows/docs.yml
-    with: { deploy: true }
+  release:
+    # Only a release PR the tool opened: the branch prefix alone would let
+    # any pushed `release/*` branch trigger a publish.
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/') && github.event.pull_request.user.login == 'verwalter-release[bot]' && contains(github.event.pull_request.body, '<!-- verwalter release -->'))
+    runs-on: ubuntu-latest
+    outputs:
+      released: ${{ steps.verwalter.outputs.released }}
+      releases: ${{ steps.verwalter.outputs.releases }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The merge commit itself: a push to main right after the merge
+          # must not move the tags.
+          ref: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
+          fetch-depth: 0
+      - id: verwalter
+        uses: livekit/verwalter@3c80f3f938fe9da6fa3a6d919f3c1e5cacef4600 # v0.29.0
+        with:
+          command: release
+          args: ${{ inputs.package && format('--package {0}', inputs.package) || '' }}
+
+  publish:
+    needs: release
+    if: needs.release.outputs.released == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # the tool flips draft releases once the registry has the version
+    env:
+      IDF_COMPONENT_API_TOKEN: ${{ secrets.ESP_REGISTRY_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
+          fetch-depth: 0 # tags decide what is published
+      - name: Install IDF Component Manager
+        run: pipx install idf-component-manager==3.1.2
+      - uses: livekit/verwalter@3c80f3f938fe9da6fa3a6d919f3c1e5cacef4600 # v0.29.0
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          command: publish
+          releases: ${{ needs.release.outputs.releases }}
+      # Vendored components are versioned by hand to follow upstream and are
+      # not managed by verwalter; upload whatever version is committed.
+      - name: Upload Third-Party Components
+        run: |
+          for c in nanopb khash; do
+            compote component upload --namespace livekit --name "$c" --project-dir "components/third_party/$c" \
+              --allow-existing --repository https://github.com/livekit/client-sdk-esp32 \
+              --commit-sha "$(git rev-parse HEAD)" --repository-path "components/third_party/$c"
+          done

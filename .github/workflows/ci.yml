@@ -17,7 +17,8 @@ jobs:
   docs:
     name: Build Documentation
     uses: ./.github/workflows/docs.yml
-    with: { deploy: false }
+    with:
+      deploy: ${{ github.event_name == 'push' }}
   cspell:
     name: Spell Check
     uses: ./.github/workflows/cspell.yml
