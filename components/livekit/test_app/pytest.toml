@@ -1,6 +1,11 @@
 [pytest]
 python_files = ["pytest_*.py"]
-addopts = ["-s", "--embedded-services", "esp,idf"]
+addopts = [
+    "--embedded-services", "esp,idf",
+    "--root-logdir", "logs",
+    "--junitxml", "logs/junit.xml"
+]
+junit_family = "xunit1"
 norecursedirs = ["managed_components", "build"]
 filterwarnings = [
     "ignore::pytest.PytestExperimentalApiWarning",

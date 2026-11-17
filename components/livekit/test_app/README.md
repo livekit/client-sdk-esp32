@@ -43,4 +43,4 @@ pytest --target esp32s3
 ```
 
 > [!NOTE]
-> The board echoes the values it receives, so the Wi-Fi password and token appear in the test output.
+> The board echoes the values it receives, so the Wi-Fi password and token appear in the device logs. Git ignores the _logs_ folder.

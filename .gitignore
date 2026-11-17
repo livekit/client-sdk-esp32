@@ -47,6 +47,7 @@ docs/output
 .venv
 __pycache__
 .pytest_cache
+components/livekit/test_app/logs
 
 # Secrets
 .env
