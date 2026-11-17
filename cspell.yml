@@ -28,6 +28,7 @@ words:
   - doxygenlayout
   - endchoice
   - endmenu
+  - espcoredump
   - espressif
   - esptoolpy
   - flashfreq
