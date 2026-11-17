@@ -13,9 +13,9 @@ detect memory leaks.
 ## Build & Run
 
 ```sh
-idf.py set-target esp32[s3|p4]
-idf.py build
-pytest
+pip install -r requirements.txt
+idf.py set-target esp32s3 build
+pytest --target esp32s3
 ```
 
-_pytest_ will flash the test application and run all tests configured in the test suite (see [_test_main.py_](./test_main.py)).
+_pytest_ will flash the test application and run all tests configured in the test suite (see [_pytest_livekit.py_](./pytest_livekit.py)).
