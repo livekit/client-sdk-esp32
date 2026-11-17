@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "codec_board.h"
 #include "codec_init.h"
+#include "helpers.h"
 #include "media.h"
 #include "unity_test_utils_memory.h"
 #include "unity.h"
@@ -85,4 +88,60 @@ TEST_CASE("initialize", "[basic]")
 
     res = livekit_room_destroy(room_handle);
     TEST_ASSERT_EQUAL_MESSAGE(LIVEKIT_ERR_NONE, res, "Failed to destroy room");
+}
+
+// MARK: - E2E test cases
+
+TEST_CASE("connect", "[e2e]")
+{
+    // Read first so the prompts don't interleave with network logs
+    char ssid[33], password[65], url[128], token[1024];
+    read_param("WIFI_SSID", ssid, sizeof(ssid));
+    read_param("WIFI_PASSWORD", password, sizeof(password));
+    read_param("LIVEKIT_URL", url, sizeof(url));
+    read_param("TOKEN", token, sizeof(token));
+
+    network_connect(ssid, password);
+    unity_utils_record_free_mem(); // Exclude the network from the leak check
+
+    // Coarse: lwIP may still hold the closed TCP connection (~2 KB) and libraries
+    // keep lazily initialized state, so this only catches gross leaks
+    unity_utils_set_leak_level(8192);
+
+    livekit_room_options_t options = {
+        .publish = {
+            .kind = LIVEKIT_MEDIA_TYPE_AUDIO,
+            .audio_encode = {
+                .codec = LIVEKIT_AUDIO_CODEC_OPUS,
+                .sample_rate = 16000,
+                .channel_count = 1
+            },
+            .capturer = media_get_capturer()
+        },
+        .subscribe = {
+            .kind = LIVEKIT_MEDIA_TYPE_AUDIO,
+            .renderer = media_get_renderer()
+        }
+    };
+    livekit_room_handle_t room_handle;
+    livekit_err_t res = livekit_room_create(&room_handle, &options);
+    TEST_ASSERT_EQUAL_MESSAGE(LIVEKIT_ERR_NONE, res, "Failed to create room");
+
+    res = livekit_room_connect(room_handle, url, token);
+    TEST_ASSERT_EQUAL_MESSAGE(LIVEKIT_ERR_NONE, res, "Failed to start connection");
+
+    for (int i = 0; i < 300 && livekit_room_get_state(room_handle) != LIVEKIT_CONNECTION_STATE_CONNECTED; i++) {
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+    livekit_connection_state_t state = livekit_room_get_state(room_handle);
+    TEST_ASSERT_EQUAL_MESSAGE(LIVEKIT_CONNECTION_STATE_CONNECTED, state, "Room did not connect within 30s");
+
+    // Close is asynchronous
+    TEST_ASSERT_EQUAL(LIVEKIT_ERR_NONE, livekit_room_close(room_handle));
+    for (int i = 0; i < 50 && livekit_room_get_state(room_handle) != LIVEKIT_CONNECTION_STATE_DISCONNECTED; i++) {
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+    state = livekit_room_get_state(room_handle);
+    TEST_ASSERT_EQUAL_MESSAGE(LIVEKIT_CONNECTION_STATE_DISCONNECTED, state, "Room did not disconnect within 5s");
+    TEST_ASSERT_EQUAL(LIVEKIT_ERR_NONE, livekit_room_destroy(room_handle));
 }

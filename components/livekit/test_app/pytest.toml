@@ -2,4 +2,7 @@
 python_files = ["pytest_*.py"]
 addopts = ["-s", "--embedded-services", "esp,idf"]
 norecursedirs = ["managed_components", "build"]
-filterwarnings = ["ignore::pytest.PytestExperimentalApiWarning"]
+filterwarnings = [
+    "ignore::pytest.PytestExperimentalApiWarning",
+    "ignore::jwt.warnings.InsecureKeyLengthWarning"
+]
