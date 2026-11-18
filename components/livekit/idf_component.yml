@@ -8,7 +8,7 @@ issues: https://github.com/livekit/client-sdk-esp32/issues/
 discussion: https://community.livekit.io/c/robotics/
 license: Apache-2.0
 dependencies:
-  idf: ">=5.4"
+  idf: ">=5.5"
   espressif/esp_capture: { version: ~0.7, public: true }
   tempotian/av_render: { version: ~0.9.1, public: true }
   tempotian/media_lib_sal: ~0.9.1

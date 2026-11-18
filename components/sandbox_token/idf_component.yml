@@ -6,6 +6,6 @@ issues: https://github.com/livekit/client-sdk-esp32/issues/
 discussion: https://community.livekit.io/c/robotics/
 license: Apache-2.0
 dependencies:
-  idf: ">=5.4"
+  idf: ">=5.5"
 files:
   use_gitignore: true

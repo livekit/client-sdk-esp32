@@ -1,5 +1,5 @@
 dependencies:
-  idf: ">=5.4"
+  idf: ">=5.5"
   livekit/livekit:
     version: "0.3.12"
     override_path: ../../../
