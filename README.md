@@ -30,7 +30,7 @@ Use this SDK to add realtime video, audio and data features to your ESP32 projec
 
 ## Getting Started
 
-Before you begin, please ensure you have ESP IDF v5.4 or higher installed on your system (see installation guide for [macOS/Linux](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/get-started/linux-macos-setup.html) or [Windows](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/get-started/windows-setup.html)).
+Before you begin, please ensure you have ESP IDF v5.5 or higher installed on your system (see installation guide for [macOS/Linux](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/get-started/linux-macos-setup.html) or [Windows](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/get-started/windows-setup.html)).
 
 ### Examples
 
