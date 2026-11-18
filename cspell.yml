@@ -28,6 +28,7 @@ words:
   - doxygenlayout
   - endchoice
   - endmenu
+  - espcoredump
   - espressif
   - esptoolpy
   - flashfreq
@@ -39,10 +40,12 @@ words:
   - kconfig
   - khash
   - khiter
+  - junitxml
   - korvo
   - ladvoc
   - livekit
   - logd
+  - logdir
   - loge
   - logi
   - logv
@@ -84,3 +87,4 @@ words:
   - waveshare
   - wconversion
   - xclk
+  - xunit
