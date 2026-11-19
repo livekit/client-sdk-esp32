@@ -28,6 +28,16 @@ menu "LiveKit"
         int "Maximum concurrent incoming data streams"
         range 1 32
         default 4
+    config LK_DATA_STREAM_IDLE_TIMEOUT_MS
+        int "Idle timeout for incoming data streams (ms)"
+        range 1000 600000
+        default 10000
+        help
+            An incoming data stream that receives no chunks for this long is
+            considered abandoned. When a new stream arrives on the same topic,
+            the abandoned stream is closed so its slot can be reused. Without
+            this, a stream that never sends a trailer would block its topic for
+            the rest of the session.
     config LK_MAX_DATA_STREAM_WRITERS
         int "Maximum concurrent outgoing data streams"
         range 1 32

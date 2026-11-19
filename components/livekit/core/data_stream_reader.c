@@ -18,9 +18,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <esp_log.h>
+#include <esp_timer.h>
 #include "data_stream_reader.h"
 
 static const char* TAG = "livekit_data_stream";
+
+#define IDLE_TIMEOUT_US ((int64_t)CONFIG_LK_DATA_STREAM_IDLE_TIMEOUT_MS * 1000)
 
 typedef struct {
     bool active;
@@ -31,6 +34,8 @@ typedef struct {
     uint64_t bytes_processed;
     uint64_t total_length;
     bool has_total_length;
+    /// Time of the last header or chunk received for the active stream.
+    int64_t last_activity_us;
 } data_stream_reader_descriptor_t;
 
 typedef struct {
@@ -51,6 +56,7 @@ static void reset_stream_state(data_stream_reader_descriptor_t *desc)
     desc->bytes_processed = 0;
     desc->total_length = 0;
     desc->has_total_length = false;
+    desc->last_activity_us = 0;
 }
 
 static data_stream_reader_descriptor_t* find_empty_slot(data_stream_reader_t *mgr)
@@ -81,12 +87,25 @@ static data_stream_reader_descriptor_t* find_by_topic(data_stream_reader_t *mgr,
     }
     for (int i = 0; i < CONFIG_LK_MAX_DATA_STREAM_READERS; i++) {
         data_stream_reader_descriptor_t *desc = &mgr->streams[i];
-        if (desc->handler.on_recv != NULL && !desc->active &&
+        if (desc->handler.on_recv != NULL &&
             desc->topic != NULL && strcmp(desc->topic, topic) == 0) {
             return desc;
         }
     }
     return NULL;
+}
+
+/// Closes the active stream in the slot, notifying the handler with the given reason.
+static void close_stream_with_reason(data_stream_reader_descriptor_t *desc, const char* reason)
+{
+    if (desc->handler.on_close != NULL) {
+        livekit_data_stream_trailer_t trailer_info = {
+            .stream_id = desc->stream_id,
+            .reason = reason,
+        };
+        desc->handler.on_close(&trailer_info, desc->handler.ctx);
+    }
+    reset_stream_state(desc);
 }
 
 data_stream_reader_err_t data_stream_reader_create(data_stream_reader_handle_t *handle)
@@ -171,12 +190,26 @@ data_stream_reader_err_t data_stream_reader_handle_header(data_stream_reader_han
         return DATA_STREAM_READER_ERR_NONE;
     }
 
+    int64_t now_us = esp_timer_get_time();
+    if (slot->active) {
+        if (now_us - slot->last_activity_us < IDLE_TIMEOUT_US) {
+            ESP_LOGW(TAG, "Topic %s is busy with stream %s, dropping stream %s",
+                     slot->topic, slot->stream_id, header->stream_id);
+            return DATA_STREAM_READER_ERR_NONE;
+        }
+        // The active stream stopped sending without a trailer; free its slot for this one.
+        ESP_LOGW(TAG, "Stream %s timed out, closing it for stream %s",
+                 slot->stream_id, header->stream_id);
+        close_stream_with_reason(slot, "Stream timed out");
+    }
+
     slot->active = true;
     strlcpy(slot->stream_id, header->stream_id, sizeof(slot->stream_id));
     slot->next_chunk_index = 0;
     slot->bytes_processed = 0;
     slot->total_length = header->total_length;
     slot->has_total_length = header->has_total_length;
+    slot->last_activity_us = now_us;
 
     if (slot->handler.on_open != NULL) {
         livekit_data_stream_header_t info = {
@@ -215,6 +248,7 @@ data_stream_reader_err_t data_stream_reader_handle_chunk(data_stream_reader_hand
     size_t content_size = chunk->content != NULL ? chunk->content->size : 0;
     desc->bytes_processed += content_size;
     desc->next_chunk_index = chunk->chunk_index + 1;
+    desc->last_activity_us = esp_timer_get_time();
 
     if (desc->has_total_length && desc->bytes_processed > desc->total_length) {
         ESP_LOGE(TAG, "Stream %s exceeded total_length", chunk->stream_id);
@@ -250,14 +284,6 @@ data_stream_reader_err_t data_stream_reader_handle_trailer(data_stream_reader_ha
         ESP_LOGW(TAG, "Stream %s closed abnormally: %s", trailer->stream_id, trailer->reason);
     }
 
-    if (desc->handler.on_close != NULL) {
-        livekit_data_stream_trailer_t trailer_info = {
-            .stream_id = trailer->stream_id,
-            .reason = trailer->reason,
-        };
-        desc->handler.on_close(&trailer_info, desc->handler.ctx);
-    }
-
-    reset_stream_state(desc);
+    close_stream_with_reason(desc, trailer->reason);
     return DATA_STREAM_READER_ERR_NONE;
 }
