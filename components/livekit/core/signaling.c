@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/timers.h"
 #include "esp_log.h"
@@ -23,6 +24,7 @@
 #endif
 #include "esp_websocket_client.h"
 #include "esp_tls.h"
+#include "esp_heap_caps.h"
 
 #include "protocol.h"
 #include "signaling.h"
@@ -36,6 +38,19 @@ static const char *TAG = "livekit_signaling";
 #define SIGNAL_WS_NETWORK_TIMEOUT_MS   10000
 #define SIGNAL_WS_CLOSE_CODE           1000
 #define SIGNAL_WS_CLOSE_TIMEOUT_MS     250
+#define SIGNAL_MAX_MESSAGE_SIZE        CONFIG_LK_SIGNAL_MAX_MESSAGE_SIZE
+
+/// State for reassembling a signaling message delivered across multiple
+/// WebSocket data events. The WebSocket client posts any frame larger than its
+/// receive buffer as a sequence of fragments over the same buffer, so a message
+/// that exceeds `SIGNAL_WS_BUFFER_SIZE` arrives in pieces that must be
+/// reassembled before decoding.
+typedef struct {
+    uint8_t *buf;     /// Reassembly buffer, sized to the full message, or NULL when idle.
+    size_t total;     /// Expected total message size (`payload_len` of the frame).
+    size_t received;  /// Bytes copied into `buf` so far.
+    bool overflow;    /// True once a message was rejected; its remaining fragments are skipped.
+} signal_reassembly_t;
 
 typedef struct {
     esp_websocket_client_handle_t ws;
@@ -45,6 +60,7 @@ typedef struct {
     TimerHandle_t ping_interval_timer;
     TimerHandle_t ping_timeout_timer;
     int64_t rtt;
+    signal_reassembly_t reassembly;
 
 #if CONFIG_LK_BENCHMARK
     uint64_t start_time;
@@ -144,6 +160,107 @@ static inline bool res_middleware(signal_t *sg, livekit_pb_signal_response_t *re
     }
 }
 
+/// Decodes a complete signaling message and dispatches it to the receiver.
+static void handle_message(signal_t *sg, const uint8_t *buf, size_t len)
+{
+    livekit_pb_signal_response_t res = {};
+    if (!protocol_signal_response_decode(buf, len, &res)) {
+        return;
+    }
+    if (res.which_message == 0) {
+        // Response type is not supported yet.
+        protocol_signal_response_free(&res);
+        return;
+    }
+    if (!res_middleware(sg, &res)) {
+        // Don't forward.
+        protocol_signal_response_free(&res);
+        return;
+    }
+    if (!sg->options.on_res(&res, sg->options.ctx)) {
+        // Ownership was not taken.
+        protocol_signal_response_free(&res);
+    }
+}
+
+/// Releases any in-progress reassembly state.
+static void reassembly_reset(signal_t *sg)
+{
+    SAFE_FREE(sg->reassembly.buf);
+    sg->reassembly.total = 0;
+    sg->reassembly.received = 0;
+    sg->reassembly.overflow = false;
+}
+
+/// Handles a single WebSocket data event, reassembling fragmented messages.
+///
+/// The WebSocket client delivers a frame larger than its receive buffer as
+/// multiple events: the first carries `payload_offset == 0`, each subsequent
+/// event advances `payload_offset`, and all events report the full frame length
+/// in `payload_len`. A message that fits in a single event is decoded in place
+/// without allocating.
+///
+static void handle_data(signal_t *sg, const esp_websocket_event_data_t *data)
+{
+    if (data->data_len < 1) {
+        return;
+    }
+    size_t total = data->payload_len > 0 ? (size_t)data->payload_len : (size_t)data->data_len;
+    size_t offset = data->payload_offset >= 0 ? (size_t)data->payload_offset : 0;
+
+    // Fast path: the whole message arrived in one event.
+    if (offset == 0 && (size_t)data->data_len == total) {
+        handle_message(sg, (const uint8_t *)data->data_ptr, (size_t)data->data_len);
+        return;
+    }
+
+    // First fragment: begin reassembly. A new frame always restarts at offset 0,
+    // so discard any partial state left over from an interrupted message.
+    if (offset == 0) {
+        reassembly_reset(sg);
+        if (total > SIGNAL_MAX_MESSAGE_SIZE) {
+            ESP_LOGE(TAG, "Dropping oversized signaling message: %zu bytes (max %d)",
+                total, SIGNAL_MAX_MESSAGE_SIZE);
+            sg->reassembly.overflow = true;
+            return;
+        }
+        uint8_t *buf = heap_caps_malloc(total, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+        if (buf == NULL) {
+            buf = malloc(total);
+        }
+        if (buf == NULL) {
+            ESP_LOGE(TAG, "Failed to allocate %zu bytes for signaling message", total);
+            sg->reassembly.overflow = true;
+            return;
+        }
+        sg->reassembly.buf = buf;
+        sg->reassembly.total = total;
+        sg->reassembly.received = 0;
+    }
+
+    // Continuation fragment for a message we already decided to drop.
+    if (sg->reassembly.overflow) {
+        return;
+    }
+    // Continuation fragment with no active reassembly, or inconsistent framing.
+    if (sg->reassembly.buf == NULL ||
+        total != sg->reassembly.total ||
+        offset != sg->reassembly.received ||
+        offset + (size_t)data->data_len > sg->reassembly.total) {
+        ESP_LOGW(TAG, "Discarding malformed signaling fragment");
+        reassembly_reset(sg);
+        return;
+    }
+
+    memcpy(sg->reassembly.buf + offset, data->data_ptr, (size_t)data->data_len);
+    sg->reassembly.received += (size_t)data->data_len;
+
+    if (sg->reassembly.received == sg->reassembly.total) {
+        handle_message(sg, sg->reassembly.buf, sg->reassembly.received);
+        reassembly_reset(sg);
+    }
+}
+
 static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void *event_data)
 {
     signal_t *sg = (signal_t *)ctx;
@@ -160,6 +277,8 @@ static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void
         case WEBSOCKET_EVENT_CLOSED:
         case WEBSOCKET_EVENT_DISCONNECTED:
         case WEBSOCKET_EVENT_FINISH:
+            // Drop any partially reassembled message from the dead connection.
+            reassembly_reset(sg);
             if (sg->is_terminal_state) {
                 break;
             }
@@ -190,28 +309,14 @@ static void on_ws_event(void *ctx, esp_event_base_t base, int32_t event_id, void
             change_state(sg, SIGNAL_STATE_CONNECTED);
             break;
         case WEBSOCKET_EVENT_DATA:
-            if (data->op_code != WS_TRANSPORT_OPCODES_BINARY) {
+            // Only binary frames carry signaling messages. The opcode is checked
+            // on the first fragment; continuation fragments of the same frame may
+            // report a continuation opcode and are matched by offset.
+            if (data->payload_offset == 0 &&
+                data->op_code != WS_TRANSPORT_OPCODES_BINARY) {
                 break;
             }
-            if (data->data_len < 1) break;
-            livekit_pb_signal_response_t res = {};
-            if (!protocol_signal_response_decode((const uint8_t *)data->data_ptr, (size_t)data->data_len, &res)) {
-                break;
-            }
-            if (res.which_message == 0) {
-                // Response type is not supported yet.
-                protocol_signal_response_free(&res);
-                break;
-            }
-            if (!res_middleware(sg, &res)) {
-                // Don't forward.
-                protocol_signal_response_free(&res);
-                break;
-            }
-            if (!sg->options.on_res(&res, sg->options.ctx)) {
-                // Ownership was not taken.
-                protocol_signal_response_free(&res);
-            }
+            handle_data(sg, data);
             break;
         default:
             break;
@@ -298,6 +403,7 @@ signal_err_t signal_destroy(signal_handle_t handle)
     if (sg->ws != NULL) {
         esp_websocket_client_destroy(sg->ws);
     }
+    reassembly_reset(sg);
     free(sg);
     return SIGNAL_ERR_NONE;
 }
